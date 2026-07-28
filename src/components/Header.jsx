@@ -17,7 +17,7 @@ export default function Header() {
   return (
     <header className="border-b border-stone-200 bg-white">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-3">
-        <div className="flex items-center gap-2 text-teal-900">
+        <div className="flex items-center gap-2 text-cyan-900">
           <Compass className="h-5 w-5" />
           <span className="font-serif text-lg">Travel Planner</span>
         </div>
@@ -30,7 +30,7 @@ export default function Header() {
               className={({ isActive }) =>
                 `flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition ${
                   isActive
-                    ? "bg-teal-50 text-teal-700"
+                    ? "bg-cyan-50 text-cyan-700"
                     : "text-stone-500 hover:bg-stone-100 hover:text-stone-700"
                 }`
               }

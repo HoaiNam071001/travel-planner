@@ -14,8 +14,8 @@ export default function LocationCard({
       onClick={() => onOpenDetail(location)}
       className={`group relative cursor-pointer rounded-xl border bg-white p-4 shadow-sm transition hover:shadow-md ${
         isViewedOnMap
-          ? "border-teal-400 ring-1 ring-teal-200"
-          : "border-stone-200 hover:border-teal-300"
+          ? "border-cyan-400 ring-1 ring-cyan-200"
+          : "border-stone-200 hover:border-cyan-300"
       }`}
     >
       <div className="mb-2 flex items-start justify-between gap-2">
@@ -28,8 +28,8 @@ export default function LocationCard({
             }}
             className={`rounded-full p-1.5 transition ${
               isViewedOnMap
-                ? "bg-teal-50 text-teal-700"
-                : "text-stone-400 hover:bg-teal-50 hover:text-teal-700"
+                ? "bg-cyan-50 text-cyan-700"
+                : "text-stone-400 hover:bg-cyan-50 hover:text-cyan-700"
             }`}
             aria-label={isViewedOnMap ? "Ẩn khỏi bản đồ" : "Xem trên bản đồ"}
           >
@@ -40,7 +40,7 @@ export default function LocationCard({
               e.stopPropagation();
               onEdit(location);
             }}
-            className="rounded-full p-1.5 text-stone-400 hover:bg-teal-50 hover:text-teal-700"
+            className="rounded-full p-1.5 text-stone-400 hover:bg-cyan-50 hover:text-cyan-700"
             aria-label="Sửa"
           >
             <Pencil className="h-3.5 w-3.5" />

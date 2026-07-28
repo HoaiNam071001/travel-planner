@@ -96,11 +96,11 @@ export default function LocationsPage() {
         {/* Header */}
         <div className="mb-8 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-teal-700 text-stone-50">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-cyan-700 text-stone-50">
               <Compass className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="font-serif text-2xl text-teal-900">Sổ tay địa điểm</h1>
+              <h1 className="font-serif text-2xl text-cyan-900">Sổ tay địa điểm</h1>
               <p className="text-sm text-stone-500">Lưu lại những nơi bạn muốn ghé qua</p>
             </div>
           </div>
