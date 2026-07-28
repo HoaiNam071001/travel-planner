@@ -83,10 +83,17 @@ Tổng cost/quãng đường của Plan = tổng hợp từ Unit, Unit tổng h�
 (không thể làm bằng code):
 
 1. Google Cloud Console → tạo OAuth 2.0 Client ID (Web application) → Authorized redirect
-   URI = `https://<project-ref>.supabase.co/auth/v1/callback`
+   URI = `https://<project-ref>.supabase.co/auth/v1/callback`; Authorized JavaScript origins
+   thêm domain thật sẽ dùng để đăng nhập (vd `http://localhost:5173`, domain Vercel)
 2. Supabase Dashboard → Authentication → Providers → Google: bật, dán Client ID/Secret
 3. Supabase Dashboard → Authentication → URL Configuration: set Site URL + Additional
    Redirect URLs (vd `http://localhost:5173` cho dev)
+
+**Mỗi khi deploy lên domain mới (vd Vercel)**: phải quay lại bước 3 để thêm domain đó vào
+Site URL / Additional Redirect URLs (dùng `https://*.vercel.app` nếu có preview deployment),
+nếu không đăng nhập Google sẽ lỗi `bad_oauth_state` — do Supabase fallback redirect về Site
+URL cũ (thường là `http://localhost:3000` mặc định lúc tạo project) thay vì domain thật vừa
+deploy, khiến state/PKCE verifier không khớp domain.
 
 ## ⚠️ Bước thủ công bắt buộc — deploy Edge Function `resolve-maps-link`
 
