@@ -3,6 +3,8 @@ import Modal from "../shared/components/Modal";
 import Button from "../shared/components/Button";
 import Input, { TextArea } from "../shared/components/Input";
 import ImageUrlInput from "../shared/components/ImageUrlInput";
+import { isShortGoogleMapsLink, parseGoogleMapsUrl } from "../shared/utils/googleMapsLink";
+import { resolveShortMapsLink } from "../services/mapsLink.service";
 
 function toFormState(location) {
   return {
@@ -18,13 +20,50 @@ export default function LocationFormModal({ open, mode, location, onClose, onSub
   const [form, setForm] = useState(() => toFormState(location));
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [mapsLink, setMapsLink] = useState("");
+  const [mapsLinkError, setMapsLinkError] = useState("");
+  const [convertingLink, setConvertingLink] = useState(false);
 
   useEffect(() => {
     if (open) {
       setForm(toFormState(location));
       setError("");
+      setMapsLink("");
+      setMapsLinkError("");
     }
   }, [open, location]);
+
+  async function handleConvertMapsLink() {
+    const raw = mapsLink.trim();
+    if (!raw) return;
+
+    setMapsLinkError("");
+    setConvertingLink(true);
+    try {
+      let fullUrl = raw;
+      if (isShortGoogleMapsLink(raw)) {
+        const { finalUrl, error: resolveError } = await resolveShortMapsLink(raw);
+        if (resolveError) throw new Error(resolveError);
+        fullUrl = finalUrl;
+      }
+
+      const parsed = parseGoogleMapsUrl(fullUrl);
+      if (!parsed) {
+        throw new Error("Không tìm thấy toạ độ trong link này.");
+      }
+
+      setForm((f) => ({
+        ...f,
+        lat: String(parsed.lat),
+        lng: String(parsed.lng),
+        name: f.name.trim() ? f.name : parsed.name || f.name,
+      }));
+    } catch (err) {
+      setMapsLinkError(err.message || "Không xử lý được link này.");
+    } finally {
+      setConvertingLink(false);
+    }
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -67,6 +106,25 @@ export default function LocationFormModal({ open, mode, location, onClose, onSub
       footer={null}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="mb-1 block text-xs font-medium text-stone-500">
+            Dán link Google Maps (tự điền tên + vị trí)
+          </label>
+          <div className="flex gap-2">
+            <Input
+              value={mapsLink}
+              onChange={(e) => setMapsLink(e.target.value)}
+              placeholder="https://maps.app.goo.gl/... hoặc https://www.google.com/maps/place/..."
+            />
+            <Button onClick={handleConvertMapsLink} loading={convertingLink}>
+              Chuyển đổi
+            </Button>
+          </div>
+          {mapsLinkError && (
+            <p className="mt-1 text-xs text-red-600">{mapsLinkError}</p>
+          )}
+        </div>
+
         <div>
           <label className="mb-1 block text-xs font-medium text-stone-500">
             Tên địa điểm

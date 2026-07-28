@@ -8,7 +8,8 @@ và nhiều unit gộp thành 1 "kế hoạch" (plan) tổng.
 
 - Frontend: React + Vite, TailwindCSS, lucide-react (icon)
 - UI components: Ant Design (`antd`) — Button/Modal/Input/DatePicker dùng qua wrapper ở
-  `src/shared/components/`, theme khớp palette stone/teal ở `src/shared/theme/antdTheme.js`
+  `src/shared/components/`, theme khớp palette stone/cyan ở `src/shared/theme/antdTheme.js`
+  (màu chính `#06B6D4`, tương ứng Tailwind `cyan-500`)
 - Bản đồ: react-leaflet + leaflet, tile OpenStreetMap (free, không cần API key) — dùng ở
   trang Địa điểm để hiện vị trí trên bản đồ
 - Routing: react-router-dom
@@ -21,6 +22,11 @@ và nhiều unit gộp thành 1 "kế hoạch" (plan) tổng.
 - Tính khoảng cách/thời gian di chuyển: OpenRouteService API (free key, không cần thẻ tín dụng)
 - Drag & drop (kéo item vào unit): dnd-kit
 - Deploy frontend: Vercel hoặc Netlify (free tier)
+- Giải mã link Google Maps (dán vào modal địa điểm để tự điền tên + lat/lng): Supabase Edge
+  Function `supabase/functions/resolve-maps-link` (theo redirect của link rút gọn
+  `maps.app.goo.gl/...` phía server để né CORS), gọi qua
+  `src/services/mapsLink.service.js`; parse URL đầy đủ ra tên/toạ độ bằng
+  `src/shared/utils/googleMapsLink.js` (thuần regex, không cần gọi mạng)
 
 ## Kiến trúc code
 
@@ -32,8 +38,8 @@ và nhiều unit gộp thành 1 "kế hoạch" (plan) tổng.
   palette hiện có: `Button`, `Modal`, `Input`/`TextArea`, `DatePicker`, `ImageUrlInput`
   (input thêm ảnh từ URL, có preview + xoá). Luôn ưu tiên dùng lại các component này thay
   vì viết `<button>`/`<input>` thô hoặc import thẳng từ `antd` ở trang/component khác.
-- `src/shared/theme/antdTheme.js` — theme token antd (màu chính teal-700, bo góc), áp dụng
-  qua `<ConfigProvider>` bọc toàn app ở `main.jsx`.
+- `src/shared/theme/antdTheme.js` — theme token antd (màu chính cyan-500 `#06B6D4`, bo góc),
+  áp dụng qua `<ConfigProvider>` bọc toàn app ở `main.jsx`.
 - `src/services/*.service.js` — 1 file/bảng, là nơi duy nhất gọi `supabase.from(...)`.
   `locations.service.js` đã CRUD thật; `items`/`units`/`plans`/`unitRoutes` service hiện
   là stub (throw "not implemented"), chờ tính năng tương ứng trong roadmap.
@@ -45,6 +51,10 @@ và nhiều unit gộp thành 1 "kế hoạch" (plan) tổng.
 - `src/components/LocationsMap.jsx` — bản đồ react-leaflet dùng chung cho các trang cần
   hiện vị trí (hiện đang dùng ở `LocationsPage`); fix icon marker mặc định của Leaflet ở
   `src/shared/map/leafletIconFix.js` (bắt buộc khi bundle bằng Vite).
+- `src/shared/utils/googleMapsLink.js` — parse URL Google Maps đầy đủ ra tên + lat/lng bằng
+  regex (không gọi mạng); `src/services/mapsLink.service.js` gọi Edge Function
+  `resolve-maps-link` để theo redirect của link rút gọn `maps.app.goo.gl/...` trước, rồi mới
+  parse — dùng ở `LocationFormModal` (ô "Dán link Google Maps").
 
 ## Data model (Postgres, xem `supabase/schema.sql`)
 
@@ -78,6 +88,17 @@ Tổng cost/quãng đường của Plan = tổng hợp từ Unit, Unit tổng h�
 3. Supabase Dashboard → Authentication → URL Configuration: set Site URL + Additional
    Redirect URLs (vd `http://localhost:5173` cho dev)
 
+## ⚠️ Bước thủ công bắt buộc — deploy Edge Function `resolve-maps-link`
+
+Ô "Dán link Google Maps" trong modal địa điểm chỉ giải mã được **link rút gọn**
+(`maps.app.goo.gl/...`) sau khi Edge Function này được deploy lên Supabase (chưa deploy thì
+link đầy đủ vẫn parse được bình thường vì phần đó chạy client-side thuần regex, không cần
+Edge Function):
+
+1. Cài Supabase CLI (`npm i -g supabase` hoặc `brew install supabase/tap/supabase`)
+2. `supabase login` rồi `supabase link --project-ref <project-ref>`
+3. `supabase functions deploy resolve-maps-link`
+
 ## Roadmap tính năng
 
 1. ✅ **Location Manager** (`src/pages/LocationsPage.jsx`) — CRUD địa điểm qua modal
@@ -85,7 +106,9 @@ Tổng cost/quãng đường của Plan = tổng hợp từ Unit, Unit tổng h�
    `locations`, xem `supabase/schema.sql`). List bên trái (mỗi thẻ có nút sửa, nút bật/tắt
    hiện trên bản đồ, bấm vào thẻ mở modal xem chi tiết + ảnh); bản đồ bên phải
    (`src/components/LocationsMap.jsx`) chỉ hiện khi có ít nhất 1 địa điểm đang bật xem bản
-   đồ, còn lại list hiện full-width dạng lưới.
+   đồ, còn lại list hiện full-width dạng lưới. Modal tạo/sửa có ô dán link Google Maps
+   (đầy đủ hoặc rút gọn `maps.app.goo.gl`) để tự điền tên + lat/lng, xem
+   `src/shared/utils/googleMapsLink.js` + Edge Function `resolve-maps-link` ở trên.
 2. ✅ **Đăng nhập Google + layout + services layer** — `src/pages/LoginPage.jsx`,
    `src/context/AuthContext.jsx`, `src/routes/ProtectedRoute.jsx`, layout
    Header + content (`src/layouts/AppLayout.jsx`), bảng `users`, RLS theo `user_id` trên
@@ -106,6 +129,8 @@ Tổng cost/quãng đường của Plan = tổng hợp từ Unit, Unit tổng h�
   Supabase SQL Editor
 - Bật Google OAuth provider thủ công trong Supabase Dashboard (xem mục "⚠️ Bước thủ công
   bắt buộc" ở trên) — bắt buộc trước khi test đăng nhập được
+- Deploy Edge Function `resolve-maps-link` (xem mục "⚠️ Bước thủ công bắt buộc" thứ 2 ở
+  trên) — bắt buộc để ô dán link Google Maps giải mã được link rút gọn
 - Làm tiếp **Item Manager** (bước 3 trong roadmap): code CRUD thật vào
   `src/services/items.service.js` (thay các hàm stub) + xây UI trong
   `src/pages/ItemsPage.jsx` — theo mẫu code đã có ở `locations.service.js` /
