@@ -1,0 +1,161 @@
+-- Travel Planner schema
+-- Chạy toàn bộ file này trong Supabase Dashboard > SQL Editor.
+-- Dùng IF NOT EXISTS nên chạy lại nhiều lần vẫn an toàn.
+
+create extension if not exists "pgcrypto";
+
+-- ---------------------------------------------------------------------------
+-- users: hồ sơ public, đồng bộ tự động từ auth.users qua trigger bên dưới
+-- ---------------------------------------------------------------------------
+create table if not exists users (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  email text,
+  full_name text,
+  avatar text,
+  created_at timestamptz not null default now()
+);
+
+alter table users enable row level security;
+
+drop policy if exists "Users can view own profile" on users;
+create policy "Users can view own profile" on users
+  for select using (auth.uid() = user_id);
+
+drop policy if exists "Users can update own profile" on users;
+create policy "Users can update own profile" on users
+  for update using (auth.uid() = user_id);
+
+-- Tự tạo hàng trong public.users khi có user mới đăng nhập lần đầu (auth.users insert)
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.users (user_id, email, full_name, avatar)
+  values (
+    new.id,
+    new.email,
+    new.raw_user_meta_data ->> 'full_name',
+    new.raw_user_meta_data ->> 'avatar_url'
+  )
+  on conflict (user_id) do nothing;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_user();
+
+-- ---------------------------------------------------------------------------
+-- plans
+-- ---------------------------------------------------------------------------
+create table if not exists plans (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  name text not null,
+  description text,
+  start_date date,
+  end_date date,
+  created_at timestamptz not null default now()
+);
+
+alter table plans enable row level security;
+
+drop policy if exists "Users manage own plans" on plans;
+create policy "Users manage own plans" on plans
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ---------------------------------------------------------------------------
+-- units
+-- ---------------------------------------------------------------------------
+create table if not exists units (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  plan_id uuid references plans(id) on delete set null,
+  name text not null,
+  description text,
+  date date,
+  order_index int not null default 0,
+  created_at timestamptz not null default now()
+);
+
+alter table units enable row level security;
+
+drop policy if exists "Users manage own units" on units;
+create policy "Users manage own units" on units
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ---------------------------------------------------------------------------
+-- locations
+-- ---------------------------------------------------------------------------
+create table if not exists locations (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  name text not null,
+  description text,
+  lat double precision not null,
+  lng double precision not null,
+  images text[] not null default '{}',
+  created_at timestamptz not null default now()
+);
+
+alter table locations enable row level security;
+
+drop policy if exists "Users manage own locations" on locations;
+create policy "Users manage own locations" on locations
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ---------------------------------------------------------------------------
+-- items
+-- ---------------------------------------------------------------------------
+create table if not exists items (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  unit_id uuid references units(id) on delete set null,
+  location_id uuid references locations(id) on delete set null,
+  name text not null,
+  price numeric,
+  start_time time,
+  end_time time,
+  note text,
+  order_index int not null default 0,
+  created_at timestamptz not null default now()
+);
+
+alter table items enable row level security;
+
+drop policy if exists "Users manage own items" on items;
+create policy "Users manage own items" on items
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ---------------------------------------------------------------------------
+-- unit_routes — không có cột chủ sở hữu tự nhiên (PK = unit_id), nên denormalize
+-- thêm user_id thay vì viết policy subquery join units cho mỗi lần check quyền.
+-- ---------------------------------------------------------------------------
+create table if not exists unit_routes (
+  unit_id uuid primary key references units(id) on delete cascade,
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  distance_km double precision,
+  duration_min double precision,
+  route_geometry jsonb,
+  updated_at timestamptz not null default now()
+);
+
+alter table unit_routes enable row level security;
+
+drop policy if exists "Users manage own unit_routes" on unit_routes;
+create policy "Users manage own unit_routes" on unit_routes
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create index if not exists idx_units_plan_id on units(plan_id);
+create index if not exists idx_units_user_id on units(user_id);
+create index if not exists idx_items_unit_id on items(unit_id);
+create index if not exists idx_items_location_id on items(location_id);
+create index if not exists idx_items_user_id on items(user_id);
+create index if not exists idx_locations_user_id on locations(user_id);
+create index if not exists idx_plans_user_id on plans(user_id);
+create index if not exists idx_unit_routes_user_id on unit_routes(user_id);

@@ -1,0 +1,84 @@
+import { MapPin, Pencil, Trash2, Map, Image as ImageIcon } from "lucide-react";
+import { Popconfirm } from "antd";
+
+export default function LocationCard({
+  location,
+  isViewedOnMap,
+  onOpenDetail,
+  onEdit,
+  onToggleMap,
+  onDelete,
+}) {
+  return (
+    <div
+      onClick={() => onOpenDetail(location)}
+      className={`group relative cursor-pointer rounded-xl border bg-white p-4 shadow-sm transition hover:shadow-md ${
+        isViewedOnMap
+          ? "border-teal-400 ring-1 ring-teal-200"
+          : "border-stone-200 hover:border-teal-300"
+      }`}
+    >
+      <div className="mb-2 flex items-start justify-between gap-2">
+        <h3 className="font-serif text-base leading-snug text-stone-900">{location.name}</h3>
+        <div className="flex shrink-0 gap-1">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleMap(location.id);
+            }}
+            className={`rounded-full p-1.5 transition ${
+              isViewedOnMap
+                ? "bg-teal-50 text-teal-700"
+                : "text-stone-400 hover:bg-teal-50 hover:text-teal-700"
+            }`}
+            aria-label={isViewedOnMap ? "Ẩn khỏi bản đồ" : "Xem trên bản đồ"}
+          >
+            <Map className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(location);
+            }}
+            className="rounded-full p-1.5 text-stone-400 hover:bg-teal-50 hover:text-teal-700"
+            aria-label="Sửa"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
+          <Popconfirm
+            title="Xoá địa điểm này?"
+            okText="Xoá"
+            cancelText="Huỷ"
+            okButtonProps={{ danger: true }}
+            onConfirm={() => onDelete(location.id)}
+          >
+            <button
+              onClick={(e) => e.stopPropagation()}
+              className="rounded-full p-1.5 text-stone-400 hover:bg-red-50 hover:text-red-600"
+              aria-label="Xoá"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </Popconfirm>
+        </div>
+      </div>
+
+      {location.description && (
+        <p className="mb-3 text-sm text-stone-500 line-clamp-2">{location.description}</p>
+      )}
+
+      <div className="flex items-center gap-2">
+        <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 font-mono text-xs text-amber-800">
+          <MapPin className="h-3 w-3" />
+          {location.lat.toFixed(4)}, {location.lng.toFixed(4)}
+        </span>
+        {location.images?.length > 0 && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2.5 py-1 text-xs text-stone-600">
+            <ImageIcon className="h-3 w-3" />
+            {location.images.length}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
