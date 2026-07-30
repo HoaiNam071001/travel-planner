@@ -3,9 +3,11 @@ import { CalendarClock, Clock, Map, Pencil, Sparkles, Trash2, Wallet } from "luc
 import Badge from "../shared/components/Badge";
 import IconButton from "../shared/components/IconButton";
 import { formatDateTimeRange, formatDuration, formatPrice } from "../shared/utils/format";
+import { unitComputedRange } from "../shared/utils/planStats";
 
 export default function UnitCard({ unit, stats, planName, onOpenDetail, onEdit, onDelete }) {
-  const range = formatDateTimeRange(unit.start_date, unit.end_date);
+  const computedRange = unitComputedRange(unit, stats);
+  const range = computedRange ? formatDateTimeRange(computedRange.start, computedRange.end) : null;
 
   return (
     <div

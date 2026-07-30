@@ -2,10 +2,9 @@ import { Clock, MapPin, Pencil, Route as RouteIcon, Wallet } from "lucide-react"
 import Modal from "../shared/components/Modal";
 import Button from "../shared/components/Button";
 import Badge from "../shared/components/Badge";
-import { formatDuration, formatPrice, formatTimeRange, itemDurationMinutes } from "../shared/utils/format";
+import { formatDuration, formatPrice, itemDurationMinutes } from "../shared/utils/format";
 
 export default function ItemDetailModal({ open, item, unitName, onClose, onEdit }) {
-  const time = item ? formatTimeRange(item.start_time, item.end_time) : null;
   const duration = item ? formatDuration(itemDurationMinutes(item)) : null;
 
   return (
@@ -31,10 +30,9 @@ export default function ItemDetailModal({ open, item, unitName, onClose, onEdit 
       {item && (
         <div className="pt-1">
           <div className="flex flex-wrap items-center gap-1.5">
-            {time && (
+            {duration && (
               <Badge icon={Clock} numeric>
-                {time}
-                {duration && <span className="text-slate-400">· {duration}</span>}
+                {duration}
               </Badge>
             )}
             {item.price != null && Number(item.price) > 0 && (

@@ -2,7 +2,7 @@ import { Popconfirm } from "antd";
 import { Clock, CornerUpLeft, MapPin, Pencil, Trash2 } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { formatPrice, formatTimeRange } from "../../shared/utils/format";
+import { formatPrice, formatDuration, itemDurationMinutes } from "../../shared/utils/format";
 import IconButton from "../../shared/components/IconButton";
 
 // Thẻ hoạt động trong Plan Builder. Kéo bằng cả thẻ (PointerSensor có
@@ -67,12 +67,12 @@ export default function BoardItemCard({ item, laneId, onEdit, onDelete, onSendTo
         </p>
       )}
 
-      {(item.start_time || item.price != null) && (
+      {(itemDurationMinutes(item) > 0 || item.price != null) && (
         <div className="mt-2 flex items-center gap-2 text-[11px] text-slate-500">
-          {formatTimeRange(item.start_time, item.end_time) && (
+          {itemDurationMinutes(item) > 0 && (
             <span className="inline-flex items-center gap-1 font-mono tnum">
               <Clock className="h-3 w-3 text-slate-400" />
-              {formatTimeRange(item.start_time, item.end_time)}
+              {formatDuration(itemDurationMinutes(item))}
             </span>
           )}
           {item.price != null && Number(item.price) > 0 && (

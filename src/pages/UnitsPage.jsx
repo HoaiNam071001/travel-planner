@@ -193,7 +193,7 @@ export default function UnitsPage() {
             <UnitCard
               key={unit.id}
               unit={unit}
-              stats={unitStats(itemsByUnit.get(unit.id) ?? [])}
+              stats={unitStats(itemsByUnit.get(unit.id) ?? [], unit.break_minutes)}
               planName={unit.plan_id ? planNameById[unit.plan_id] : null}
               onOpenDetail={setDetailUnit}
               onEdit={openEditModal}

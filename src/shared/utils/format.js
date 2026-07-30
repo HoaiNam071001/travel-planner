@@ -41,11 +41,6 @@ export function formatDateTimeRange(start, end) {
 }
 
 // `items.start_time` / `end_time` là cột `time` của Postgres -> "08:00:00".
-export function formatTimeRange(startTime, endTime) {
-  if (!startTime || !endTime) return null;
-  return `${startTime.slice(0, 5)} - ${endTime.slice(0, 5)}`;
-}
-
 export function formatDuration(minutes) {
   if (!minutes || minutes <= 0) return null;
   const hours = Math.floor(minutes / 60);
@@ -54,16 +49,9 @@ export function formatDuration(minutes) {
   return mins ? `${hours}h${String(mins).padStart(2, "0")}` : `${hours} giờ`;
 }
 
-// Thời lượng của 1 hoạt động, tính từ khung giờ start_time/end_time (phút).
-// Khung giờ qua nửa đêm (vd 22:00 - 01:00) được cộng thêm 1 ngày.
+// Thời lượng của 1 hoạt động, đọc trực tiếp từ cột duration_minutes.
 export function itemDurationMinutes(item) {
-  if (!item?.start_time || !item?.end_time) return 0;
-  const toMinutes = (t) => {
-    const [h, m] = t.split(":").map(Number);
-    return h * 60 + m;
-  };
-  const diff = toMinutes(item.end_time) - toMinutes(item.start_time);
-  return diff >= 0 ? diff : diff + 24 * 60;
+  return Number(item?.duration_minutes) || 0;
 }
 
 // Số ngày của 1 khoảng thời gian, tính cả ngày đầu và ngày cuối.

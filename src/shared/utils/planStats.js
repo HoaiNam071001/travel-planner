@@ -1,3 +1,4 @@
+import dayjs from "dayjs";
 import { itemDurationMinutes } from "./format";
 
 // Tổng chi phí/thời lượng của Chặng = tổng hợp từ Hoạt động, của Kế hoạch = tổng
@@ -17,12 +18,47 @@ export function groupItemsByUnit(items = []) {
   return byUnit;
 }
 
-export function unitStats(unitItems = []) {
+export function unitStats(unitItems = [], breakMinutes = 0) {
+  const itemCount = unitItems.length;
+  const baseDuration = unitItems.reduce((sum, i) => sum + itemDurationMinutes(i), 0);
+  const breakDuration = breakMinutes * Math.max(itemCount - 1, 0);
   return {
-    itemCount: unitItems.length,
+    itemCount,
     cost: unitItems.reduce((sum, i) => sum + (Number(i.price) || 0), 0),
-    minutes: unitItems.reduce((sum, i) => sum + itemDurationMinutes(i), 0),
+    minutes: baseDuration + breakDuration,
   };
+}
+
+// Tính khoảng thời gian của chặng từ start_date + tổng thời lượng hoạt động.
+export function unitComputedRange(unit, stats) {
+  if (!unit?.start_date) return null;
+  const start = dayjs(unit.start_date);
+  const end = start.add(stats.minutes, "minute");
+  return { start, end };
+}
+
+// Tính giờ bắt đầu/kết thúc cho từng hoạt động trong chặng, có tính khoảng nghỉ.
+export function computeItemSchedule(unit, items, breakMinutes = 0) {
+  if (!unit?.start_date || !items?.length) return [];
+
+  let current = dayjs(unit.start_date);
+  const schedule = [];
+
+  items.forEach((item, idx) => {
+    const start = current;
+    const duration = itemDurationMinutes(item);
+    const end = start.add(duration, "minute");
+    schedule.push({ item, start, end });
+
+    // Cộng thêm khoảng nghỉ nếu không phải hoạt động cuối cùng
+    if (idx < items.length - 1 && breakMinutes > 0) {
+      current = end.add(breakMinutes, "minute");
+    } else {
+      current = end;
+    }
+  });
+
+  return schedule;
 }
 
 // Các chặng của 1 kế hoạch, đã sắp theo order_index.

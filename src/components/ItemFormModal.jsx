@@ -1,24 +1,22 @@
 import { useEffect, useState } from "react";
-import { InputNumber, TimePicker } from "antd";
+import { InputNumber } from "antd";
 import { MapPin } from "lucide-react";
-import dayjs from "dayjs";
 import Modal from "../shared/components/Modal";
 import Button from "../shared/components/Button";
 import Field from "../shared/components/Field";
 import Input, { TextArea } from "../shared/components/Input";
 import DualListPicker from "./DualListPicker";
 
-const { RangePicker } = TimePicker;
-
 function toFormState(item) {
+  const minutes = Number(item?.duration_minutes) || 0;
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
   return {
     locationIds: item?.locations?.map((loc) => loc.id) ?? [],
     name: item?.name ?? "",
     price: item?.price ?? null,
-    timeRange:
-      item?.start_time && item?.end_time
-        ? [dayjs(item.start_time, "HH:mm:ss"), dayjs(item.end_time, "HH:mm:ss")]
-        : null,
+    durationHours: hours,
+    durationMinutes: mins,
     note: item?.note ?? "",
   };
 }
@@ -60,12 +58,12 @@ export default function ItemFormModal({ open, mode, item, locations, onClose, on
     }
 
     setSubmitting(true);
+    const duration_minutes = (form.durationHours || 0) * 60 + (form.durationMinutes || 0);
     const result = await onSubmit({
       locationIds: form.locationIds,
       name: form.name.trim(),
       price: form.price,
-      start_time: form.timeRange ? form.timeRange[0].format("HH:mm:ss") : null,
-      end_time: form.timeRange ? form.timeRange[1].format("HH:mm:ss") : null,
+      duration_minutes: duration_minutes || null,
       note: form.note,
     });
     setSubmitting(false);
@@ -91,14 +89,24 @@ export default function ItemFormModal({ open, mode, item, locations, onClose, on
           />
         </Field>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field label="Khung giờ" hint="không bắt buộc">
-            <RangePicker
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <Field label="Giờ" hint="không bắt buộc">
+            <InputNumber
               className="w-full"
-              format="HH:mm"
-              minuteStep={5}
-              value={form.timeRange}
-              onChange={(timeRange) => setForm((f) => ({ ...f, timeRange }))}
+              min={0}
+              value={form.durationHours}
+              onChange={(val) => setForm((f) => ({ ...f, durationHours: val || 0 }))}
+              placeholder="0"
+            />
+          </Field>
+          <Field label="Phút" hint="không bắt buộc">
+            <InputNumber
+              className="w-full"
+              min={0}
+              max={59}
+              value={form.durationMinutes}
+              onChange={(val) => setForm((f) => ({ ...f, durationMinutes: val || 0 }))}
+              placeholder="0"
             />
           </Field>
           <Field label="Giá (đ)" hint="không bắt buộc">

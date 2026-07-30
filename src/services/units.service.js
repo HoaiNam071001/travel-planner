@@ -27,13 +27,13 @@ export async function createUnit({
   description,
   unit_type_id,
   start_date,
-  end_date,
+  break_minutes = 0,
   itemIds = [],
 }) {
   const order_index = await nextOrderIndex();
   const { data: unit, error } = await supabase
     .from(TABLES.UNITS)
-    .insert({ name, description, unit_type_id, start_date, end_date, order_index })
+    .insert({ name, description, unit_type_id, start_date, break_minutes, order_index })
     .select(SELECT_WITH_TYPE)
     .single();
   if (error) return { data: null, error };
@@ -51,12 +51,12 @@ export async function createUnit({
 // cần gỡ unit_id, tách biệt với `itemIds` là danh sách mới sau khi sửa.
 export async function updateUnit(
   id,
-  { name, description, unit_type_id, start_date, end_date, itemIds },
+  { name, description, unit_type_id, start_date, break_minutes, itemIds },
   previousItemIds = []
 ) {
   const { data: unit, error } = await supabase
     .from(TABLES.UNITS)
-    .update({ name, description, unit_type_id, start_date, end_date })
+    .update({ name, description, unit_type_id, start_date, break_minutes })
     .eq("id", id)
     .select(SELECT_WITH_TYPE)
     .single();

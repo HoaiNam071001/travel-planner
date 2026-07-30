@@ -20,10 +20,9 @@ import {
   formatDuration,
   formatPrice,
   formatPriceShort,
-  formatTimeRange,
   itemDurationMinutes,
 } from "../../shared/utils/format";
-import { planTotals, unitStats } from "../../shared/utils/planStats";
+import { planTotals, unitStats, unitComputedRange, computeItemSchedule } from "../../shared/utils/planStats";
 
 export default function PlanOverview({
   plan,
@@ -174,8 +173,10 @@ function SectionLabel({ icon: Icon, children, action }) {
 }
 
 function UnitTimelineCard({ unit, index, items, onEdit }) {
-  const stats = unitStats(items);
-  const range = formatDateTimeRange(unit.start_date, unit.end_date);
+  const stats = unitStats(items, unit.break_minutes);
+  const computedRange = unitComputedRange(unit, stats);
+  const range = computedRange ? formatDateTimeRange(computedRange.start, computedRange.end) : null;
+  const schedule = computeItemSchedule(unit, items, unit.break_minutes);
 
   return (
     <article className="surface overflow-hidden">
@@ -235,8 +236,13 @@ function UnitTimelineCard({ unit, index, items, onEdit }) {
         </p>
       ) : (
         <ol className="divide-y divide-slate-100">
-          {items.map((item) => (
-            <ItemTimelineRow key={item.id} item={item} />
+          {schedule.map(({ item, start, end }, idx) => (
+            <div key={item.id}>
+              <ItemTimelineRow item={item} start={start} end={end} />
+              {idx < schedule.length - 1 && unit.break_minutes > 0 && (
+                <BreakTimelineRow breakMinutes={unit.break_minutes} start={end} />
+              )}
+            </div>
           ))}
         </ol>
       )}
@@ -244,22 +250,23 @@ function UnitTimelineCard({ unit, index, items, onEdit }) {
   );
 }
 
-function ItemTimelineRow({ item }) {
-  const time = formatTimeRange(item.start_time, item.end_time);
+function ItemTimelineRow({ item, start, end }) {
   const duration = formatDuration(itemDurationMinutes(item));
   const thumb = item.locations?.find((l) => l.images?.length)?.images?.[0];
+  const startStr = start ? start.format("HH:mm") : "--:--";
+  const endStr = end ? end.format("HH:mm") : "--:--";
 
   return (
     <li className="flex gap-4 px-5 py-3.5 transition hover:bg-slate-50/70">
       {/* Cột giờ + đường nối dọc tạo cảm giác timeline. */}
       <div className="flex w-[68px] shrink-0 flex-col items-end pt-0.5">
-        {time ? (
+        {start ? (
           <>
             <span className="font-mono text-[13px] font-medium text-slate-700 tnum">
-              {time.split(" - ")[0]}
+              {startStr}
             </span>
             <span className="font-mono text-[11px] text-slate-400 tnum">
-              {time.split(" - ")[1]}
+              {endStr}
             </span>
           </>
         ) : (
@@ -306,6 +313,30 @@ function ItemTimelineRow({ item }) {
           className="hidden h-14 w-20 shrink-0 rounded-xl border border-slate-200 object-cover sm:block"
         />
       )}
+    </li>
+  );
+}
+
+function BreakTimelineRow({ breakMinutes, start }) {
+  const breakEnd = start.add(breakMinutes, "minute");
+  const startStr = start.format("HH:mm");
+  const endStr = breakEnd.format("HH:mm");
+
+  return (
+    <li className="flex gap-4 px-5 py-2 transition hover:bg-slate-50/70">
+      <div className="flex w-[68px] shrink-0 flex-col items-end pt-0.5">
+        <span className="font-mono text-[11px] italic text-slate-400 tnum">{startStr}</span>
+        <span className="font-mono text-[11px] italic text-slate-400 tnum">{endStr}</span>
+      </div>
+
+      <div className="relative flex flex-col items-center pt-1.5">
+        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-slate-300" />
+        <span className="mt-1 w-px flex-1 bg-slate-200" />
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <p className="text-[13px] italic text-slate-400">Nghỉ {breakMinutes} phút</p>
+      </div>
     </li>
   );
 }

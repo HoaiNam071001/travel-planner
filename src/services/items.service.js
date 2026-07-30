@@ -64,11 +64,11 @@ export async function reorderItems(orderedIds) {
   return { error: results.find((r) => r.error)?.error ?? null };
 }
 
-export async function createItem({ name, price, start_time, end_time, note, locationIds = [] }) {
+export async function createItem({ name, price, duration_minutes, note, locationIds = [] }) {
   const order_index = await nextOrderIndex();
   const { data: item, error } = await supabase
     .from(TABLES.ITEMS)
-    .insert({ name, price, start_time, end_time, note, order_index })
+    .insert({ name, price, duration_minutes, note, order_index })
     .select()
     .single();
   if (error) return { data: null, error };
@@ -81,11 +81,11 @@ export async function createItem({ name, price, start_time, end_time, note, loca
 
 export async function updateItem(
   id,
-  { name, price, start_time, end_time, note, locationIds = [] }
+  { name, price, duration_minutes, note, locationIds = [] }
 ) {
   const { error } = await supabase
     .from(TABLES.ITEMS)
-    .update({ name, price, start_time, end_time, note })
+    .update({ name, price, duration_minutes, note })
     .eq("id", id);
   if (error) return { data: null, error };
 

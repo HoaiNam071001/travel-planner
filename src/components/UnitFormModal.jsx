@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Popconfirm } from "antd";
+import { Popconfirm, InputNumber as AntInputNumber } from "antd";
 import { Check, MapPin, Plus, Sparkles, X } from "lucide-react";
 import dayjs from "dayjs";
 import Modal from "../shared/components/Modal";
@@ -9,13 +9,13 @@ import Input, { TextArea } from "../shared/components/Input";
 import DatePicker from "../shared/components/DatePicker";
 import DualListPicker from "./DualListPicker";
 
-const { RangePicker } = DatePicker;
+const InputNumber = AntInputNumber;
 
 function toFormState(unit, initialItemIds) {
   return {
     unit_type_id: unit?.unit_type_id ?? null,
-    dateRange:
-      unit?.start_date && unit?.end_date ? [dayjs(unit.start_date), dayjs(unit.end_date)] : null,
+    start_date: unit?.start_date ? dayjs(unit.start_date) : null,
+    break_minutes: unit?.break_minutes ?? 0,
     name: unit?.name ?? "",
     description: unit?.description ?? "",
     itemIds: initialItemIds ?? [],
@@ -155,8 +155,8 @@ export default function UnitFormModal({
       name: form.name.trim(),
       description: form.description,
       unit_type_id: form.unit_type_id,
-      start_date: form.dateRange ? form.dateRange[0].toISOString() : null,
-      end_date: form.dateRange ? form.dateRange[1].toISOString() : null,
+      start_date: form.start_date ? form.start_date.toISOString() : null,
+      break_minutes: form.break_minutes,
       itemIds: showItemPicker ? form.itemIds : undefined,
     });
     setSubmitting(false);
@@ -195,15 +195,26 @@ export default function UnitFormModal({
           />
         </Field>
 
-        <Field label="Khoảng thời gian" hint="có cả giờ">
-          <RangePicker
-            className="w-full"
-            showTime={{ format: "HH:mm" }}
-            format="DD/MM/YYYY HH:mm"
-            value={form.dateRange}
-            onChange={(dateRange) => setForm((f) => ({ ...f, dateRange }))}
-          />
-        </Field>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Field label="Bắt đầu chặng" hint="không bắt buộc — để tính giờ hoạt động">
+            <DatePicker
+              className="w-full"
+              showTime={{ format: "HH:mm" }}
+              format="DD/MM/YYYY HH:mm"
+              value={form.start_date}
+              onChange={(date) => setForm((f) => ({ ...f, start_date: date }))}
+            />
+          </Field>
+          <Field label="Nghỉ giữa hoạt động (phút)" hint="không bắt buộc">
+            <InputNumber
+              className="w-full"
+              min={0}
+              value={form.break_minutes}
+              onChange={(val) => setForm((f) => ({ ...f, break_minutes: val || 0 }))}
+              placeholder="0"
+            />
+          </Field>
+        </div>
 
         <Field label="Mô tả" hint="không bắt buộc">
           <TextArea

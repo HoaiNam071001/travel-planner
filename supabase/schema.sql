@@ -99,13 +99,14 @@ create table if not exists units (
   created_at timestamptz not null default now()
 );
 
--- Đổi từ 1 cột `date` (chỉ ngày) sang khoảng thời gian có giờ (start/end), và
--- thêm "loại" động qua unit_types. Dùng add/drop column if (not) exists nên
--- chạy lại nhiều lần vẫn an toàn.
+-- Đổi từ 1 cột `date` (chỉ ngày) sang mốc bắt đầu (start_date chỉ, không có end_date).
+-- Thêm "loại" động qua unit_types. Thêm break_minutes (khoảng nghỉ giữa hoạt động).
+-- Dùng add/drop column if (not) exists nên chạy lại nhiều lần vẫn an toàn.
 alter table units drop column if exists date;
 alter table units add column if not exists start_date timestamptz;
-alter table units add column if not exists end_date timestamptz;
 alter table units add column if not exists unit_type_id uuid references unit_types(id) on delete set null;
+alter table units add column if not exists break_minutes int not null default 0;
+alter table units drop column if exists end_date;
 
 alter table units enable row level security;
 
@@ -142,8 +143,7 @@ create table if not exists items (
   unit_id uuid references units(id) on delete set null,
   name text not null,
   price numeric,
-  start_time time,
-  end_time time,
+  duration_minutes int,
   note text,
   order_index int not null default 0,
   created_at timestamptz not null default now()
@@ -153,6 +153,8 @@ create table if not exists items (
 -- `location_id` cũ (1-1). Nếu bảng `items` đã tồn tại từ trước (đã chạy schema
 -- bản cũ), lệnh dưới xoá cột thừa; chạy lại vẫn an toàn vì có `if exists`.
 alter table items drop column if exists location_id;
+alter table items drop column if exists start_time;
+alter table items drop column if exists end_time;
 
 alter table items enable row level security;
 

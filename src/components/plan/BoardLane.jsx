@@ -17,7 +17,7 @@ import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import Badge from "../../shared/components/Badge";
 import IconButton from "../../shared/components/IconButton";
 import { formatDateTimeRange, formatDuration, formatPriceShort } from "../../shared/utils/format";
-import { unitStats } from "../../shared/utils/planStats";
+import { unitStats, unitComputedRange } from "../../shared/utils/planStats";
 import BoardItemCard from "./BoardItemCard";
 
 // 1 lane = 1 chặng, hoặc lane "kho hoạt động chưa gắn chặng" (isLibrary).
@@ -40,8 +40,9 @@ export default function BoardLane({
   header,
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: laneId, data: { type: "lane", laneId } });
-  const stats = unitStats(items);
-  const range = unit ? formatDateTimeRange(unit.start_date, unit.end_date) : null;
+  const stats = unitStats(items, unit?.break_minutes);
+  const computedRange = unit ? unitComputedRange(unit, stats) : null;
+  const range = computedRange ? formatDateTimeRange(computedRange.start, computedRange.end) : null;
 
   return (
     <section

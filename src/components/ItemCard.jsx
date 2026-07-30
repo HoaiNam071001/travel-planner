@@ -4,7 +4,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import Badge from "../shared/components/Badge";
 import IconButton from "../shared/components/IconButton";
-import { formatPrice, formatTimeRange } from "../shared/utils/format";
+import { formatPrice, formatDuration, itemDurationMinutes } from "../shared/utils/format";
 
 const VISIBLE_LOCATIONS = 2;
 
@@ -16,7 +16,7 @@ export default function ItemCard({ item, unitName, onOpenDetail, onEdit, onDelet
   const locations = item.locations ?? [];
   const extraCount = locations.length - VISIBLE_LOCATIONS;
   const cover = locations.find((l) => l.images?.length)?.images?.[0];
-  const time = formatTimeRange(item.start_time, item.end_time);
+  const duration = formatDuration(itemDurationMinutes(item));
 
   return (
     <div
@@ -84,10 +84,10 @@ export default function ItemCard({ item, unitName, onOpenDetail, onEdit, onDelet
         )}
 
         <div className="mt-auto flex items-center gap-2 pt-3.5 text-xs text-slate-500">
-          {time && (
+          {duration && (
             <span className="inline-flex items-center gap-1 font-mono tnum">
               <Clock className="h-3.5 w-3.5 text-slate-400" />
-              {time}
+              {duration}
             </span>
           )}
           {item.price != null && Number(item.price) > 0 && (

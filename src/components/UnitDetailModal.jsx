@@ -7,13 +7,13 @@ import {
   formatDateTimeRange,
   formatDuration,
   formatPrice,
-  formatTimeRange,
 } from "../shared/utils/format";
-import { unitStats } from "../shared/utils/planStats";
+import { unitStats, unitComputedRange } from "../shared/utils/planStats";
 
 export default function UnitDetailModal({ open, unit, items, planName, onClose, onEdit }) {
-  const range = unit ? formatDateTimeRange(unit.start_date, unit.end_date) : null;
-  const stats = unitStats(items);
+  const stats = unitStats(items, unit?.break_minutes);
+  const computedRange = unit ? unitComputedRange(unit, stats) : null;
+  const range = computedRange ? formatDateTimeRange(computedRange.start, computedRange.end) : null;
 
   return (
     <Modal
@@ -97,10 +97,10 @@ export default function UnitDetailModal({ open, unit, items, planName, onClose, 
                         </p>
                       )}
 
-                      {formatTimeRange(item.start_time, item.end_time) && (
+                      {item.duration_minutes && (
                         <span className="mt-1.5 inline-flex items-center gap-1 font-mono text-[11px] text-slate-400 tnum">
                           <Clock className="h-3 w-3" />
-                          {formatTimeRange(item.start_time, item.end_time)}
+                          {formatDuration(item.duration_minutes)}
                         </span>
                       )}
                     </div>
