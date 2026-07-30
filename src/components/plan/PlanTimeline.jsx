@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import Badge from "../../shared/components/Badge";
 import { formatPrice } from "../../shared/utils/format";
@@ -28,13 +28,12 @@ function dateRangeToWidth(startDate, endDate, totalHours) {
 }
 
 // Pixel position back to timestamp
-function pixelToDate(px, planStart, totalHours) {
+function pixelToDate(px, planStart, planEnd, totalHours) {
   const ratio = px / (totalHours * HOUR_WIDTH);
   const start = new Date(planStart);
-  const duration = (new Date()) - start; // Dummy, will calculate properly
-  const planEnd = new Date(planStart);
-  planEnd.setHours(planEnd.getHours() + totalHours);
-  return new Date(start.getTime() + ratio * (planEnd - start));
+  const end = new Date(planEnd);
+  const duration = end - start;
+  return new Date(start.getTime() + ratio * duration);
 }
 
 export default function PlanTimeline({
@@ -92,7 +91,7 @@ export default function PlanTimeline({
     const currentPos = dateToPixel(unit.start_date, plan.start_date, plan.end_date, totalHours);
     const delta = e.clientX - dragOffset;
     const newPos = Math.max(0, Math.min(currentPos + delta, timelineWidth));
-    const newDate = pixelToDate(newPos, plan.start_date, totalHours);
+    const newDate = pixelToDate(newPos, plan.start_date, plan.end_date, totalHours);
 
     // Update unit's start_date (and optionally end_date if it exists)
     const duration = unit.end_date ? new Date(unit.end_date) - new Date(unit.start_date) : 0;
