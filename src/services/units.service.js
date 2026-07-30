@@ -73,3 +73,24 @@ export async function updateUnit(
 export async function deleteUnit(id) {
   return supabase.from(TABLES.UNITS).delete().eq("id", id);
 }
+
+// Dùng bởi plans.service.js — units.service.js là nơi duy nhất gọi
+// supabase.from(TABLES.UNITS), kể cả khi thao tác xuất phát từ trang Kế hoạch.
+export async function assignUnitsToPlan(planId, unitIds) {
+  const results = await Promise.all(
+    unitIds.map((id, index) =>
+      supabase.from(TABLES.UNITS).update({ plan_id: planId, order_index: index }).eq("id", id)
+    )
+  );
+  return { error: results.find((r) => r.error)?.error ?? null };
+}
+
+export async function unassignUnitsFromPlan(unitIds) {
+  if (!unitIds.length) return { error: null };
+  const results = await Promise.all(
+    unitIds.map((id) =>
+      supabase.from(TABLES.UNITS).update({ plan_id: null, order_index: 0 }).eq("id", id)
+    )
+  );
+  return { error: results.find((r) => r.error)?.error ?? null };
+}

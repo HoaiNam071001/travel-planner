@@ -169,10 +169,25 @@ Edge Function):
    `assignItemsToUnit`/`unassignItemsFromUnit` (export từ `items.service.js`); sau mỗi
    create/update/delete, `UnitsPage` gọi lại `loadData()` để đồng bộ `items` (vì unit_id của
    item có thể đổi) thay vì tự vá state cục bộ.
-5. ⏳ Tính tổng cost/thời gian của 1 chặng dựa trên các hoạt động bên trong
+5. ⏳ Tính tổng cost/thời gian của 1 chặng dựa trên các hoạt động bên trong (hiện tổng
+   cost mới có ở trang Kế hoạch, xem mục 8 — chưa hiện ở `UnitCard`/`UnitDetailModal`)
 6. ⏳ Gọi OpenRouteService tính khoảng cách + thời gian di chuyển giữa các hoạt động trong chặng
 7. ⏳ Vẽ bản đồ + tuyến đường (react-leaflet)
-8. ⏳ Trang Plan tổng hợp nhiều chặng
+8. ✅ **Plan Manager** (`src/pages/PlansPage.jsx`, hiển thị là "Kế hoạch") — CRUD kế hoạch
+   qua modal (`src/components/PlanFormModal.jsx`): tên/mô tả/khoảng thời gian bằng
+   `DatePicker.RangePicker` (không `showTime`, vì `plans.start_date`/`end_date` là cột
+   `date`), và **chọn chặng** theo đúng UI 2 cột như Unit Manager chọn hoạt động (search +
+   phân trang bên trái, đã chọn + kéo-thả sắp xếp lại bằng dnd-kit
+   `verticalListSortingStrategy` bên phải). Cột trái chỉ hiện chặng **chưa gắn kế hoạch nào
+   hoặc đang gắn chính kế hoạch đang sửa** (cùng quy tắc tránh "cướp" ngầm như Unit Manager).
+   List hiện dạng lưới (`src/components/PlanCard.jsx`: khoảng thời gian/số chặng/tổng chi
+   phí), bấm vào thẻ mở `src/components/PlanDetailModal.jsx` xem từng chặng theo đúng thứ
+   tự kèm số hoạt động + chi phí của riêng chặng đó và tổng cộng cả kế hoạch — tổng này tính
+   động ngay tại `PlansPage` (gom `price` của `items` theo `unit_id`), **không** lưu cột
+   cứng, khớp mục Data model. `src/services/plans.service.js` điều phối gán/gỡ chặng qua
+   `assignUnitsToPlan`/`unassignUnitsFromPlan` (export từ `units.service.js`, cùng pattern
+   với `assignItemsToUnit`/`unassignItemsFromUnit` ở bước 4); sau mỗi create/update/delete,
+   `PlansPage` gọi lại `loadData()` để đồng bộ `units` (vì `plan_id` có thể đổi).
 
 ## Việc cần làm tiếp theo (ngay bây giờ)
 
@@ -183,5 +198,6 @@ Edge Function):
   bắt buộc" ở trên) — bắt buộc trước khi test đăng nhập được
 - Deploy Edge Function `resolve-maps-link` (xem mục "⚠️ Bước thủ công bắt buộc" thứ 2 ở
   trên) — bắt buộc để ô dán link Google Maps giải mã được link rút gọn
-- Làm tiếp bước 5 (tính tổng cost/thời gian của 1 chặng) rồi bước 6 (OpenRouteService)
+- Làm tiếp bước 5 (tính tổng cost/thời gian của 1 chặng, hiện ngay ở `UnitCard`/
+  `UnitDetailModal` chứ không chỉ ở trang Kế hoạch) rồi bước 6 (OpenRouteService)
 - Cài thêm `react-leaflet` + `leaflet` khi bắt đầu bước 7 (bản đồ) — chưa cần bây giờ
