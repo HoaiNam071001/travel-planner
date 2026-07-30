@@ -81,11 +81,16 @@ export async function createItem({ name, price, duration_minutes, note, location
 
 export async function updateItem(
   id,
-  { name, price, duration_minutes, note, locationIds = [] }
+  { name, price, duration_minutes, note, start_time, locationIds = [] }
 ) {
+  const updates = { name, price, duration_minutes, note };
+  if (start_time !== undefined) {
+    updates.start_time = start_time;
+  }
+
   const { error } = await supabase
     .from(TABLES.ITEMS)
-    .update({ name, price, duration_minutes, note })
+    .update(updates)
     .eq("id", id);
   if (error) return { data: null, error };
 

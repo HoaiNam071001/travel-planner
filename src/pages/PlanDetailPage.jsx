@@ -30,6 +30,7 @@ import EmptyState from "../shared/components/EmptyState";
 import Modal from "../shared/components/Modal";
 import PlanOverview from "../components/plan/PlanOverview";
 import PlanBoard from "../components/plan/PlanBoard";
+import PlanTimeline from "../components/plan/PlanTimeline";
 import PlanFormModal from "../components/PlanFormModal";
 import UnitFormModal from "../components/UnitFormModal";
 import ItemFormModal from "../components/ItemFormModal";
@@ -37,13 +38,15 @@ import ItemFormModal from "../components/ItemFormModal";
 const TABS = [
   { value: "overview", label: "Tổng quan", icon: LayoutList },
   { value: "build", label: "Xây dựng", icon: SlidersHorizontal },
+  { value: "schedule", label: "Lịch trình", icon: SlidersHorizontal },
 ];
 
 export default function PlanDetailPage() {
   const { planId } = useParams();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const tab = searchParams.get("tab") === "build" ? "build" : "overview";
+  const tabParam = searchParams.get("tab");
+  const tab = tabParam === "build" || tabParam === "schedule" ? tabParam : "overview";
 
   const [plan, setPlan] = useState(null);
   const [units, setUnits] = useState([]);
@@ -400,6 +403,38 @@ export default function PlanDetailPage() {
           itemsByUnit={itemsByUnit}
           onStartBuilding={() => setSearchParams({ tab: "build" })}
           onEditUnit={(unit) => setUnitForm({ open: true, unit })}
+        />
+      ) : tab === "schedule" ? (
+        <PlanTimeline
+          plan={plan}
+          planUnits={planUnits}
+          itemsByUnit={itemsByUnit}
+          onUpdateUnitDates={async (unitId, updates) => {
+            const result = await updateUnit(unitId, updates);
+            if (result.error) {
+              setError(`Không lưu được thay đổi chặng: ${result.error.message}`);
+              return false;
+            }
+            setUnits((prev) => prev.map((u) => (u.id === unitId ? { ...u, ...updates } : u)));
+            return true;
+          }}
+          onUpdateItemStartTime={async (itemId, startTime) => {
+            const result = await updateItem(itemId, { start_time: startTime });
+            if (result.error) {
+              setError(`Không lưu được thay đổi hoạt động: ${result.error.message}`);
+              return false;
+            }
+            setItems((prev) =>
+              prev.map((i) => (i.id === itemId ? { ...i, start_time: startTime } : i))
+            );
+            return true;
+          }}
+          onEditUnit={(unit) => setUnitForm({ open: true, unit })}
+          onRemoveUnit={removeUnitFromPlan}
+          onDeleteUnit={(unitId) => setDeletingUnit(planUnits.find((u) => u.id === unitId))}
+          onCreateItem={(unitId) => setItemForm({ open: true, item: null, unitId })}
+          onEditItem={(item) => setItemForm({ open: true, item, unitId: item.unit_id })}
+          onDeleteItem={handleDeleteItem}
         />
       ) : (
         <PlanBoard
