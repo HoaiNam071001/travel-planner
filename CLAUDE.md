@@ -1,8 +1,9 @@
 # Travel Planner — bối cảnh dự án
 
-Đây là project cá nhân giúp lên kế hoạch đi chơi: lưu địa điểm, tạo các "mục" (item)
-gắn với địa điểm + giá + khung giờ, gom các mục vào "đơn vị" (unit = 1 ngày),
-và nhiều unit gộp thành 1 "kế hoạch" (plan) tổng.
+Đây là project cá nhân giúp lên kế hoạch đi chơi: lưu địa điểm, tạo các "hoạt động" (item,
+tên bảng/route vẫn là `items` — chỉ đổi tên hiển thị tiếng Việt) gắn với địa điểm + giá +
+khung giờ, gom các hoạt động vào "đơn vị" (unit = 1 ngày), và nhiều unit gộp thành 1
+"kế hoạch" (plan) tổng.
 
 ## Tech stack đã chọn (ưu tiên free, dùng cá nhân)
 
@@ -41,8 +42,8 @@ và nhiều unit gộp thành 1 "kế hoạch" (plan) tổng.
 - `src/shared/theme/antdTheme.js` — theme token antd (màu chính cyan-500 `#06B6D4`, bo góc),
   áp dụng qua `<ConfigProvider>` bọc toàn app ở `main.jsx`.
 - `src/services/*.service.js` — 1 file/bảng, là nơi duy nhất gọi `supabase.from(...)`.
-  `locations.service.js` đã CRUD thật; `items`/`units`/`plans`/`unitRoutes` service hiện
-  là stub (throw "not implemented"), chờ tính năng tương ứng trong roadmap.
+  `locations.service.js` và `items.service.js` đã CRUD thật; `units`/`plans`/`unitRoutes`
+  service hiện là stub (throw "not implemented"), chờ tính năng tương ứng trong roadmap.
 - `src/context/AuthContext.jsx` — `AuthProvider` + `useAuth()`, theo dõi session qua
   `supabase.auth.onAuthStateChange`.
 - `src/layouts/AppLayout.jsx` + `src/components/Header.jsx` — layout chung (header + nội
@@ -61,8 +62,13 @@ và nhiều unit gộp thành 1 "kế hoạch" (plan) tổng.
 - `users`: user_id (PK, = `auth.users.id`), email, full_name, avatar — **tự động tạo bằng
   Postgres trigger** khi có user mới đăng nhập lần đầu (không phải app tự upsert).
 - `locations`: id, user_id (FK), name, description, lat, lng, images (text[])
-- `items` (mục nhỏ): id, user_id (FK), unit_id (FK, **nullable** — item có thể tồn tại độc lập
-  chưa gắn unit nào), location_id (FK), name, price, start_time, end_time, note, order_index
+- `items` (hoạt động, tên bảng/code vẫn là `items`): id, user_id (FK), unit_id (FK,
+  **nullable** — hoạt động có thể tồn tại độc lập chưa gắn unit nào), name, price,
+  start_time, end_time, note, order_index. **1 hoạt động có thể gắn nhiều địa điểm** qua
+  bảng nối `item_locations` (không phải cột `location_id` 1-1 nữa)
+- `item_locations`: id, user_id (FK), item_id (FK), location_id (FK), order_index — giữ
+  thứ tự địa điểm trong 1 hoạt động; `src/services/items.service.js` tự join + sắp xếp lại
+  ở client thành mảng `item.locations` (không expose cấu trúc bảng nối ra UI)
 - `units` (1 ngày / 1 đơn vị): id, user_id (FK), plan_id (FK, nullable), name, description,
   date, order_index
 - `plans` (kế hoạch tổng): id, user_id (FK), name, description, start_date, end_date
@@ -119,12 +125,23 @@ Edge Function):
 2. ✅ **Đăng nhập Google + layout + services layer** — `src/pages/LoginPage.jsx`,
    `src/context/AuthContext.jsx`, `src/routes/ProtectedRoute.jsx`, layout
    Header + content (`src/layouts/AppLayout.jsx`), bảng `users`, RLS theo `user_id` trên
-   mọi bảng dữ liệu. Header có đủ 4 trang điều hướng (Địa điểm/Mục/Đơn vị/Kế hoạch),
-   3 trang sau còn là placeholder "Đang phát triển".
-3. ⏳ Item Manager — CRUD mục nhỏ, chọn location từ danh sách trên, unit_id để trống ban đầu
-   (trang `src/pages/ItemsPage.jsx`, service `src/services/items.service.js` đã có sẵn
-   khung, cần code phần CRUD thật)
-4. ⏳ Unit Manager — tạo đơn vị/ngày, kéo-thả (dnd-kit) item vào unit
+   mọi bảng dữ liệu. Header có đủ 4 trang điều hướng (Địa điểm/Hoạt động/Đơn vị/Kế hoạch),
+   2 trang sau còn là placeholder "Đang phát triển".
+3. ✅ **Item Manager** (`src/pages/ItemsPage.jsx`, hiển thị là "Hoạt động" — tên bảng/route/
+   service vẫn giữ `items` để khớp schema) — CRUD hoạt động qua modal
+   (`src/components/ItemFormModal.jsx`), **1 hoạt động chọn được nhiều địa điểm theo thứ
+   tự** qua UI 2 cột: cột trái là danh sách địa điểm có ô search (`Input.Search`, lọc theo
+   tên) + phân trang (`Pagination` antd, 5 địa điểm/trang), mỗi dòng có nút +/- để
+   thêm/bỏ khỏi hoạt động; cột phải hiện các địa điểm đã chọn theo đúng thứ tự chọn (số
+   thứ tự + nút x bỏ từng cái + nút "Bỏ chọn tất cả"), disable nút "Thêm hoạt động" ở
+   trang list nếu chưa có địa điểm nào để chọn. Khung giờ dùng `TimePicker.RangePicker`,
+   giá dùng `InputNumber` định dạng số nghìn. List hiện dạng lưới
+   (`src/components/ItemCard.jsx`, tối đa 2 badge địa điểm + "+N địa điểm"), bấm vào thẻ mở
+   `src/components/ItemDetailModal.jsx` xem đầy đủ địa điểm theo thứ tự (kèm ảnh đầu tiên
+   nếu có) + giờ/giá/ghi chú. unit_id để trống ban đầu (gán unit ở bước 4). Đã nối Supabase
+   thật qua `src/services/items.service.js` (bảng `items` + bảng nối `item_locations`, xem
+   mục Data model).
+4. ⏳ Unit Manager — tạo đơn vị/ngày, kéo-thả (dnd-kit) hoạt động vào unit
 5. ⏳ Tính tổng cost/thời gian của 1 unit dựa trên các item bên trong
 6. ⏳ Gọi OpenRouteService tính khoảng cách + thời gian di chuyển giữa các item trong unit
 7. ⏳ Vẽ bản đồ + tuyến đường (react-leaflet)
@@ -132,15 +149,14 @@ Edge Function):
 
 ## Việc cần làm tiếp theo (ngay bây giờ)
 
-- Chạy file `supabase/schema.sql` (đã viết lại, có bảng `users` + `user_id` + RLS) trong
-  Supabase SQL Editor
+- Chạy lại file `supabase/schema.sql` trong Supabase SQL Editor (mới thêm bảng
+  `item_locations` + xoá cột `items.location_id` cũ để chuyển sang quan hệ nhiều-nhiều —
+  script dùng `if exists`/`if not exists` nên chạy lại nhiều lần vẫn an toàn)
 - Bật Google OAuth provider thủ công trong Supabase Dashboard (xem mục "⚠️ Bước thủ công
   bắt buộc" ở trên) — bắt buộc trước khi test đăng nhập được
 - Deploy Edge Function `resolve-maps-link` (xem mục "⚠️ Bước thủ công bắt buộc" thứ 2 ở
   trên) — bắt buộc để ô dán link Google Maps giải mã được link rút gọn
-- Làm tiếp **Item Manager** (bước 3 trong roadmap): code CRUD thật vào
-  `src/services/items.service.js` (thay các hàm stub) + xây UI trong
-  `src/pages/ItemsPage.jsx` — theo mẫu code đã có ở `locations.service.js` /
-  `LocationsPage.jsx`
-- Cài thêm `dnd-kit` khi bắt đầu bước 4 (Unit Manager), `react-leaflet` + `leaflet` khi
-  bắt đầu bước 7 (bản đồ) — chưa cần bây giờ
+- Làm tiếp **Unit Manager** (bước 4 trong roadmap): code CRUD thật vào
+  `src/services/units.service.js` (thay các hàm stub) + xây UI trong
+  `src/pages/UnitsPage.jsx`, cài thêm `dnd-kit` để kéo-thả hoạt động (từ bước 3) vào unit
+- Cài thêm `react-leaflet` + `leaflet` khi bắt đầu bước 7 (bản đồ) — chưa cần bây giờ
