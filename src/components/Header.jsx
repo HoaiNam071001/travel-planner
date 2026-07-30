@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { MapPin, Sparkles, CalendarDays, Map, Compass, LogOut } from "lucide-react";
+import { MapPin, Sparkles, Route as RouteIcon, Map, Compass, LogOut } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { ROUTES } from "../shared/constants/routes";
 import Button from "../shared/components/Button";
@@ -7,7 +7,7 @@ import Button from "../shared/components/Button";
 const NAV_ITEMS = [
   { to: ROUTES.LOCATIONS, label: "Địa điểm", icon: MapPin },
   { to: ROUTES.ITEMS, label: "Hoạt động", icon: Sparkles },
-  { to: ROUTES.UNITS, label: "Đơn vị", icon: CalendarDays },
+  { to: ROUTES.UNITS, label: "Chặng", icon: RouteIcon },
   { to: ROUTES.PLANS, label: "Kế hoạch", icon: Map },
 ];
 

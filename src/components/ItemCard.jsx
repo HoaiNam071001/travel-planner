@@ -1,19 +1,45 @@
-import { MapPin, Clock, Wallet, Pencil, Trash2 } from "lucide-react";
+import { MapPin, Clock, Wallet, Pencil, Trash2, GripVertical } from "lucide-react";
 import { Popconfirm } from "antd";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 const VISIBLE_LOCATIONS = 2;
 
 export default function ItemCard({ item, onOpenDetail, onEdit, onDelete }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: item.id,
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
   const locations = item.locations ?? [];
   const extraCount = locations.length - VISIBLE_LOCATIONS;
 
   return (
     <div
+      ref={setNodeRef}
+      style={style}
       onClick={() => onOpenDetail(item)}
       className="group relative cursor-pointer rounded-xl border border-stone-200 bg-white p-4 shadow-sm transition hover:border-cyan-300 hover:shadow-md"
     >
       <div className="mb-2 flex items-start justify-between gap-2">
-        <h3 className="font-serif text-base leading-snug text-stone-900">{item.name}</h3>
+        <div className="flex min-w-0 items-center gap-1">
+          <button
+            {...attributes}
+            {...listeners}
+            onClick={(e) => e.stopPropagation()}
+            className="cursor-grab touch-none rounded p-0.5 text-stone-300 hover:text-stone-500 active:cursor-grabbing"
+            aria-label="Kéo để sắp xếp"
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+          <h3 className="truncate font-serif text-base leading-snug text-stone-900">
+            {item.name}
+          </h3>
+        </div>
         <div className="flex shrink-0 gap-1">
           <button
             onClick={(e) => {

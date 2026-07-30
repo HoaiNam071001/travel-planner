@@ -1,6 +1,20 @@
 import { useEffect, useState } from "react";
 import { Sparkles, Plus } from "lucide-react";
-import { listItems, createItem, updateItem, deleteItem } from "../services/items.service";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import { SortableContext, rectSortingStrategy, arrayMove } from "@dnd-kit/sortable";
+import {
+  listItems,
+  createItem,
+  updateItem,
+  deleteItem,
+  reorderItems,
+} from "../services/items.service";
 import { listLocations } from "../services/locations.service";
 import Button from "../shared/components/Button";
 import ItemCard from "../components/ItemCard";
@@ -14,6 +28,7 @@ export default function ItemsPage() {
   const [error, setError] = useState("");
   const [formModal, setFormModal] = useState({ open: false, mode: "create", item: null });
   const [detailItem, setDetailItem] = useState(null);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   useEffect(() => {
     loadData();
@@ -69,6 +84,21 @@ export default function ItemsPage() {
     return {};
   }
 
+  function handleDragEnd(event) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    setItems((prev) => {
+      const oldIndex = prev.findIndex((i) => i.id === active.id);
+      const newIndex = prev.findIndex((i) => i.id === over.id);
+      const next = arrayMove(prev, oldIndex, newIndex);
+      reorderItems(next.map((i) => i.id)).then(({ error: reorderError }) => {
+        if (reorderError) setError("Không lưu được thứ tự: " + reorderError.message);
+      });
+      return next;
+    });
+  }
+
   return (
     <div className="min-h-full w-full bg-stone-50 font-sans text-stone-800">
       <div className="mx-auto max-w-5xl px-6 py-10">
@@ -117,17 +147,25 @@ export default function ItemsPage() {
             <p className="text-sm">Chưa có hoạt động nào. Thêm hoạt động đầu tiên nhé.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {items.map((item) => (
-              <ItemCard
-                key={item.id}
-                item={item}
-                onOpenDetail={setDetailItem}
-                onEdit={openEditModal}
-                onDelete={handleDelete}
-              />
-            ))}
-          </div>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext items={items.map((i) => i.id)} strategy={rectSortingStrategy}>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {items.map((item) => (
+                  <ItemCard
+                    key={item.id}
+                    item={item}
+                    onOpenDetail={setDetailItem}
+                    onEdit={openEditModal}
+                    onDelete={handleDelete}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         )}
       </div>
 

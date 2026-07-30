@@ -2,8 +2,9 @@
 
 Đây là project cá nhân giúp lên kế hoạch đi chơi: lưu địa điểm, tạo các "hoạt động" (item,
 tên bảng/route vẫn là `items` — chỉ đổi tên hiển thị tiếng Việt) gắn với địa điểm + giá +
-khung giờ, gom các hoạt động vào "đơn vị" (unit = 1 ngày), và nhiều unit gộp thành 1
-"kế hoạch" (plan) tổng.
+khung giờ, gom các hoạt động vào "chặng" (unit, tên bảng/route vẫn là `units`) — mỗi chặng
+có khoảng thời gian riêng (start/end datetime) + "loại" động do user tự tạo (vd Ngày, Tuần),
+và nhiều chặng gộp thành 1 "kế hoạch" (plan) tổng.
 
 ## Tech stack đã chọn (ưu tiên free, dùng cá nhân)
 
@@ -21,7 +22,9 @@ khung giờ, gom các hoạt động vào "đơn vị" (unit = 1 ngày), và nhi
   `src/context/AuthContext.jsx` (`useAuth()`), route được bảo vệ bởi
   `src/routes/ProtectedRoute.jsx`
 - Tính khoảng cách/thời gian di chuyển: OpenRouteService API (free key, không cần thẻ tín dụng)
-- Drag & drop (kéo item vào unit): dnd-kit
+- Drag & drop: `@dnd-kit/core` + `@dnd-kit/sortable` — dùng để sắp xếp lại hoạt động ngay ở
+  trang Hoạt động (`ItemsPage`, lưới `rectSortingStrategy`) và để sắp xếp hoạt động đã chọn
+  trong modal tạo/sửa chặng (`UnitFormModal`, danh sách dọc `verticalListSortingStrategy`)
 - Deploy frontend: Vercel hoặc Netlify (free tier)
 - Giải mã link Google Maps (dán vào modal địa điểm để tự điền tên + lat/lng): Supabase Edge
   Function `supabase/functions/resolve-maps-link` (theo redirect của link rút gọn
@@ -41,9 +44,11 @@ khung giờ, gom các hoạt động vào "đơn vị" (unit = 1 ngày), và nhi
   vì viết `<button>`/`<input>` thô hoặc import thẳng từ `antd` ở trang/component khác.
 - `src/shared/theme/antdTheme.js` — theme token antd (màu chính cyan-500 `#06B6D4`, bo góc),
   áp dụng qua `<ConfigProvider>` bọc toàn app ở `main.jsx`.
-- `src/services/*.service.js` — 1 file/bảng, là nơi duy nhất gọi `supabase.from(...)`.
-  `locations.service.js` và `items.service.js` đã CRUD thật; `units`/`plans`/`unitRoutes`
-  service hiện là stub (throw "not implemented"), chờ tính năng tương ứng trong roadmap.
+- `src/services/*.service.js` — 1 file/bảng, là nơi duy nhất gọi `supabase.from(...)` cho
+  bảng đó (kể cả khi thao tác xuất phát từ trang khác — vd `units.service.js` gọi hàm
+  `assignItemsToUnit`/`unassignItemsFromUnit` export từ `items.service.js` thay vì tự
+  `supabase.from(TABLES.ITEMS)`). `locations`/`items`/`units`/`unitTypes` service đã CRUD
+  thật; `plans`/`unitRoutes` service hiện là stub (throw "not implemented"), chờ roadmap.
 - `src/context/AuthContext.jsx` — `AuthProvider` + `useAuth()`, theo dõi session qua
   `supabase.auth.onAuthStateChange`.
 - `src/layouts/AppLayout.jsx` + `src/components/Header.jsx` — layout chung (header + nội
@@ -69,8 +74,15 @@ khung giờ, gom các hoạt động vào "đơn vị" (unit = 1 ngày), và nhi
 - `item_locations`: id, user_id (FK), item_id (FK), location_id (FK), order_index — giữ
   thứ tự địa điểm trong 1 hoạt động; `src/services/items.service.js` tự join + sắp xếp lại
   ở client thành mảng `item.locations` (không expose cấu trúc bảng nối ra UI)
-- `units` (1 ngày / 1 đơn vị): id, user_id (FK), plan_id (FK, nullable), name, description,
-  date, order_index
+- `units` (hiển thị là "Chặng", tên bảng/route/service vẫn giữ `units`): id, user_id (FK),
+  plan_id (FK, nullable), unit_type_id (FK tới `unit_types`, nullable), name, description,
+  start_date, end_date (timestamptz — chọn cả ngày lẫn giờ), order_index. 1 chặng gom nhiều
+  hoạt động qua `items.unit_id` (1-nhiều, không phải bảng nối) — `order_index` của `items`
+  khi đó biểu diễn thứ tự hoạt động **trong chặng đó**; hoạt động chưa gắn chặng nào thì
+  `order_index` biểu diễn thứ tự trong danh sách Hoạt động chung
+- `unit_types` ("loại" của chặng, vd Ngày/Tuần...): id, user_id (FK), name — **danh sách
+  động do user tự tạo dần** qua `src/services/unitTypes.service.js`, không có sẵn cố định;
+  tạo/xoá ngay trong `UnitFormModal` (chip chọn loại, có ô thêm loại mới + nút xoá từng loại)
 - `plans` (kế hoạch tổng): id, user_id (FK), name, description, start_date, end_date
 - `unit_routes` (cache khoảng cách): unit_id, user_id (FK), distance_km, duration_min,
   route_geometry — tính bằng OpenRouteService Matrix API, chỉ recompute khi thứ tự/địa
@@ -125,8 +137,8 @@ Edge Function):
 2. ✅ **Đăng nhập Google + layout + services layer** — `src/pages/LoginPage.jsx`,
    `src/context/AuthContext.jsx`, `src/routes/ProtectedRoute.jsx`, layout
    Header + content (`src/layouts/AppLayout.jsx`), bảng `users`, RLS theo `user_id` trên
-   mọi bảng dữ liệu. Header có đủ 4 trang điều hướng (Địa điểm/Hoạt động/Đơn vị/Kế hoạch),
-   2 trang sau còn là placeholder "Đang phát triển".
+   mọi bảng dữ liệu. Header có đủ 4 trang điều hướng (Địa điểm/Hoạt động/Chặng/Kế hoạch),
+   1 trang cuối còn là placeholder "Đang phát triển".
 3. ✅ **Item Manager** (`src/pages/ItemsPage.jsx`, hiển thị là "Hoạt động" — tên bảng/route/
    service vẫn giữ `items` để khớp schema) — CRUD hoạt động qua modal
    (`src/components/ItemFormModal.jsx`), **1 hoạt động chọn được nhiều địa điểm theo thứ
@@ -138,25 +150,38 @@ Edge Function):
    giá dùng `InputNumber` định dạng số nghìn. List hiện dạng lưới
    (`src/components/ItemCard.jsx`, tối đa 2 badge địa điểm + "+N địa điểm"), bấm vào thẻ mở
    `src/components/ItemDetailModal.jsx` xem đầy đủ địa điểm theo thứ tự (kèm ảnh đầu tiên
-   nếu có) + giờ/giá/ghi chú. unit_id để trống ban đầu (gán unit ở bước 4). Đã nối Supabase
-   thật qua `src/services/items.service.js` (bảng `items` + bảng nối `item_locations`, xem
-   mục Data model).
-4. ⏳ Unit Manager — tạo đơn vị/ngày, kéo-thả (dnd-kit) hoạt động vào unit
-5. ⏳ Tính tổng cost/thời gian của 1 unit dựa trên các item bên trong
-6. ⏳ Gọi OpenRouteService tính khoảng cách + thời gian di chuyển giữa các item trong unit
+   nếu có) + giờ/giá/ghi chú. Danh sách lưới hỗ trợ **kéo-thả sắp xếp lại** (dnd-kit,
+   `rectSortingStrategy`, tay cầm kéo `GripVertical` ở góc trái tên hoạt động) — thứ tự lưu
+   vào `items.order_index` qua `reorderItems()`. unit_id để trống ban đầu (gán chặng ở bước
+   4). Đã nối Supabase thật qua `src/services/items.service.js` (bảng `items` + bảng nối
+   `item_locations`, xem mục Data model).
+4. ✅ **Unit Manager** (`src/pages/UnitsPage.jsx`, hiển thị là "Chặng" — tên bảng/route/
+   service vẫn giữ `units`/`unitTypes` để khớp schema) — CRUD chặng qua modal
+   (`src/components/UnitFormModal.jsx`): chọn/tạo/xoá "loại" động (chip, xem mục Data
+   model), chọn khoảng thời gian bằng `DatePicker.RangePicker` (`showTime`), và **chọn
+   hoạt động** theo đúng UI 2 cột như Item Manager chọn địa điểm (search + phân trang bên
+   trái, đã chọn + kéo-thả sắp xếp lại bằng dnd-kit `verticalListSortingStrategy` bên phải).
+   Cột trái chỉ hiện hoạt động **chưa gắn chặng nào hoặc đang gắn chính chặng đang sửa**
+   (tránh "cướp" ngầm hoạt động của chặng khác — muốn chuyển thì gỡ khỏi chặng cũ trước).
+   List hiện dạng lưới (`src/components/UnitCard.jsx`: loại/khoảng thời gian/số hoạt động),
+   bấm vào thẻ mở `src/components/UnitDetailModal.jsx` xem hoạt động theo đúng thứ tự.
+   `src/services/units.service.js` điều phối gán/gỡ hoạt động qua
+   `assignItemsToUnit`/`unassignItemsFromUnit` (export từ `items.service.js`); sau mỗi
+   create/update/delete, `UnitsPage` gọi lại `loadData()` để đồng bộ `items` (vì unit_id của
+   item có thể đổi) thay vì tự vá state cục bộ.
+5. ⏳ Tính tổng cost/thời gian của 1 chặng dựa trên các hoạt động bên trong
+6. ⏳ Gọi OpenRouteService tính khoảng cách + thời gian di chuyển giữa các hoạt động trong chặng
 7. ⏳ Vẽ bản đồ + tuyến đường (react-leaflet)
-8. ⏳ Trang Plan tổng hợp nhiều unit
+8. ⏳ Trang Plan tổng hợp nhiều chặng
 
 ## Việc cần làm tiếp theo (ngay bây giờ)
 
 - Chạy lại file `supabase/schema.sql` trong Supabase SQL Editor (mới thêm bảng
-  `item_locations` + xoá cột `items.location_id` cũ để chuyển sang quan hệ nhiều-nhiều —
-  script dùng `if exists`/`if not exists` nên chạy lại nhiều lần vẫn an toàn)
+  `unit_types`, đổi cột `units.date` → `start_date`/`end_date` (timestamptz) + thêm
+  `unit_type_id` — script dùng `if exists`/`if not exists` nên chạy lại nhiều lần vẫn an toàn)
 - Bật Google OAuth provider thủ công trong Supabase Dashboard (xem mục "⚠️ Bước thủ công
   bắt buộc" ở trên) — bắt buộc trước khi test đăng nhập được
 - Deploy Edge Function `resolve-maps-link` (xem mục "⚠️ Bước thủ công bắt buộc" thứ 2 ở
   trên) — bắt buộc để ô dán link Google Maps giải mã được link rút gọn
-- Làm tiếp **Unit Manager** (bước 4 trong roadmap): code CRUD thật vào
-  `src/services/units.service.js` (thay các hàm stub) + xây UI trong
-  `src/pages/UnitsPage.jsx`, cài thêm `dnd-kit` để kéo-thả hoạt động (từ bước 3) vào unit
+- Làm tiếp bước 5 (tính tổng cost/thời gian của 1 chặng) rồi bước 6 (OpenRouteService)
 - Cài thêm `react-leaflet` + `leaflet` khi bắt đầu bước 7 (bản đồ) — chưa cần bây giờ

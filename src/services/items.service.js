@@ -36,19 +36,39 @@ async function fetchItemWithLocations(itemId) {
   return { data: normalizeItem(data), error };
 }
 
+// Hoạt động mới luôn thêm vào cuối danh sách (thứ tự do kéo-thả quyết định).
+async function nextOrderIndex() {
+  const { data } = await supabase
+    .from(TABLES.ITEMS)
+    .select("order_index")
+    .order("order_index", { ascending: false })
+    .limit(1);
+  return (data?.[0]?.order_index ?? -1) + 1;
+}
+
 export async function listItems() {
   const { data, error } = await supabase
     .from(TABLES.ITEMS)
     .select(SELECT_WITH_LOCATIONS)
-    .order("created_at", { ascending: true });
+    .order("order_index", { ascending: true });
 
   return { data: data?.map(normalizeItem), error };
 }
 
+export async function reorderItems(orderedIds) {
+  const results = await Promise.all(
+    orderedIds.map((id, index) =>
+      supabase.from(TABLES.ITEMS).update({ order_index: index }).eq("id", id)
+    )
+  );
+  return { error: results.find((r) => r.error)?.error ?? null };
+}
+
 export async function createItem({ name, price, start_time, end_time, note, locationIds = [] }) {
+  const order_index = await nextOrderIndex();
   const { data: item, error } = await supabase
     .from(TABLES.ITEMS)
-    .insert({ name, price, start_time, end_time, note })
+    .insert({ name, price, start_time, end_time, note, order_index })
     .select()
     .single();
   if (error) return { data: null, error };
@@ -83,4 +103,25 @@ export async function updateItem(
 
 export async function deleteItem(id) {
   return supabase.from(TABLES.ITEMS).delete().eq("id", id);
+}
+
+// Dùng bởi units.service.js — items.service.js là nơi duy nhất gọi
+// supabase.from(TABLES.ITEMS), kể cả khi thao tác xuất phát từ trang Chặng.
+export async function assignItemsToUnit(unitId, itemIds) {
+  const results = await Promise.all(
+    itemIds.map((id, index) =>
+      supabase.from(TABLES.ITEMS).update({ unit_id: unitId, order_index: index }).eq("id", id)
+    )
+  );
+  return { error: results.find((r) => r.error)?.error ?? null };
+}
+
+export async function unassignItemsFromUnit(itemIds) {
+  if (!itemIds.length) return { error: null };
+  const results = await Promise.all(
+    itemIds.map((id) =>
+      supabase.from(TABLES.ITEMS).update({ unit_id: null, order_index: 0 }).eq("id", id)
+    )
+  );
+  return { error: results.find((r) => r.error)?.error ?? null };
 }

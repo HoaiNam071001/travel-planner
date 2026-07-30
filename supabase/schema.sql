@@ -70,7 +70,24 @@ create policy "Users manage own plans" on plans
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- ---------------------------------------------------------------------------
--- units
+-- unit_types — danh sách "loại" cho đơn vị/chặng (vd Ngày, Tuần...), do user tự
+-- tạo dần khi dùng (động), không có sẵn danh sách cố định.
+-- ---------------------------------------------------------------------------
+create table if not exists unit_types (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  name text not null,
+  created_at timestamptz not null default now()
+);
+
+alter table unit_types enable row level security;
+
+drop policy if exists "Users manage own unit_types" on unit_types;
+create policy "Users manage own unit_types" on unit_types
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ---------------------------------------------------------------------------
+-- units (hiển thị là "Chặng")
 -- ---------------------------------------------------------------------------
 create table if not exists units (
   id uuid primary key default gen_random_uuid(),
@@ -78,10 +95,17 @@ create table if not exists units (
   plan_id uuid references plans(id) on delete set null,
   name text not null,
   description text,
-  date date,
   order_index int not null default 0,
   created_at timestamptz not null default now()
 );
+
+-- Đổi từ 1 cột `date` (chỉ ngày) sang khoảng thời gian có giờ (start/end), và
+-- thêm "loại" động qua unit_types. Dùng add/drop column if (not) exists nên
+-- chạy lại nhiều lần vẫn an toàn.
+alter table units drop column if exists date;
+alter table units add column if not exists start_date timestamptz;
+alter table units add column if not exists end_date timestamptz;
+alter table units add column if not exists unit_type_id uuid references unit_types(id) on delete set null;
 
 alter table units enable row level security;
 
@@ -180,6 +204,8 @@ create policy "Users manage own unit_routes" on unit_routes
 
 create index if not exists idx_units_plan_id on units(plan_id);
 create index if not exists idx_units_user_id on units(user_id);
+create index if not exists idx_units_unit_type_id on units(unit_type_id);
+create index if not exists idx_unit_types_user_id on unit_types(user_id);
 create index if not exists idx_items_unit_id on items(unit_id);
 create index if not exists idx_items_user_id on items(user_id);
 create index if not exists idx_locations_user_id on locations(user_id);

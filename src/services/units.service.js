@@ -1,22 +1,75 @@
-// Stub — Unit CRUD chưa được implement (xem roadmap trong CLAUDE.md).
+import { supabase } from "../lib/supabaseClient";
 import { TABLES } from "../shared/constants/tables";
+import { assignItemsToUnit, unassignItemsFromUnit } from "./items.service";
 
-function notImplemented() {
-  throw new Error(`${TABLES.UNITS} service not implemented yet`);
-}
+const SELECT_WITH_TYPE = "*, unit_type:unit_types(id, name)";
 
 export async function listUnits() {
-  notImplemented();
+  return supabase
+    .from(TABLES.UNITS)
+    .select(SELECT_WITH_TYPE)
+    .order("order_index", { ascending: true });
 }
 
-export async function createUnit() {
-  notImplemented();
+// Chặng mới luôn thêm vào cuối danh sách (thứ tự do kéo-thả quyết định, dùng ở
+// bước Plan sau này).
+async function nextOrderIndex() {
+  const { data } = await supabase
+    .from(TABLES.UNITS)
+    .select("order_index")
+    .order("order_index", { ascending: false })
+    .limit(1);
+  return (data?.[0]?.order_index ?? -1) + 1;
 }
 
-export async function updateUnit() {
-  notImplemented();
+export async function createUnit({
+  name,
+  description,
+  unit_type_id,
+  start_date,
+  end_date,
+  itemIds = [],
+}) {
+  const order_index = await nextOrderIndex();
+  const { data: unit, error } = await supabase
+    .from(TABLES.UNITS)
+    .insert({ name, description, unit_type_id, start_date, end_date, order_index })
+    .select(SELECT_WITH_TYPE)
+    .single();
+  if (error) return { data: null, error };
+
+  const { error: assignError } = await assignItemsToUnit(unit.id, itemIds);
+  if (assignError) return { data: null, error: assignError };
+
+  return { data: unit, error: null };
 }
 
-export async function deleteUnit() {
-  notImplemented();
+// `previousItemIds` là danh sách hoạt động đang gắn với unit này TRƯỚC khi sửa
+// (page truyền vào từ state đã tải sẵn) — dùng để biết hoạt động nào bị bỏ ra
+// cần gỡ unit_id, tách biệt với `itemIds` là danh sách mới sau khi sửa.
+export async function updateUnit(
+  id,
+  { name, description, unit_type_id, start_date, end_date, itemIds = [] },
+  previousItemIds = []
+) {
+  const { data: unit, error } = await supabase
+    .from(TABLES.UNITS)
+    .update({ name, description, unit_type_id, start_date, end_date })
+    .eq("id", id)
+    .select(SELECT_WITH_TYPE)
+    .single();
+  if (error) return { data: null, error };
+
+  const removedItemIds = previousItemIds.filter((itemId) => !itemIds.includes(itemId));
+  const { error: unassignError } = await unassignItemsFromUnit(removedItemIds);
+  if (unassignError) return { data: null, error: unassignError };
+
+  const { error: assignError } = await assignItemsToUnit(id, itemIds);
+  if (assignError) return { data: null, error: assignError };
+
+  return { data: unit, error: null };
+}
+
+export async function deleteUnit(id) {
+  return supabase.from(TABLES.UNITS).delete().eq("id", id);
 }
