@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Modal from "../shared/components/Modal";
 import Button from "../shared/components/Button";
+import Field from "../shared/components/Field";
 import Input, { TextArea } from "../shared/components/Input";
 import ImageUrlInput from "../shared/components/ImageUrlInput";
 import { isShortGoogleMapsLink, parseGoogleMapsUrl } from "../shared/utils/googleMapsLink";
@@ -105,11 +106,8 @@ export default function LocationFormModal({ open, mode, location, onClose, onSub
       title={mode === "edit" ? "Sửa địa điểm" : "Thêm địa điểm mới"}
       footer={null}
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="mb-1 block text-xs font-medium text-stone-500">
-            Dán link Google Maps (tự điền tên + vị trí)
-          </label>
+      <form onSubmit={handleSubmit} className="space-y-4 pt-1">
+        <Field label="Link Google Maps" hint="tự điền tên + toạ độ">
           <div className="flex gap-2">
             <Input
               value={mapsLink}
@@ -120,70 +118,54 @@ export default function LocationFormModal({ open, mode, location, onClose, onSub
               Chuyển đổi
             </Button>
           </div>
-          {mapsLinkError && (
-            <p className="mt-1 text-xs text-red-600">{mapsLinkError}</p>
-          )}
-        </div>
+          {mapsLinkError && <p className="mt-1.5 text-xs text-rose-600">{mapsLinkError}</p>}
+        </Field>
 
-        <div>
-          <label className="mb-1 block text-xs font-medium text-stone-500">
-            Tên địa điểm
-          </label>
+        <Field label="Tên địa điểm">
           <Input
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             placeholder="VD: Bảo tàng Chứng tích Chiến tranh"
           />
-        </div>
+        </Field>
 
-        <div>
-          <label className="mb-1 block text-xs font-medium text-stone-500">Mô tả</label>
+        <Field label="Mô tả" hint="không bắt buộc">
           <TextArea
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
             placeholder="Ghi chú ngắn về địa điểm này"
             rows={2}
           />
-        </div>
+        </Field>
 
         <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="mb-1 block text-xs font-medium text-stone-500">
-              Vĩ độ (lat)
-            </label>
+          <Field label="Vĩ độ (lat)">
             <Input
               value={form.lat}
               onChange={(e) => setForm({ ...form, lat: e.target.value })}
               placeholder="10.7724"
             />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-stone-500">
-              Kinh độ (lng)
-            </label>
+          </Field>
+          <Field label="Kinh độ (lng)">
             <Input
               value={form.lng}
               onChange={(e) => setForm({ ...form, lng: e.target.value })}
               placeholder="106.698"
             />
-          </div>
+          </Field>
         </div>
 
-        <div>
-          <label className="mb-1 block text-xs font-medium text-stone-500">
-            Ảnh (thêm từ URL)
-          </label>
-          <ImageUrlInput
-            value={form.images}
-            onChange={(images) => setForm({ ...form, images })}
-          />
-        </div>
+        <Field label="Ảnh" hint="thêm từ URL">
+          <ImageUrlInput value={form.images} onChange={(images) => setForm({ ...form, images })} />
+        </Field>
 
         {error && (
-          <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">{error}</p>
+          <p className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs text-rose-700">
+            {error}
+          </p>
         )}
 
-        <div className="flex justify-end gap-2 pt-2">
+        <div className="flex justify-end gap-2 pt-1">
           <Button onClick={onClose}>Huỷ</Button>
           <Button variant="primary" htmlType="submit" loading={submitting}>
             {mode === "edit" ? "Lưu thay đổi" : "Thêm địa điểm"}

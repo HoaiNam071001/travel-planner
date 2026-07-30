@@ -7,6 +7,8 @@ import {
   deleteLocation,
 } from "../services/locations.service";
 import Button from "../shared/components/Button";
+import EmptyState from "../shared/components/EmptyState";
+import PageHeader from "../shared/components/PageHeader";
 import LocationCard from "../components/LocationCard";
 import LocationsMap from "../components/LocationsMap";
 import LocationFormModal from "../components/LocationFormModal";
@@ -91,27 +93,23 @@ export default function LocationsPage() {
   const isMapVisible = mapLocations.length > 0;
 
   return (
-    <div className="min-h-full w-full bg-stone-50 font-sans text-stone-800">
-      <div className="mx-auto max-w-6xl px-6 py-10">
-        {/* Header */}
-        <div className="mb-8 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-cyan-700 text-stone-50">
-              <Compass className="h-5 w-5" />
-            </div>
-            <div>
-              <h1 className="font-serif text-2xl text-cyan-900">Sổ tay địa điểm</h1>
-              <p className="text-sm text-stone-500">Lưu lại những nơi bạn muốn ghé qua</p>
-            </div>
-          </div>
-
-          <Button variant="primary" icon={<Plus className="h-4 w-4" />} onClick={openCreateModal}>
-            Thêm địa điểm
-          </Button>
-        </div>
+    <div className="mx-auto max-w-6xl px-4 pb-16 pt-8 sm:px-6">
+      <div>
+        <PageHeader
+          icon={Compass}
+          title="Sổ tay địa điểm"
+          subtitle="Lưu lại những nơi bạn muốn ghé qua — bật biểu tượng bản đồ để xem vị trí"
+          actions={
+            <Button variant="primary" icon={<Plus className="h-4 w-4" />} onClick={openCreateModal}>
+              Thêm địa điểm
+            </Button>
+          }
+        />
 
         {error && (
-          <p className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">{error}</p>
+          <p className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs text-rose-700">
+            {error}
+          </p>
         )}
 
         <div
@@ -123,17 +121,29 @@ export default function LocationsPage() {
         >
           {/* List */}
           <div>
-            <p className="mb-3 text-sm text-stone-500">{locations.length} địa điểm đã lưu</p>
+            <p className="mb-3 text-xs text-slate-400 tnum">{locations.length} địa điểm đã lưu</p>
 
             {loading ? (
-              <div className="rounded-xl border border-dashed border-stone-300 py-16 text-center text-stone-400">
-                <p className="text-sm">Đang tải danh sách địa điểm...</p>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="h-40 animate-pulse rounded-2xl bg-slate-200/50" />
+                ))}
               </div>
             ) : locations.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-stone-300 py-16 text-center text-stone-400">
-                <MapPin className="mx-auto mb-2 h-8 w-8" />
-                <p className="text-sm">Chưa có địa điểm nào. Thêm địa điểm đầu tiên nhé.</p>
-              </div>
+              <EmptyState
+                icon={MapPin}
+                title="Chưa có địa điểm nào"
+                hint="Dán link Google Maps vào modal thêm địa điểm để tự điền tên và toạ độ."
+                action={
+                  <Button
+                    variant="primary"
+                    icon={<Plus className="h-4 w-4" />}
+                    onClick={openCreateModal}
+                  >
+                    Thêm địa điểm
+                  </Button>
+                }
+              />
             ) : (
               <div
                 className={
@@ -159,7 +169,7 @@ export default function LocationsPage() {
 
           {/* Map panel */}
           {isMapVisible && (
-            <div className="h-[70vh] overflow-hidden rounded-xl border border-stone-200 shadow-sm md:sticky md:top-6">
+            <div className="h-[70vh] overflow-hidden rounded-2xl border border-slate-200 shadow-card md:sticky md:top-24">
               <LocationsMap locations={mapLocations} />
             </div>
           )}

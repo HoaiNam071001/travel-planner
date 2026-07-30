@@ -10,8 +10,11 @@ và nhiều chặng gộp thành 1 "kế hoạch" (plan) tổng.
 
 - Frontend: React + Vite, TailwindCSS, lucide-react (icon)
 - UI components: Ant Design (`antd`) — Button/Modal/Input/DatePicker dùng qua wrapper ở
-  `src/shared/components/`, theme khớp palette stone/cyan ở `src/shared/theme/antdTheme.js`
-  (màu chính `#06B6D4`, tương ứng Tailwind `cyan-500`)
+  `src/shared/components/`, theme khớp design system ở `src/shared/theme/antdTheme.js`
+- Design system (xem mục "Design system" bên dưới): neutral **slate**, brand **cyan**
+  khai báo thành thang `brand-*` trong `tailwind.config.js` (`brand-500` = `#06B6D4`);
+  font Inter (body) + Plus Jakarta Sans (`font-display`, cho tiêu đề) + JetBrains Mono
+  (`font-mono`, cho số/giờ/toạ độ), load qua Google Fonts ở `index.html`
 - Bản đồ: react-leaflet + leaflet, tile OpenStreetMap (free, không cần API key) — dùng ở
   trang Địa điểm để hiện vị trí trên bản đồ
 - Routing: react-router-dom
@@ -22,9 +25,12 @@ và nhiều chặng gộp thành 1 "kế hoạch" (plan) tổng.
   `src/context/AuthContext.jsx` (`useAuth()`), route được bảo vệ bởi
   `src/routes/ProtectedRoute.jsx`
 - Tính khoảng cách/thời gian di chuyển: OpenRouteService API (free key, không cần thẻ tín dụng)
-- Drag & drop: `@dnd-kit/core` + `@dnd-kit/sortable` — dùng để sắp xếp lại hoạt động ngay ở
-  trang Hoạt động (`ItemsPage`, lưới `rectSortingStrategy`) và để sắp xếp hoạt động đã chọn
-  trong modal tạo/sửa chặng (`UnitFormModal`, danh sách dọc `verticalListSortingStrategy`)
+- Drag & drop: `@dnd-kit/core` + `@dnd-kit/sortable` — 3 chỗ dùng:
+  1. lưới trang Hoạt động (`ItemsPage`, `rectSortingStrategy`),
+  2. cột "đã chọn" của `DualListPicker` (`verticalListSortingStrategy`),
+  3. **Plan Builder** (`src/components/plan/PlanBoard.jsx`) — board nhiều lane, kéo hoạt
+     động **giữa các lane** (mỗi lane là 1 chặng, lane đầu là kho hoạt động chưa gắn chặng)
+     bằng 1 `DndContext` + `closestCorners` + `useDroppable` cho từng lane
 - Deploy frontend: Vercel hoặc Netlify (free tier)
 - Giải mã link Google Maps (dán vào modal địa điểm để tự điền tên + lat/lng): Supabase Edge
   Function `supabase/functions/resolve-maps-link` (theo redirect của link rút gọn
@@ -32,28 +38,68 @@ và nhiều chặng gộp thành 1 "kế hoạch" (plan) tổng.
   `src/services/mapsLink.service.js`; parse URL đầy đủ ra tên/toạ độ bằng
   `src/shared/utils/googleMapsLink.js` (thuần regex, không cần gọi mạng)
 
+## Design system
+
+Hướng thiết kế: **light SaaS** (nền `slate-50`, card trắng bo 16px, shadow nhiều lớp rất
+nhẹ) + **hero tối** (gradient `slate-950` → `brand-800`, phủ `.hero-grid`) cho phần Tổng
+quan kế hoạch và cột trái trang đăng nhập.
+
+- `tailwind.config.js` — thang màu `brand-*`, shadow `xs`/`card`/`card-hover`/`pop`,
+  animation `fade-in`/`fade-up`/`scale-in`, 3 font family.
+- `src/index.css` — base (nền, `h1..h4` tự dùng `font-display`, focus ring brand) + các
+  class dùng lại: `.surface` (card trắng chuẩn), `.surface-muted`, `.scroll-thin`
+  (thanh cuộn mảnh cho các cột của Plan Builder), `.hero-grid`, `.tnum` (tabular figures
+  cho mọi con số: giá/giờ/toạ độ).
+- Quy ước: **không** viết lại chuỗi `rounded-... border-... shadow-...` dài ở từng file —
+  dùng `.surface` hoặc primitive dưới đây.
+
 ## Kiến trúc code
 
 - `src/shared/constants/tables.js` — enum tên bảng (`TABLES`), mọi service dùng chung,
   tránh chuỗi `"locations"` rải rác.
-- `src/shared/constants/routes.js` — enum đường dẫn route (`ROUTES`), router + `Header`
-  dùng chung.
-- `src/shared/components/` — component UI dùng chung, wrap antd + style khớp Tailwind
-  palette hiện có: `Button`, `Modal`, `Input`/`TextArea`, `DatePicker`, `ImageUrlInput`
-  (input thêm ảnh từ URL, có preview + xoá). Luôn ưu tiên dùng lại các component này thay
-  vì viết `<button>`/`<input>` thô hoặc import thẳng từ `antd` ở trang/component khác.
-- `src/shared/theme/antdTheme.js` — theme token antd (màu chính cyan-500 `#06B6D4`, bo góc),
-  áp dụng qua `<ConfigProvider>` bọc toàn app ở `main.jsx`.
+- `src/shared/constants/routes.js` — enum đường dẫn route (`ROUTES`) + helper
+  `planPath(id)`, router + `Header` + `PlanCard` dùng chung.
+- `src/shared/constants/board.js` — `LIBRARY_LANE`, id giả của lane "kho hoạt động" trong
+  Plan Builder (để phân biệt với lane là chặng thật).
+- `src/shared/components/` — component UI dùng chung. Wrapper antd: `Button`, `Modal`,
+  `Input`/`TextArea`, `DatePicker`, `ImageUrlInput`. Primitive của design system:
+  `Badge` (mọi chip metadata, có `tone` neutral/brand/amber/emerald/violet/rose/inverse),
+  `StatTile` (ô số liệu, `inverse` khi đặt trên hero tối), `PageHeader` (icon gradient +
+  tiêu đề + actions + hàng filter), `EmptyState`, `Field` (label + control cho form
+  modal), `IconButton` (nút icon nhỏ trên card, `forwardRef` nên dùng được làm trigger
+  của `Popconfirm`/`Dropdown`). Luôn ưu tiên dùng lại thay vì viết `<button>`/`<span>` thô
+  hoặc import thẳng từ `antd`.
+- `src/shared/utils/format.js` — **nơi duy nhất** định dạng hiển thị: `formatPrice`,
+  `formatPriceShort`, `formatDateRange`, `formatDateTimeRange`, `formatTimeRange`,
+  `formatDuration`, `itemDurationMinutes`, `dayCount`. Trước đây mỗi card tự viết lại
+  `formatRange` nên format lệch nhau giữa các trang — đừng lặp lại chuyện đó.
+- `src/shared/utils/planStats.js` — tính động cost/thời lượng: `groupItemsByUnit(items)`
+  → `Map<unitId, item[]>` đã sắp thứ tự, `unitStats(items)` → `{itemCount, cost, minutes}`,
+  `unitsForPlan(units, planId)`, `planTotals(planUnits, itemsByUnit)`.
+- `src/shared/theme/antdTheme.js` — theme token antd (brand cyan, neutral slate, bo góc,
+  shadow), áp dụng qua `<ConfigProvider>` bọc toàn app ở `main.jsx`.
 - `src/services/*.service.js` — 1 file/bảng, là nơi duy nhất gọi `supabase.from(...)` cho
   bảng đó (kể cả khi thao tác xuất phát từ trang khác — vd `units.service.js` gọi hàm
   `assignItemsToUnit`/`unassignItemsFromUnit` export từ `items.service.js` thay vì tự
-  `supabase.from(TABLES.ITEMS)`). `locations`/`items`/`units`/`unitTypes` service đã CRUD
-  thật; `plans`/`unitRoutes` service hiện là stub (throw "not implemented"), chờ roadmap.
+  `supabase.from(TABLES.ITEMS)`). `locations`/`items`/`units`/`unitTypes`/`plans` đã CRUD
+  thật; `unitRoutes` service vẫn là stub, chờ roadmap.
+  **Quy ước quan hệ**: `updateUnit`/`updatePlan` coi `itemIds`/`unitIds` **`undefined` =
+  không đụng tới quan hệ** (chỉ sửa metadata) — dùng khi form mở từ Plan Builder, nơi việc
+  gán đã làm bằng kéo-thả.
 - `src/context/AuthContext.jsx` — `AuthProvider` + `useAuth()`, theo dõi session qua
   `supabase.auth.onAuthStateChange`.
-- `src/layouts/AppLayout.jsx` + `src/components/Header.jsx` — layout chung (header + nội
-  dung) cho mọi trang đã đăng nhập.
-- `src/pages/*` — 1 file/trang, map với route trong `App.jsx`.
+- `src/layouts/AppLayout.jsx` + `src/components/Header.jsx` — layout chung cho mọi trang đã
+  đăng nhập: header sticky nền mờ (`backdrop-blur`), nav dạng segmented pill, avatar mở
+  `Dropdown` (tên/email + đăng xuất).
+- `src/pages/*` — 1 file/trang, map với route trong `App.jsx`. Container chuẩn của trang:
+  `mx-auto max-w-6xl px-4 pb-16 pt-8 sm:px-6`.
+- `src/components/plan/` — các mảnh của trang chi tiết kế hoạch (`PlanOverview`,
+  `PlanBoard`, `BoardLane`, `BoardItemCard`); đây là feature nhiều mảnh nên được gom thư
+  mục con, phần còn lại của `src/components/` vẫn phẳng.
+- `src/components/DualListPicker.jsx` — UI 2 cột "chọn + sắp thứ tự" dùng chung cho
+  `ItemFormModal` (chọn địa điểm) và `UnitFormModal` (chọn hoạt động): trái là danh sách
+  nguồn có search + `Pagination` (5 dòng/trang), phải là danh sách đã chọn kéo-thả sắp xếp
+  lại được. Cần picker kiểu này ở chỗ mới thì dùng lại nó, đừng copy.
 - `src/components/LocationsMap.jsx` — bản đồ react-leaflet dùng chung cho các trang cần
   hiện vị trí (hiện đang dùng ở `LocationsPage`); fix icon marker mặc định của Leaflet ở
   `src/shared/map/leafletIconFix.js` (bắt buộc khi bundle bằng Vite).
@@ -134,60 +180,70 @@ Edge Function):
    đồ, còn lại list hiện full-width dạng lưới. Modal tạo/sửa có ô dán link Google Maps
    (đầy đủ hoặc rút gọn `maps.app.goo.gl`) để tự điền tên + lat/lng, xem
    `src/shared/utils/googleMapsLink.js` + Edge Function `resolve-maps-link` ở trên.
-2. ✅ **Đăng nhập Google + layout + services layer** — `src/pages/LoginPage.jsx`,
-   `src/context/AuthContext.jsx`, `src/routes/ProtectedRoute.jsx`, layout
-   Header + content (`src/layouts/AppLayout.jsx`), bảng `users`, RLS theo `user_id` trên
-   mọi bảng dữ liệu. Header có đủ 4 trang điều hướng (Địa điểm/Hoạt động/Chặng/Kế hoạch),
-   1 trang cuối còn là placeholder "Đang phát triển".
+2. ✅ **Đăng nhập Google + layout + services layer** — `src/pages/LoginPage.jsx` (2 cột:
+   pitch trên nền tối + nút Google), `src/context/AuthContext.jsx`,
+   `src/routes/ProtectedRoute.jsx`, layout Header + content (`src/layouts/AppLayout.jsx`),
+   bảng `users`, RLS theo `user_id` trên mọi bảng dữ liệu. Header điều hướng 4 trang
+   (Kế hoạch/Chặng/Hoạt động/Địa điểm — xếp theo thứ tự từ tổng tới chi tiết); route mặc
+   định là `/plans`.
 3. ✅ **Item Manager** (`src/pages/ItemsPage.jsx`, hiển thị là "Hoạt động" — tên bảng/route/
    service vẫn giữ `items` để khớp schema) — CRUD hoạt động qua modal
    (`src/components/ItemFormModal.jsx`), **1 hoạt động chọn được nhiều địa điểm theo thứ
-   tự** qua UI 2 cột: cột trái là danh sách địa điểm có ô search (`Input.Search`, lọc theo
-   tên) + phân trang (`Pagination` antd, 5 địa điểm/trang), mỗi dòng có nút +/- để
-   thêm/bỏ khỏi hoạt động; cột phải hiện các địa điểm đã chọn theo đúng thứ tự chọn (số
-   thứ tự + nút x bỏ từng cái + nút "Bỏ chọn tất cả"), disable nút "Thêm hoạt động" ở
-   trang list nếu chưa có địa điểm nào để chọn. Khung giờ dùng `TimePicker.RangePicker`,
-   giá dùng `InputNumber` định dạng số nghìn. List hiện dạng lưới
-   (`src/components/ItemCard.jsx`, tối đa 2 badge địa điểm + "+N địa điểm"), bấm vào thẻ mở
-   `src/components/ItemDetailModal.jsx` xem đầy đủ địa điểm theo thứ tự (kèm ảnh đầu tiên
-   nếu có) + giờ/giá/ghi chú. Danh sách lưới hỗ trợ **kéo-thả sắp xếp lại** (dnd-kit,
-   `rectSortingStrategy`, tay cầm kéo `GripVertical` ở góc trái tên hoạt động) — thứ tự lưu
-   vào `items.order_index` qua `reorderItems()`. unit_id để trống ban đầu (gán chặng ở bước
-   4). Đã nối Supabase thật qua `src/services/items.service.js` (bảng `items` + bảng nối
-   `item_locations`, xem mục Data model).
+   tự** qua `DualListPicker`. Địa điểm là **không bắt buộc** (schema cho phép, và Plan
+   Builder cần tạo nhanh hoạt động rỗng rồi bổ sung sau). Khung giờ dùng
+   `TimePicker.RangePicker`, giá dùng `InputNumber` định dạng số nghìn. List hiện dạng lưới
+   (`src/components/ItemCard.jsx`: ảnh bìa lấy từ địa điểm đầu tiên có ảnh, tối đa 2 badge
+   địa điểm + "+N địa điểm", chân thẻ ghi **đang thuộc chặng nào**), bấm vào thẻ mở
+   `src/components/ItemDetailModal.jsx`. Trang có hàng lọc: Tất cả / Chưa gắn chặng / theo
+   từng chặng + ô search — trả lời nhanh câu "hoạt động nào còn chưa xếp?". Lưới hỗ trợ
+   **kéo-thả sắp xếp lại** (dnd-kit `rectSortingStrategy`) lưu vào `items.order_index` qua
+   `reorderItems()`; kéo-thả **chỉ bật khi đang xem toàn bộ** (không lọc/không search), vì
+   khi lọc thì thứ tự hiển thị không phải thứ tự thật nên lưu lại sẽ sai.
 4. ✅ **Unit Manager** (`src/pages/UnitsPage.jsx`, hiển thị là "Chặng" — tên bảng/route/
    service vẫn giữ `units`/`unitTypes` để khớp schema) — CRUD chặng qua modal
-   (`src/components/UnitFormModal.jsx`): chọn/tạo/xoá "loại" động (chip, xem mục Data
-   model), chọn khoảng thời gian bằng `DatePicker.RangePicker` (`showTime`), và **chọn
-   hoạt động** theo đúng UI 2 cột như Item Manager chọn địa điểm (search + phân trang bên
-   trái, đã chọn + kéo-thả sắp xếp lại bằng dnd-kit `verticalListSortingStrategy` bên phải).
-   Cột trái chỉ hiện hoạt động **chưa gắn chặng nào hoặc đang gắn chính chặng đang sửa**
-   (tránh "cướp" ngầm hoạt động của chặng khác — muốn chuyển thì gỡ khỏi chặng cũ trước).
-   List hiện dạng lưới (`src/components/UnitCard.jsx`: loại/khoảng thời gian/số hoạt động),
-   bấm vào thẻ mở `src/components/UnitDetailModal.jsx` xem hoạt động theo đúng thứ tự.
+   (`src/components/UnitFormModal.jsx`): chọn/tạo/xoá "loại" động (chip có ô "Thêm loại"
+   ngay tại chỗ), khoảng thời gian bằng `DatePicker.RangePicker` (`showTime`), và **chọn
+   hoạt động** qua `DualListPicker`. Picker chỉ hiện hoạt động **chưa gắn chặng nào hoặc
+   đang gắn chính chặng đang sửa** (tránh "cướp" ngầm hoạt động của chặng khác). Prop
+   `showItemPicker={false}` để ẩn picker khi modal mở từ Plan Builder. List hiện dạng lưới
+   (`src/components/UnitCard.jsx`), bấm vào thẻ mở `src/components/UnitDetailModal.jsx`.
    `src/services/units.service.js` điều phối gán/gỡ hoạt động qua
    `assignItemsToUnit`/`unassignItemsFromUnit` (export từ `items.service.js`); sau mỗi
    create/update/delete, `UnitsPage` gọi lại `loadData()` để đồng bộ `items` (vì unit_id của
    item có thể đổi) thay vì tự vá state cục bộ.
-5. ⏳ Tính tổng cost/thời gian của 1 chặng dựa trên các hoạt động bên trong (hiện tổng
-   cost mới có ở trang Kế hoạch, xem mục 8 — chưa hiện ở `UnitCard`/`UnitDetailModal`)
+5. ✅ **Tổng cost + thời lượng của chặng** — tính động qua `unitStats()` (xem
+   `src/shared/utils/planStats.js`), hiện ở `UnitCard` (3 ô: số hoạt động / thời lượng /
+   chi phí), `UnitDetailModal` (3 `StatTile`), header mỗi lane trong Plan Builder, và mỗi
+   chặng trong Tổng quan kế hoạch. Thời lượng cộng từ khung giờ `start_time`/`end_time` của
+   hoạt động (`itemDurationMinutes`, khung giờ qua nửa đêm được cộng thêm 1 ngày).
 6. ⏳ Gọi OpenRouteService tính khoảng cách + thời gian di chuyển giữa các hoạt động trong chặng
-7. ⏳ Vẽ bản đồ + tuyến đường (react-leaflet)
-8. ✅ **Plan Manager** (`src/pages/PlansPage.jsx`, hiển thị là "Kế hoạch") — CRUD kế hoạch
-   qua modal (`src/components/PlanFormModal.jsx`): tên/mô tả/khoảng thời gian bằng
-   `DatePicker.RangePicker` (không `showTime`, vì `plans.start_date`/`end_date` là cột
-   `date`), và **chọn chặng** theo đúng UI 2 cột như Unit Manager chọn hoạt động (search +
-   phân trang bên trái, đã chọn + kéo-thả sắp xếp lại bằng dnd-kit
-   `verticalListSortingStrategy` bên phải). Cột trái chỉ hiện chặng **chưa gắn kế hoạch nào
-   hoặc đang gắn chính kế hoạch đang sửa** (cùng quy tắc tránh "cướp" ngầm như Unit Manager).
-   List hiện dạng lưới (`src/components/PlanCard.jsx`: khoảng thời gian/số chặng/tổng chi
-   phí), bấm vào thẻ mở `src/components/PlanDetailModal.jsx` xem từng chặng theo đúng thứ
-   tự kèm số hoạt động + chi phí của riêng chặng đó và tổng cộng cả kế hoạch — tổng này tính
-   động ngay tại `PlansPage` (gom `price` của `items` theo `unit_id`), **không** lưu cột
-   cứng, khớp mục Data model. `src/services/plans.service.js` điều phối gán/gỡ chặng qua
-   `assignUnitsToPlan`/`unassignUnitsFromPlan` (export từ `units.service.js`, cùng pattern
-   với `assignItemsToUnit`/`unassignItemsFromUnit` ở bước 4); sau mỗi create/update/delete,
-   `PlansPage` gọi lại `loadData()` để đồng bộ `units` (vì `plan_id` có thể đổi).
+7. ⏳ Vẽ bản đồ + tuyến đường trong trang Tổng quan kế hoạch (react-leaflet, đã cài sẵn)
+8. ✅ **Plan Manager** (`src/pages/PlansPage.jsx`) — danh sách kế hoạch dạng lưới
+   (`src/components/PlanCard.jsx`: khoảng thời gian/số ngày/số chặng/số hoạt động/tổng chi
+   phí), mỗi thẻ là `<Link>` sang trang chi tiết. `PlanFormModal` giờ **chỉ nhập metadata**
+   (tên/thời gian/mô tả) — tạo xong `PlansPage` điều hướng thẳng vào
+   `/plans/:planId?tab=build`. Tổng chi phí tính động bằng `planTotals()`, **không** lưu cột
+   cứng, khớp mục Data model.
+9. ✅ **Plan Workspace** (`src/pages/PlanDetailPage.jsx`, route `/plans/:planId`) — chỗ làm
+   việc chính, thay cho việc phải nhảy qua 3 trang để sửa 1 kế hoạch. Trang tự tải `plan` +
+   toàn bộ `units`/`items`/`locations`/`unitTypes` rồi điều phối mọi thao tác ghi; 2 tab
+   chọn bằng `Segmented`, lưu ở query param `?tab=` (`overview` mặc định | `build`):
+   - **Tổng quan** (`src/components/plan/PlanOverview.jsx`): hero tối gradient (tên kế
+     hoạch + khoảng ngày + 4 `StatTile` chặng/hoạt động/tổng chi phí/tổng thời lượng),
+     timeline lịch trình theo từng chặng (mỗi hoạt động 1 dòng: cột giờ + chấm timeline +
+     tên + chuỗi địa điểm + giá + ảnh bìa), sidebar "Phân bổ chi phí" (thanh % theo từng
+     chặng) và "Địa điểm ghé qua" (gom trùng, đếm số lần).
+   - **Xây dựng** (`src/components/plan/PlanBoard.jsx`): board kéo-thả. Lane 0 = **kho hoạt
+     động chưa gắn chặng** (`LIBRARY_LANE`, có ô search), các lane sau = chặng theo đúng
+     `order_index`, lane cuối = ô "Thêm chặng" (tạo nhanh bằng tên, hoặc chọn chặng đã có
+     mà chưa gắn kế hoạch nào). Kéo hoạt động giữa các lane để gán/gỡ/sắp thứ tự; đổi thứ
+     tự chặng bằng nút ‹ › trên header lane; menu ⋯ mỗi lane để sửa/gỡ khỏi kế hoạch/xoá
+     chặng; tạo & sửa hoạt động ngay trong board qua `ItemFormModal`.
+   - Mọi thao tác ghi đi qua helper `commit()` của trang: **cập nhật state trước** cho UI
+     phản hồi tức thì, lỗi thì báo + `loadData()` để state không lệch DB. `moveItem()` là
+     chỗ dễ sai nhất — nó ghi lại `order_index` cho **cả lane nguồn lẫn lane đích**, và khi
+     thả về kho thì `unassignItemsFromUnit()` (đặt `order_index` về 0) rồi mới
+     `reorderItems()` để thứ tự trong kho không bị mất sau khi tải lại.
 
 ## Việc cần làm tiếp theo (ngay bây giờ)
 
@@ -198,6 +254,7 @@ Edge Function):
   bắt buộc" ở trên) — bắt buộc trước khi test đăng nhập được
 - Deploy Edge Function `resolve-maps-link` (xem mục "⚠️ Bước thủ công bắt buộc" thứ 2 ở
   trên) — bắt buộc để ô dán link Google Maps giải mã được link rút gọn
-- Làm tiếp bước 5 (tính tổng cost/thời gian của 1 chặng, hiện ngay ở `UnitCard`/
-  `UnitDetailModal` chứ không chỉ ở trang Kế hoạch) rồi bước 6 (OpenRouteService)
-- Cài thêm `react-leaflet` + `leaflet` khi bắt đầu bước 7 (bản đồ) — chưa cần bây giờ
+- Làm tiếp bước 6 (OpenRouteService tính khoảng cách/thời gian di chuyển giữa các hoạt
+  động trong 1 chặng, cache vào bảng `unit_routes` qua `unitRoutes.service.js` đang là
+  stub) rồi bước 7 (vẽ tuyến đường lên bản đồ trong tab Tổng quan của kế hoạch —
+  `react-leaflet` + `leaflet` đã cài sẵn, dùng lại `src/components/LocationsMap.jsx`)

@@ -1,3 +1,92 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-slate-50 font-sans text-slate-800 antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display tracking-tight text-slate-900;
+  }
+
+  ::selection {
+    @apply bg-brand-200 text-brand-950;
+  }
+
+  *:focus-visible {
+    @apply outline-none ring-2 ring-brand-400/70 ring-offset-2 ring-offset-white;
+  }
+}
+
+@layer components {
+  /* Số liệu (giá, giờ, toạ độ) dùng tabular figures để cột không nhảy. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Bề mặt dùng chung — thay cho việc lặp lại chuỗi border/shadow dài. */
+  .surface {
+    @apply rounded-2xl border border-slate-200/80 bg-white shadow-card;
+  }
+
+  .surface-muted {
+    @apply rounded-2xl border border-slate-200/70 bg-slate-50/60;
+  }
+
+  /* Khung cuộn mảnh, dùng cho các cột danh sách trong Plan Builder. */
+  .scroll-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(203 213 225) transparent;
+  }
+
+  .scroll-thin::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .scroll-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scroll-thin::-webkit-scrollbar-thumb {
+    @apply rounded-full border-2 border-solid border-transparent bg-slate-300 bg-clip-content;
+  }
+
+  .scroll-thin:hover::-webkit-scrollbar-thumb {
+    @apply bg-slate-400;
+  }
+
+  /* Lưới điểm mờ phủ lên hero tối của trang Tổng quan kế hoạch. */
+  .hero-grid {
+    background-image: radial-gradient(rgb(255 255 255 / 0.09) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+}
+
+/* Leaflet: bo góc + chữ khớp với các surface khác. */
+.leaflet-container {
+  @apply rounded-2xl font-sans;
+}
+
+.leaflet-container .leaflet-control-attribution {
+  @apply rounded-tl-lg bg-white/80 text-[10px] text-slate-400;
+}
+
+/* antd: vài chỗ token không chạm tới được. */
+.ant-modal-content {
+  @apply shadow-pop;
+}
+
+.ant-modal-title {
+  @apply font-display tracking-tight;
+}

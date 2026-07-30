@@ -1,34 +1,25 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Map, Plus } from "lucide-react";
 import { listPlans, createPlan, updatePlan, deletePlan } from "../services/plans.service";
 import { listUnits } from "../services/units.service";
 import { listItems } from "../services/items.service";
+import { planPath } from "../shared/constants/routes";
+import { groupItemsByUnit, planTotals, unitsForPlan } from "../shared/utils/planStats";
 import Button from "../shared/components/Button";
+import EmptyState from "../shared/components/EmptyState";
+import PageHeader from "../shared/components/PageHeader";
 import PlanCard from "../components/PlanCard";
 import PlanFormModal from "../components/PlanFormModal";
-import PlanDetailModal from "../components/PlanDetailModal";
-
-function unitsForPlan(units, planId) {
-  return units
-    .filter((u) => u.plan_id === planId)
-    .slice()
-    .sort((a, b) => a.order_index - b.order_index);
-}
 
 export default function PlansPage() {
+  const navigate = useNavigate();
   const [plans, setPlans] = useState([]);
   const [units, setUnits] = useState([]);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [formModal, setFormModal] = useState({
-    open: false,
-    mode: "create",
-    plan: null,
-    initialUnitIds: [],
-    previousUnitIds: [],
-  });
-  const [detailPlan, setDetailPlan] = useState(null);
+  const [formModal, setFormModal] = useState({ open: false, mode: "create", plan: null });
 
   useEffect(() => {
     loadData();
@@ -52,38 +43,7 @@ export default function PlansPage() {
     setLoading(false);
   }
 
-  // Đếm số hoạt động + tổng giá theo từng chặng, dùng chung cho mọi kế hoạch —
-  // tổng cost của Plan = tổng hợp từ Unit, Unit tổng hợp từ Item (tính động).
-  const { itemCountByUnit, costByUnit } = useMemo(() => {
-    const counts = {};
-    const costs = {};
-    for (const item of items) {
-      if (!item.unit_id) continue;
-      counts[item.unit_id] = (counts[item.unit_id] ?? 0) + 1;
-      costs[item.unit_id] = (costs[item.unit_id] ?? 0) + (Number(item.price) || 0);
-    }
-    return { itemCountByUnit: counts, costByUnit: costs };
-  }, [items]);
-
-  function openCreateModal() {
-    setFormModal({ open: true, mode: "create", plan: null, initialUnitIds: [], previousUnitIds: [] });
-  }
-
-  function openEditModal(plan) {
-    setDetailPlan(null);
-    const currentUnitIds = unitsForPlan(units, plan.id).map((u) => u.id);
-    setFormModal({
-      open: true,
-      mode: "edit",
-      plan,
-      initialUnitIds: currentUnitIds,
-      previousUnitIds: currentUnitIds,
-    });
-  }
-
-  function closeFormModal() {
-    setFormModal((prev) => ({ ...prev, open: false }));
-  }
+  const itemsByUnit = useMemo(() => groupItemsByUnit(items), [items]);
 
   async function handleDelete(id) {
     const { error: deleteError } = await deletePlan(id);
@@ -91,107 +51,95 @@ export default function PlansPage() {
       setError("Không xoá được kế hoạch: " + deleteError.message);
       return;
     }
-    if (detailPlan?.id === id) setDetailPlan(null);
     await loadData();
   }
 
   async function handleFormSubmit(values) {
-    const result =
-      formModal.mode === "edit"
-        ? await updatePlan(formModal.plan.id, values, formModal.previousUnitIds)
-        : await createPlan(values);
-
-    if (result.error) {
-      return {
-        error:
-          (formModal.mode === "edit" ? "Không lưu được thay đổi: " : "Không thêm được kế hoạch: ") +
-          result.error.message,
-      };
+    if (formModal.mode === "edit") {
+      const { error: updateError } = await updatePlan(formModal.plan.id, values);
+      if (updateError) return { error: "Không lưu được thay đổi: " + updateError.message };
+      setFormModal((prev) => ({ ...prev, open: false }));
+      await loadData();
+      return {};
     }
 
-    closeFormModal();
-    await loadData();
+    const { data, error: createError } = await createPlan(values);
+    if (createError) return { error: "Không thêm được kế hoạch: " + createError.message };
+
+    // Tạo xong đi thẳng vào màn hình xây dựng — đó mới là nơi ghép chặng/hoạt động.
+    navigate(`${planPath(data.id)}?tab=build`);
     return {};
   }
 
   return (
-    <div className="min-h-full w-full bg-stone-50 font-sans text-stone-800">
-      <div className="mx-auto max-w-5xl px-6 py-10">
-        <div className="mb-8 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-cyan-700 text-stone-50">
-              <Map className="h-5 w-5" />
-            </div>
-            <div>
-              <h1 className="font-serif text-2xl text-cyan-900">Kế hoạch</h1>
-              <p className="text-sm text-stone-500">
-                Gộp các chặng lại thành một kế hoạch đi chơi hoàn chỉnh
-              </p>
-            </div>
-          </div>
-
-          <Button variant="primary" icon={<Plus className="h-4 w-4" />} onClick={openCreateModal}>
-            Thêm kế hoạch
+    <div className="mx-auto max-w-6xl px-4 pb-16 pt-8 sm:px-6">
+      <PageHeader
+        icon={Map}
+        title="Kế hoạch"
+        subtitle="Mỗi kế hoạch gom nhiều chặng — mở ra để xem tổng quan hoặc kéo-thả xây dựng"
+        actions={
+          <Button
+            variant="primary"
+            icon={<Plus className="h-4 w-4" />}
+            onClick={() => setFormModal({ open: true, mode: "create", plan: null })}
+          >
+            Kế hoạch mới
           </Button>
+        }
+      />
+
+      {error && (
+        <p className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs text-rose-700">
+          {error}
+        </p>
+      )}
+
+      {loading ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-52 animate-pulse rounded-2xl bg-slate-200/50" />
+          ))}
         </div>
-
-        {error && (
-          <p className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">{error}</p>
-        )}
-
-        <p className="mb-3 text-sm text-stone-500">{plans.length} kế hoạch đã lưu</p>
-
-        {loading ? (
-          <div className="rounded-xl border border-dashed border-stone-300 py-16 text-center text-stone-400">
-            <p className="text-sm">Đang tải danh sách kế hoạch...</p>
-          </div>
-        ) : plans.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-stone-300 py-16 text-center text-stone-400">
-            <Map className="mx-auto mb-2 h-8 w-8" />
-            <p className="text-sm">Chưa có kế hoạch nào. Thêm kế hoạch đầu tiên nhé.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {plans.map((plan) => {
-              const planUnits = unitsForPlan(units, plan.id);
-              const totalCost = planUnits.reduce((sum, u) => sum + (costByUnit[u.id] ?? 0), 0);
-              const totalItems = planUnits.reduce((sum, u) => sum + (itemCountByUnit[u.id] ?? 0), 0);
-              return (
-                <PlanCard
-                  key={plan.id}
-                  plan={plan}
-                  unitCount={planUnits.length}
-                  itemCount={totalItems}
-                  totalCost={totalCost}
-                  onOpenDetail={setDetailPlan}
-                  onEdit={openEditModal}
-                  onDelete={handleDelete}
-                />
-              );
-            })}
-          </div>
-        )}
-      </div>
+      ) : plans.length === 0 ? (
+        <EmptyState
+          icon={Map}
+          title="Chưa có kế hoạch nào"
+          hint="Tạo kế hoạch đầu tiên, rồi thêm chặng và kéo-thả hoạt động vào từng chặng."
+          action={
+            <Button
+              variant="primary"
+              icon={<Plus className="h-4 w-4" />}
+              onClick={() => setFormModal({ open: true, mode: "create", plan: null })}
+            >
+              Kế hoạch mới
+            </Button>
+          }
+        />
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {plans.map((plan) => {
+            const totals = planTotals(unitsForPlan(units, plan.id), itemsByUnit);
+            return (
+              <PlanCard
+                key={plan.id}
+                plan={plan}
+                unitCount={totals.unitCount}
+                itemCount={totals.itemCount}
+                totalCost={totals.cost}
+                onEdit={(p) => setFormModal({ open: true, mode: "edit", plan: p })}
+                onDelete={handleDelete}
+              />
+            );
+          })}
+        </div>
+      )}
 
       <PlanFormModal
         open={formModal.open}
         mode={formModal.mode}
         plan={formModal.plan}
-        initialUnitIds={formModal.initialUnitIds}
-        units={units}
-        items={items}
-        onClose={closeFormModal}
+        onClose={() => setFormModal((prev) => ({ ...prev, open: false }))}
         onSubmit={handleFormSubmit}
-      />
-
-      <PlanDetailModal
-        open={!!detailPlan}
-        plan={detailPlan}
-        units={detailPlan ? unitsForPlan(units, detailPlan.id) : []}
-        itemCountByUnit={itemCountByUnit}
-        costByUnit={costByUnit}
-        onClose={() => setDetailPlan(null)}
-        onEdit={openEditModal}
       />
     </div>
   );

@@ -1,72 +1,88 @@
-import { CalendarClock, Pencil, Sparkles, Trash2 } from "lucide-react";
 import { Popconfirm } from "antd";
-import dayjs from "dayjs";
+import { CalendarClock, Clock, Map, Pencil, Sparkles, Trash2, Wallet } from "lucide-react";
+import Badge from "../shared/components/Badge";
+import IconButton from "../shared/components/IconButton";
+import { formatDateTimeRange, formatDuration, formatPrice } from "../shared/utils/format";
 
-function formatRange(startDate, endDate) {
-  if (!startDate || !endDate) return null;
-  return `${dayjs(startDate).format("DD/MM/YYYY HH:mm")} - ${dayjs(endDate).format("DD/MM/YYYY HH:mm")}`;
-}
-
-export default function UnitCard({ unit, itemCount, onOpenDetail, onEdit, onDelete }) {
-  const range = formatRange(unit.start_date, unit.end_date);
+export default function UnitCard({ unit, stats, planName, onOpenDetail, onEdit, onDelete }) {
+  const range = formatDateTimeRange(unit.start_date, unit.end_date);
 
   return (
     <div
       onClick={() => onOpenDetail(unit)}
-      className="group relative cursor-pointer rounded-xl border border-stone-200 bg-white p-4 shadow-sm transition hover:border-cyan-300 hover:shadow-md"
+      className="group surface flex cursor-pointer flex-col p-5 transition duration-200 hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-card-hover"
     >
-      <div className="mb-2 flex items-start justify-between gap-2">
-        <h3 className="font-serif text-base leading-snug text-stone-900">{unit.name}</h3>
-        <div className="flex shrink-0 gap-1">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit(unit);
-            }}
-            className="rounded-full p-1.5 text-stone-400 hover:bg-cyan-50 hover:text-cyan-700"
-            aria-label="Sửa"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-          </button>
+      <div className="flex items-start justify-between gap-2">
+        <h3 className="text-[15px] font-bold leading-snug">{unit.name}</h3>
+        <div className="flex shrink-0 gap-0.5 opacity-0 transition group-hover:opacity-100 focus-within:opacity-100">
+          <IconButton size="sm" tone="brand" icon={Pencil} onClick={() => onEdit(unit)} aria-label="Sửa" />
           <Popconfirm
             title="Xoá chặng này?"
+            description="Hoạt động bên trong sẽ được gỡ ra, không bị xoá."
             okText="Xoá"
             cancelText="Huỷ"
             okButtonProps={{ danger: true }}
             onConfirm={() => onDelete(unit.id)}
           >
-            <button
-              onClick={(e) => e.stopPropagation()}
-              className="rounded-full p-1.5 text-stone-400 hover:bg-red-50 hover:text-red-600"
-              aria-label="Xoá"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
+            <IconButton size="sm" tone="danger" icon={Trash2} aria-label="Xoá" />
           </Popconfirm>
         </div>
       </div>
 
-      {unit.description && (
-        <p className="mb-3 text-sm text-stone-500 line-clamp-2">{unit.description}</p>
+      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        {unit.unit_type && (
+          <Badge tone="brand" size="sm">
+            {unit.unit_type.name}
+          </Badge>
+        )}
+        {planName ? (
+          <Badge tone="violet" size="sm" icon={Map}>
+            {planName}
+          </Badge>
+        ) : (
+          <Badge size="sm">Chưa gắn kế hoạch</Badge>
+        )}
+      </div>
+
+      {range && (
+        <p className="mt-2.5 flex items-center gap-1.5 text-xs text-slate-500 tnum">
+          <CalendarClock className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+          {range}
+        </p>
       )}
 
-      <div className="flex flex-wrap items-center gap-2">
-        {unit.unit_type && (
-          <span className="inline-flex items-center rounded-full bg-cyan-50 px-2.5 py-1 text-xs text-cyan-800">
-            {unit.unit_type.name}
-          </span>
-        )}
-        {range && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2.5 py-1 font-mono text-xs text-stone-600">
-            <CalendarClock className="h-3 w-3" />
-            {range}
-          </span>
-        )}
-        <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs text-amber-800">
-          <Sparkles className="h-3 w-3" />
-          {itemCount} hoạt động
-        </span>
+      {unit.description && (
+        <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-slate-500">
+          {unit.description}
+        </p>
+      )}
+
+      {/* Tổng chi phí / thời lượng của chặng — tính động từ các hoạt động bên trong. */}
+      <div className="mt-auto grid grid-cols-3 gap-2 border-t border-slate-100 pt-3.5 [&>div]:min-w-0">
+        <Stat icon={Sparkles} label="Hoạt động" value={stats.itemCount} />
+        <Stat
+          icon={Clock}
+          label="Thời lượng"
+          value={formatDuration(stats.minutes) ?? "—"}
+        />
+        <Stat
+          icon={Wallet}
+          label="Chi phí"
+          value={stats.cost > 0 ? formatPrice(stats.cost) : "—"}
+        />
       </div>
+    </div>
+  );
+}
+
+function Stat({ icon: Icon, label, value }) {
+  return (
+    <div>
+      <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+        <Icon className="h-3 w-3" />
+        {label}
+      </p>
+      <p className="mt-0.5 truncate text-[13px] font-semibold text-slate-800 tnum">{value}</p>
     </div>
   );
 }

@@ -1,5 +1,7 @@
-import { MapPin, Pencil, Trash2, Map, Image as ImageIcon } from "lucide-react";
 import { Popconfirm } from "antd";
+import { Image as ImageIcon, Map, MapPin, Pencil, Trash2 } from "lucide-react";
+import Badge from "../shared/components/Badge";
+import IconButton from "../shared/components/IconButton";
 
 export default function LocationCard({
   location,
@@ -9,75 +11,65 @@ export default function LocationCard({
   onToggleMap,
   onDelete,
 }) {
+  const cover = location.images?.[0];
+
   return (
     <div
       onClick={() => onOpenDetail(location)}
-      className={`group relative cursor-pointer rounded-xl border bg-white p-4 shadow-sm transition hover:shadow-md ${
-        isViewedOnMap
-          ? "border-cyan-400 ring-1 ring-cyan-200"
-          : "border-stone-200 hover:border-cyan-300"
+      className={`group surface flex cursor-pointer overflow-hidden transition duration-200 hover:-translate-y-0.5 hover:shadow-card-hover ${
+        isViewedOnMap ? "border-brand-300 ring-1 ring-brand-200" : "hover:border-brand-200"
       }`}
     >
-      <div className="mb-2 flex items-start justify-between gap-2">
-        <h3 className="font-serif text-base leading-snug text-stone-900">{location.name}</h3>
-        <div className="flex shrink-0 gap-1">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleMap(location.id);
-            }}
-            className={`rounded-full p-1.5 transition ${
-              isViewedOnMap
-                ? "bg-cyan-50 text-cyan-700"
-                : "text-stone-400 hover:bg-cyan-50 hover:text-cyan-700"
-            }`}
-            aria-label={isViewedOnMap ? "Ẩn khỏi bản đồ" : "Xem trên bản đồ"}
-          >
-            <Map className="h-3.5 w-3.5" />
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit(location);
-            }}
-            className="rounded-full p-1.5 text-stone-400 hover:bg-cyan-50 hover:text-cyan-700"
-            aria-label="Sửa"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-          </button>
-          <Popconfirm
-            title="Xoá địa điểm này?"
-            okText="Xoá"
-            cancelText="Huỷ"
-            okButtonProps={{ danger: true }}
-            onConfirm={() => onDelete(location.id)}
-          >
-            <button
-              onClick={(e) => e.stopPropagation()}
-              className="rounded-full p-1.5 text-stone-400 hover:bg-red-50 hover:text-red-600"
-              aria-label="Xoá"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
-          </Popconfirm>
+      {cover && <img src={cover} alt="" className="w-24 shrink-0 object-cover" />}
+
+      <div className="min-w-0 flex-1 p-4">
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="min-w-0 text-[15px] font-bold leading-snug">{location.name}</h3>
+          <div className="flex shrink-0 gap-0.5">
+            <IconButton
+              size="sm"
+              tone={isViewedOnMap ? "active" : "brand"}
+              icon={Map}
+              onClick={() => onToggleMap(location.id)}
+              aria-label={isViewedOnMap ? "Ẩn khỏi bản đồ" : "Xem trên bản đồ"}
+            />
+            <span className="flex gap-0.5 opacity-0 transition group-hover:opacity-100 focus-within:opacity-100">
+              <IconButton
+                size="sm"
+                tone="brand"
+                icon={Pencil}
+                onClick={() => onEdit(location)}
+                aria-label="Sửa"
+              />
+              <Popconfirm
+                title="Xoá địa điểm này?"
+                okText="Xoá"
+                cancelText="Huỷ"
+                okButtonProps={{ danger: true }}
+                onConfirm={() => onDelete(location.id)}
+              >
+                <IconButton size="sm" tone="danger" icon={Trash2} aria-label="Xoá" />
+              </Popconfirm>
+            </span>
+          </div>
         </div>
-      </div>
 
-      {location.description && (
-        <p className="mb-3 text-sm text-stone-500 line-clamp-2">{location.description}</p>
-      )}
-
-      <div className="flex items-center gap-2">
-        <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 font-mono text-xs text-amber-800">
-          <MapPin className="h-3 w-3" />
-          {location.lat.toFixed(4)}, {location.lng.toFixed(4)}
-        </span>
-        {location.images?.length > 0 && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2.5 py-1 text-xs text-stone-600">
-            <ImageIcon className="h-3 w-3" />
-            {location.images.length}
-          </span>
+        {location.description && (
+          <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-slate-500">
+            {location.description}
+          </p>
         )}
+
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          <Badge size="sm" tone="amber" icon={MapPin} numeric>
+            {location.lat.toFixed(4)}, {location.lng.toFixed(4)}
+          </Badge>
+          {location.images?.length > 0 && (
+            <Badge size="sm" icon={ImageIcon} numeric>
+              {location.images.length}
+            </Badge>
+          )}
+        </div>
       </div>
     </div>
   );

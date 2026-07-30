@@ -3,6 +3,7 @@ import { Popconfirm } from "antd";
 import { Plus, Trash2 } from "lucide-react";
 import Modal from "../shared/components/Modal";
 import Button from "../shared/components/Button";
+import IconButton from "../shared/components/IconButton";
 import Input from "../shared/components/Input";
 
 export default function ManageUnitTypesModal({ open, types, onClose, onCreate, onDelete }) {
@@ -39,14 +40,14 @@ export default function ManageUnitTypesModal({ open, types, onClose, onCreate, o
 
       <div className="mt-4 max-h-72 space-y-1.5 overflow-y-auto pr-1">
         {types.length === 0 ? (
-          <p className="py-6 text-center text-xs text-stone-400">Chưa có loại nào.</p>
+          <p className="py-6 text-center text-xs text-slate-400">Chưa có loại nào.</p>
         ) : (
           types.map((t) => (
             <div
               key={t.id}
-              className="flex items-center justify-between rounded-lg border border-stone-200 px-3 py-2"
+              className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-2"
             >
-              <span className="text-sm text-stone-700">{t.name}</span>
+              <span className="text-sm text-slate-700">{t.name}</span>
               <Popconfirm
                 title="Xoá loại này?"
                 okText="Xoá"
@@ -54,13 +55,7 @@ export default function ManageUnitTypesModal({ open, types, onClose, onCreate, o
                 okButtonProps={{ danger: true }}
                 onConfirm={() => onDelete(t.id)}
               >
-                <button
-                  type="button"
-                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-stone-400 hover:bg-red-50 hover:text-red-600"
-                  aria-label="Xoá"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+                <IconButton size="sm" tone="danger" icon={Trash2} aria-label="Xoá" />
               </Popconfirm>
             </div>
           ))

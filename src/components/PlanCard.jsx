@@ -1,77 +1,95 @@
-import { CalendarClock, Pencil, Route, Trash2, Wallet } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Popconfirm } from "antd";
-import dayjs from "dayjs";
+import { ArrowRight, CalendarClock, Pencil, Route as RouteIcon, Sparkles, Trash2 } from "lucide-react";
+import Badge from "../shared/components/Badge";
+import IconButton from "../shared/components/IconButton";
+import { planPath } from "../shared/constants/routes";
+import { dayCount, formatDateRange, formatPrice } from "../shared/utils/format";
 
-function formatRange(startDate, endDate) {
-  if (!startDate || !endDate) return null;
-  return `${dayjs(startDate).format("DD/MM/YYYY")} - ${dayjs(endDate).format("DD/MM/YYYY")}`;
-}
-
-export default function PlanCard({ plan, unitCount, itemCount, totalCost, onOpenDetail, onEdit, onDelete }) {
-  const range = formatRange(plan.start_date, plan.end_date);
+export default function PlanCard({ plan, unitCount, itemCount, totalCost, onEdit, onDelete }) {
+  const range = formatDateRange(plan.start_date, plan.end_date);
+  const days = dayCount(plan.start_date, plan.end_date);
 
   return (
-    <div
-      onClick={() => onOpenDetail(plan)}
-      className="group relative cursor-pointer rounded-xl border border-stone-200 bg-white p-4 shadow-sm transition hover:border-cyan-300 hover:shadow-md"
+    <Link
+      to={planPath(plan.id)}
+      className="group surface relative flex flex-col overflow-hidden p-5 transition duration-200 hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-card-hover"
     >
-      <div className="mb-2 flex items-start justify-between gap-2">
-        <h3 className="font-serif text-base leading-snug text-stone-900">{plan.name}</h3>
-        <div className="flex shrink-0 gap-1">
-          <button
+      {/* Vệt gradient mảnh ở mép trên, sáng lên khi hover. */}
+      <span
+        aria-hidden
+        className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand-400 via-brand-500 to-brand-700 opacity-0 transition group-hover:opacity-100"
+      />
+
+      <div className="flex items-start justify-between gap-2">
+        <h3 className="text-[17px] font-bold leading-snug">{plan.name}</h3>
+        <div className="flex shrink-0 gap-0.5 opacity-0 transition group-hover:opacity-100 focus-within:opacity-100">
+          <IconButton
+            size="sm"
+            tone="brand"
+            icon={Pencil}
             onClick={(e) => {
-              e.stopPropagation();
+              e.preventDefault();
               onEdit(plan);
             }}
-            className="rounded-full p-1.5 text-stone-400 hover:bg-cyan-50 hover:text-cyan-700"
-            aria-label="Sửa"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-          </button>
+            aria-label="Sửa kế hoạch"
+          />
           <Popconfirm
             title="Xoá kế hoạch này?"
+            description="Các chặng bên trong sẽ được gỡ ra, không bị xoá."
             okText="Xoá"
             cancelText="Huỷ"
             okButtonProps={{ danger: true }}
             onConfirm={() => onDelete(plan.id)}
           >
-            <button
-              onClick={(e) => e.stopPropagation()}
-              className="rounded-full p-1.5 text-stone-400 hover:bg-red-50 hover:text-red-600"
-              aria-label="Xoá"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
+            <IconButton
+              size="sm"
+              tone="danger"
+              icon={Trash2}
+              onClick={(e) => e.preventDefault()}
+              aria-label="Xoá kế hoạch"
+            />
           </Popconfirm>
         </div>
       </div>
 
-      {plan.description && (
-        <p className="mb-3 text-sm text-stone-500 line-clamp-2">{plan.description}</p>
+      {range && (
+        <p className="mt-1.5 flex items-center gap-1.5 text-xs text-slate-500 tnum">
+          <CalendarClock className="h-3.5 w-3.5 text-slate-400" />
+          {range}
+          {days > 0 && <span className="text-slate-400">· {days} ngày</span>}
+        </p>
       )}
 
-      <div className="flex flex-wrap items-center gap-2">
-        {range && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2.5 py-1 font-mono text-xs text-stone-600">
-            <CalendarClock className="h-3 w-3" />
-            {range}
-          </span>
-        )}
-        <span className="inline-flex items-center gap-1 rounded-full bg-cyan-50 px-2.5 py-1 text-xs text-cyan-800">
-          <Route className="h-3 w-3" />
+      {plan.description && (
+        <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-slate-500">
+          {plan.description}
+        </p>
+      )}
+
+      <div className="mt-4 flex flex-wrap items-center gap-1.5">
+        <Badge tone="brand" size="sm" icon={RouteIcon} numeric>
           {unitCount} chặng
-        </span>
-        {totalCost > 0 && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs text-amber-800">
-            <Wallet className="h-3 w-3" />
-            {totalCost.toLocaleString("vi-VN")} đ
-          </span>
-        )}
+        </Badge>
+        <Badge tone="violet" size="sm" icon={Sparkles} numeric>
+          {itemCount} hoạt động
+        </Badge>
       </div>
 
-      {itemCount > 0 && (
-        <p className="mt-2 text-xs text-stone-400">{itemCount} hoạt động</p>
-      )}
-    </div>
+      <div className="mt-4 flex items-end justify-between gap-2 border-t border-slate-100 pt-3.5">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+            Tổng chi phí
+          </p>
+          <p className="mt-0.5 font-display text-lg font-bold text-slate-900 tnum">
+            {totalCost > 0 ? formatPrice(totalCost) : "—"}
+          </p>
+        </div>
+        <span className="flex items-center gap-1 text-xs font-medium text-brand-700 opacity-0 transition group-hover:opacity-100">
+          Mở kế hoạch
+          <ArrowRight className="h-3.5 w-3.5" />
+        </span>
+      </div>
+    </Link>
   );
 }

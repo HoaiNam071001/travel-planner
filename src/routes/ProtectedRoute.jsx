@@ -7,8 +7,9 @@ export default function ProtectedRoute() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-stone-50 text-sm text-stone-400">
-        Đang tải...
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-slate-50">
+        <span className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-brand-500" />
+        <p className="text-sm text-slate-400">Đang tải...</p>
       </div>
     );
   }

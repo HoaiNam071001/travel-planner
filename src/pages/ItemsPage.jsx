@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Sparkles, Plus } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Sparkles, Plus, Search } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -16,16 +16,27 @@ import {
   reorderItems,
 } from "../services/items.service";
 import { listLocations } from "../services/locations.service";
+import { listUnits } from "../services/units.service";
 import Button from "../shared/components/Button";
+import EmptyState from "../shared/components/EmptyState";
+import Input from "../shared/components/Input";
+import PageHeader from "../shared/components/PageHeader";
 import ItemCard from "../components/ItemCard";
 import ItemFormModal from "../components/ItemFormModal";
 import ItemDetailModal from "../components/ItemDetailModal";
 
+// Bộ lọc theo trạng thái gắn chặng — trả lời nhanh câu "hoạt động nào còn chưa xếp?".
+const UNASSIGNED = "unassigned";
+const ALL = "all";
+
 export default function ItemsPage() {
   const [items, setItems] = useState([]);
   const [locations, setLocations] = useState([]);
+  const [units, setUnits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [unitFilter, setUnitFilter] = useState(ALL);
   const [formModal, setFormModal] = useState({ open: false, mode: "create", item: null });
   const [detailItem, setDetailItem] = useState(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -36,7 +47,11 @@ export default function ItemsPage() {
 
   async function loadData() {
     setLoading(true);
-    const [itemsRes, locationsRes] = await Promise.all([listItems(), listLocations()]);
+    const [itemsRes, locationsRes, unitsRes] = await Promise.all([
+      listItems(),
+      listLocations(),
+      listUnits(),
+    ]);
 
     if (itemsRes.error) {
       setError("Không tải được danh sách hoạt động: " + itemsRes.error.message);
@@ -44,8 +59,30 @@ export default function ItemsPage() {
       setItems(itemsRes.data ?? []);
     }
     setLocations(locationsRes.data ?? []);
+    setUnits(unitsRes.data ?? []);
     setLoading(false);
   }
+
+  const unitNameById = useMemo(
+    () => Object.fromEntries(units.map((u) => [u.id, u.name])),
+    [units]
+  );
+  const unassignedCount = useMemo(() => items.filter((i) => !i.unit_id).length, [items]);
+
+  const visibleItems = useMemo(() => {
+    const keyword = search.trim().toLowerCase();
+    return items.filter((item) => {
+      if (unitFilter === UNASSIGNED && item.unit_id) return false;
+      if (unitFilter !== ALL && unitFilter !== UNASSIGNED && item.unit_id !== unitFilter) {
+        return false;
+      }
+      return !keyword || item.name.toLowerCase().includes(keyword);
+    });
+  }, [items, search, unitFilter]);
+
+  // Kéo-thả chỉ sắp xếp được khi đang xem toàn bộ danh sách: khi lọc/tìm kiếm thì
+  // thứ tự hiển thị không phải thứ tự thật nên lưu lại sẽ sai.
+  const canReorder = unitFilter === ALL && !search.trim();
 
   function openCreateModal() {
     setFormModal({ open: true, mode: "create", item: null });
@@ -74,7 +111,7 @@ export default function ItemsPage() {
     if (formModal.mode === "edit") {
       const { data, error: updateError } = await updateItem(formModal.item.id, values);
       if (updateError) return { error: "Không lưu được thay đổi: " + updateError.message };
-      setItems((prev) => prev.map((i) => (i.id === data.id ? data : i)));
+      setItems((prev) => prev.map((i) => (i.id === data.id ? { ...i, ...data } : i)));
     } else {
       const { data, error: insertError } = await createItem(values);
       if (insertError) return { error: "Không thêm được hoạt động: " + insertError.message };
@@ -99,75 +136,109 @@ export default function ItemsPage() {
     });
   }
 
-  return (
-    <div className="min-h-full w-full bg-stone-50 font-sans text-stone-800">
-      <div className="mx-auto max-w-5xl px-6 py-10">
-        <div className="mb-8 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-cyan-700 text-stone-50">
-              <Sparkles className="h-5 w-5" />
-            </div>
-            <div>
-              <h1 className="font-serif text-2xl text-cyan-900">Hoạt động</h1>
-              <p className="text-sm text-stone-500">
-                Việc cần làm, gắn với địa điểm + giá + khung giờ
-              </p>
-            </div>
-          </div>
+  const grid = (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {visibleItems.map((item) => (
+        <ItemCard
+          key={item.id}
+          item={item}
+          unitName={item.unit_id ? unitNameById[item.unit_id] : null}
+          onOpenDetail={setDetailItem}
+          onEdit={openEditModal}
+          onDelete={handleDelete}
+        />
+      ))}
+    </div>
+  );
 
-          <Button
-            variant="primary"
-            icon={<Plus className="h-4 w-4" />}
-            onClick={openCreateModal}
-            disabled={locations.length === 0}
-          >
+  return (
+    <div className="mx-auto max-w-6xl px-4 pb-16 pt-8 sm:px-6">
+      <PageHeader
+        icon={Sparkles}
+        title="Hoạt động"
+        subtitle="Việc cần làm, gắn với địa điểm + giá + khung giờ"
+        actions={
+          <Button variant="primary" icon={<Plus className="h-4 w-4" />} onClick={openCreateModal}>
             Thêm hoạt động
           </Button>
-        </div>
-
-        {error && (
-          <p className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">{error}</p>
-        )}
-
-        {!loading && locations.length === 0 && (
-          <p className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
-            Chưa có địa điểm nào. Hãy thêm địa điểm ở trang Địa điểm trước khi tạo hoạt động.
-          </p>
-        )}
-
-        <p className="mb-3 text-sm text-stone-500">{items.length} hoạt động đã lưu</p>
-
-        {loading ? (
-          <div className="rounded-xl border border-dashed border-stone-300 py-16 text-center text-stone-400">
-            <p className="text-sm">Đang tải danh sách hoạt động...</p>
-          </div>
-        ) : items.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-stone-300 py-16 text-center text-stone-400">
-            <Sparkles className="mx-auto mb-2 h-8 w-8" />
-            <p className="text-sm">Chưa có hoạt động nào. Thêm hoạt động đầu tiên nhé.</p>
-          </div>
-        ) : (
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
+        }
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          <FilterChip active={unitFilter === ALL} onClick={() => setUnitFilter(ALL)}>
+            Tất cả ({items.length})
+          </FilterChip>
+          <FilterChip
+            active={unitFilter === UNASSIGNED}
+            onClick={() => setUnitFilter(UNASSIGNED)}
           >
-            <SortableContext items={items.map((i) => i.id)} strategy={rectSortingStrategy}>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {items.map((item) => (
-                  <ItemCard
-                    key={item.id}
-                    item={item}
-                    onOpenDetail={setDetailItem}
-                    onEdit={openEditModal}
-                    onDelete={handleDelete}
-                  />
-                ))}
-              </div>
-            </SortableContext>
-          </DndContext>
-        )}
-      </div>
+            Chưa gắn chặng ({unassignedCount})
+          </FilterChip>
+          {units.map((unit) => (
+            <FilterChip
+              key={unit.id}
+              active={unitFilter === unit.id}
+              onClick={() => setUnitFilter(unitFilter === unit.id ? ALL : unit.id)}
+            >
+              {unit.name}
+            </FilterChip>
+          ))}
+
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Tìm hoạt động..."
+            prefix={<Search className="h-3.5 w-3.5 text-slate-400" />}
+            allowClear
+            className="ml-auto"
+            style={{ width: 210 }}
+          />
+        </div>
+      </PageHeader>
+
+      {error && (
+        <p className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs text-rose-700">
+          {error}
+        </p>
+      )}
+
+      {!loading && locations.length === 0 && (
+        <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-800">
+          Chưa có địa điểm nào. Thêm địa điểm ở trang Địa điểm để gắn vào hoạt động.
+        </p>
+      )}
+
+      {loading ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-48 animate-pulse rounded-2xl bg-slate-200/50" />
+          ))}
+        </div>
+      ) : visibleItems.length === 0 ? (
+        <EmptyState
+          icon={Sparkles}
+          title={items.length === 0 ? "Chưa có hoạt động nào" : "Không có hoạt động nào khớp"}
+          hint={
+            items.length === 0
+              ? "Hoạt động là một việc cụ thể trong chuyến đi — ăn trưa, tham quan, di chuyển..."
+              : "Thử bỏ bộ lọc hoặc xoá từ khoá tìm kiếm."
+          }
+          action={
+            items.length === 0 && (
+              <Button variant="primary" icon={<Plus className="h-4 w-4" />} onClick={openCreateModal}>
+                Thêm hoạt động
+              </Button>
+            )
+          }
+        />
+      ) : canReorder ? (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={visibleItems.map((i) => i.id)} strategy={rectSortingStrategy}>
+            {grid}
+          </SortableContext>
+        </DndContext>
+      ) : (
+        grid
+      )}
 
       <ItemFormModal
         open={formModal.open}
@@ -181,9 +252,26 @@ export default function ItemsPage() {
       <ItemDetailModal
         open={!!detailItem}
         item={detailItem}
+        unitName={detailItem?.unit_id ? unitNameById[detailItem.unit_id] : null}
         onClose={() => setDetailItem(null)}
         onEdit={openEditModal}
       />
     </div>
+  );
+}
+
+function FilterChip({ active, onClick, children }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`max-w-[190px] truncate rounded-full px-3 py-1.5 text-xs font-medium ring-1 ring-inset transition ${
+        active
+          ? "bg-brand-600 text-white ring-brand-600"
+          : "bg-white text-slate-600 ring-slate-200 hover:ring-brand-300"
+      }`}
+    >
+      {children}
+    </button>
   );
 }

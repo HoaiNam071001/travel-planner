@@ -44,12 +44,14 @@ export async function createUnit({
   return { data: unit, error: null };
 }
 
+// `itemIds` để `undefined` (UnitFormModal mở từ Plan Builder — việc gắn hoạt động
+// làm bằng kéo-thả) thì hàm không đụng tới quan hệ unit-item.
 // `previousItemIds` là danh sách hoạt động đang gắn với unit này TRƯỚC khi sửa
 // (page truyền vào từ state đã tải sẵn) — dùng để biết hoạt động nào bị bỏ ra
 // cần gỡ unit_id, tách biệt với `itemIds` là danh sách mới sau khi sửa.
 export async function updateUnit(
   id,
-  { name, description, unit_type_id, start_date, end_date, itemIds = [] },
+  { name, description, unit_type_id, start_date, end_date, itemIds },
   previousItemIds = []
 ) {
   const { data: unit, error } = await supabase
@@ -59,6 +61,8 @@ export async function updateUnit(
     .select(SELECT_WITH_TYPE)
     .single();
   if (error) return { data: null, error };
+
+  if (!itemIds) return { data: unit, error: null };
 
   const removedItemIds = previousItemIds.filter((itemId) => !itemIds.includes(itemId));
   const { error: unassignError } = await unassignItemsFromUnit(removedItemIds);

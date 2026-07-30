@@ -6,6 +6,7 @@ import LocationsPage from "./pages/LocationsPage";
 import ItemsPage from "./pages/ItemsPage";
 import UnitsPage from "./pages/UnitsPage";
 import PlansPage from "./pages/PlansPage";
+import PlanDetailPage from "./pages/PlanDetailPage";
 import { ROUTES } from "./shared/constants/routes";
 
 export default function App() {
@@ -16,15 +17,16 @@ export default function App() {
 
         <Route element={<ProtectedRoute />}>
           <Route element={<AppLayout />}>
-            <Route index element={<Navigate to={ROUTES.LOCATIONS} replace />} />
+            <Route index element={<Navigate to={ROUTES.PLANS} replace />} />
             <Route path={ROUTES.LOCATIONS} element={<LocationsPage />} />
             <Route path={ROUTES.ITEMS} element={<ItemsPage />} />
             <Route path={ROUTES.UNITS} element={<UnitsPage />} />
             <Route path={ROUTES.PLANS} element={<PlansPage />} />
+            <Route path={ROUTES.PLAN_DETAIL} element={<PlanDetailPage />} />
           </Route>
         </Route>
 
-        <Route path="*" element={<Navigate to={ROUTES.LOCATIONS} replace />} />
+        <Route path="*" element={<Navigate to={ROUTES.PLANS} replace />} />
       </Routes>
     </BrowserRouter>
   );
