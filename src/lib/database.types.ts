@@ -3,6 +3,7 @@ import type {
   LocationRow,
   Plan,
   PlanCollaborator,
+  PlanExpenseRow,
   UnitRoute,
   UnitRow,
   UnitType,
@@ -93,6 +94,19 @@ export interface Database {
         Insertable<UnitRoute, "distance_km" | "duration_min" | "route_geometry" | "updated_at">
       >;
       plan_collaborators: TableDef<PlanCollaborator, Cols<PlanCollaboratorInsert>>;
+      plan_expenses: TableDef<
+        PlanExpenseRow,
+        Insertable<
+          PlanExpenseRow,
+          | "location_id"
+          | "price"
+          | "link"
+          | "note"
+          | "start_time"
+          | "end_time"
+          | "duration_minutes"
+        >
+      >;
     };
     Views: Record<string, never>;
     Functions: {

@@ -79,6 +79,27 @@ export interface Unit extends UnitRow {
   unit_type: Pick<UnitType, "id" | "name"> | null;
 }
 
+export interface PlanExpenseRow {
+  id: Id;
+  user_id: Id;
+  plan_id: Id;
+  location_id: Id | null;
+  name: string;
+  price: number | null;
+  link: string | null;
+  note: string | null;
+  start_time: IsoDateTime | null;
+  end_time: IsoDateTime | null;
+  /** Thời lượng dự phòng khi chỉ có 1 trong 2 mốc start_time/end_time. */
+  duration_minutes: number | null;
+  created_at: IsoDateTime;
+}
+
+/** Chi phí khác sau khi service join địa điểm (nếu có). */
+export interface PlanExpense extends PlanExpenseRow {
+  location: ItemLocation | null;
+}
+
 export interface Plan {
   id: Id;
   user_id: Id;

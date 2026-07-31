@@ -368,6 +368,42 @@ create policy "Collaborators view own row" on plan_collaborators
   for select using (user_id = auth.uid());
 
 -- ---------------------------------------------------------------------------
+-- plan_expenses — "Chi phí khác": chi phí gắn thẳng vào 1 kế hoạch, không qua
+-- units/items (vé xe/máy bay, thuê xe, khách sạn, mua sắm...). start_time/end_time
+-- đều optional (khác items — items bắt buộc phải có start_time nếu có end_time);
+-- có giờ thì kéo-thả được trên gantt tab Lịch trình, không thì chỉ là 1 dòng chi
+-- phí quản lý ở tab riêng "Chi phí khác".
+-- ---------------------------------------------------------------------------
+create table if not exists plan_expenses (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  plan_id uuid not null references plans(id) on delete cascade,
+  location_id uuid references locations(id) on delete set null,
+  name text not null,
+  price numeric,
+  link text,
+  note text,
+  start_time timestamptz,
+  end_time timestamptz,
+  duration_minutes int,
+  created_at timestamptz not null default now()
+);
+
+alter table plan_expenses enable row level security;
+
+-- plan_id ở đây NOT NULL (khác units.plan_id nullable) nên không cần hàm SQL riêng
+-- kiểu unit_is_shared_with_me — is_plan_collaborator(plan_id) là đủ.
+drop policy if exists "Users manage own plan_expenses" on plan_expenses;
+create policy "Users manage own plan_expenses" on plan_expenses
+  for all
+  using (auth.uid() = user_id or is_plan_collaborator(plan_id))
+  with check (auth.uid() = user_id or is_plan_collaborator(plan_id));
+
+create index if not exists idx_plan_expenses_plan_id on plan_expenses(plan_id);
+create index if not exists idx_plan_expenses_user_id on plan_expenses(user_id);
+create index if not exists idx_plan_expenses_location_id on plan_expenses(location_id);
+
+-- ---------------------------------------------------------------------------
 -- find_user_id_by_email — tra email ra user_id để mời collaborator.
 -- `security definer` CÓ CHỦ Ý: bảng `users` chỉ cho tự đọc dòng của mình.
 -- ---------------------------------------------------------------------------
@@ -431,7 +467,14 @@ begin
       ) order by il.order_index)
       from item_locations il
       where il.item_id in (select i.id from items i where i.unit_id in (select id from units where plan_id = found_plan.id))
-    ), '[]'::jsonb)
+    ), '[]'::jsonb),
+    -- Chỉ trả TỔNG chi phí (không phải từng dòng) — trang xem trước công khai chỉ cần
+    -- cộng đúng vào "Tổng chi phí"/biểu đồ phân bổ, không liệt kê chi tiết từng khoản
+    -- "Chi phí khác" ra ngoài để tránh lộ chi tiêu riêng tư qua link công khai.
+    'expenses_total', coalesce((
+      select sum(pe.price) from plan_expenses pe
+      where pe.plan_id = found_plan.id
+    ), 0)
   ) into result;
 
   return result;

@@ -1,5 +1,6 @@
-import type { Id, Item, PlanTotals, Unit, UnitStats } from "../types/models";
+import type { Id, Item, PlanExpense, PlanTotals, Unit, UnitStats } from "../types/models";
 import { itemDurationMinutes } from "./schedule";
+import { unitColor, type UnitColor } from "../../components/plan/timeline/colors";
 
 // Tổng chi phí/thời lượng của Chặng = tổng hợp từ Hoạt động, của Kế hoạch = tổng
 // hợp từ Chặng — luôn tính động (computed) chứ không lưu cột cứng trong DB.
@@ -43,7 +44,8 @@ export function unitsForPlan(units: Unit[] = [], planId: Id | undefined): Unit[]
 
 export function planTotals(
   planUnits: Unit[] = [],
-  itemsByUnit: Map<Id, Item[]> = new Map()
+  itemsByUnit: Map<Id, Item[]> = new Map(),
+  expenses: PlanExpense[] = []
 ): PlanTotals {
   const totals: PlanTotals = {
     unitCount: planUnits.length,
@@ -63,6 +65,43 @@ export function planTotals(
     }
   }
 
+  // "Chi phí khác" cộng vào tổng chi phí nhưng KHÔNG cộng vào tổng thời lượng — stat đó
+  // giữ đúng nghĩa "thời lượng hoạt động", không lẫn với chi phí không phải hoạt động.
+  for (const expense of expenses) {
+    totals.cost += Number(expense.price) || 0;
+  }
+
   totals.locationCount = locationIds.size;
   return totals;
+}
+
+// "Chi phí khác" (plan_expenses) gắn thẳng vào plan, không qua units — khác items nên
+// gom theo plan_id thay vì unit_id.
+export function groupExpensesByPlan(expenses: PlanExpense[] = []): Map<Id, PlanExpense[]> {
+  const byPlan = new Map<Id, PlanExpense[]>();
+  for (const expense of expenses) {
+    const list = byPlan.get(expense.plan_id);
+    if (list) list.push(expense);
+    else byPlan.set(expense.plan_id, [expense]);
+  }
+  for (const list of byPlan.values()) {
+    list.sort((a, b) => a.created_at.localeCompare(b.created_at));
+  }
+  return byPlan;
+}
+
+/**
+ * Không có field phân loại (category) cho "chi phí khác" — phân biệt các khoản bằng màu,
+ * tái dùng thẳng bảng màu của `unitColor()` xoay vòng theo thứ tự `created_at`, để cùng 1
+ * khoản chi phí luôn ra cùng 1 màu ở cả tab "Chi phí khác" lẫn gantt tab Lịch trình.
+ */
+export function expenseColorIndex(expenses: PlanExpense[] = []): Map<Id, number> {
+  const sorted = expenses.slice().sort((a, b) => a.created_at.localeCompare(b.created_at));
+  const map = new Map<Id, number>();
+  sorted.forEach((expense, index) => map.set(expense.id, index));
+  return map;
+}
+
+export function expenseColor(index: number): UnitColor {
+  return unitColor(index);
 }

@@ -8,7 +8,7 @@ import type { TimeScale } from "./scale";
 // vì ở đây cần toạ độ pixel chính xác để quy đổi ra mốc thời gian: dnd-kit chỉ
 // cho biết "thả lên phần tử nào", còn ta cần "thả ở đúng phút nào".
 
-export type DragKind = "unit" | "item";
+export type DragKind = "unit" | "item" | "expense";
 export type DragMode = "move" | "resize-start" | "resize-end" | "schedule";
 
 export interface DragTarget {
@@ -39,6 +39,8 @@ export interface UseTimelineDragOptions {
   unitParkingRef?: RefObject<HTMLDivElement | null>;
   /** Panel "hoạt động chưa gắn chặng"; thả 1 hoạt động vào đây là gỡ khỏi chặng. */
   itemParkingRef?: RefObject<HTMLDivElement | null>;
+  /** Panel "chi phí chưa xếp lịch"; thả 1 khoản chi phí vào đây là gỡ giờ. */
+  expenseParkingRef?: RefObject<HTMLDivElement | null>;
   /**
    * Tìm id chặng đang ở dưới con trỏ (dùng DOM `elementFromPoint` + `closest` trên
    * `data-unit-row-id` do `PlanTimeline` gắn lên từng hàng) — chỉ cần khi kéo 1 hoạt
@@ -97,6 +99,7 @@ export function useTimelineDrag({
   canvasRef,
   unitParkingRef,
   itemParkingRef,
+  expenseParkingRef,
   resolveRowTarget,
   snapMinutes = 15,
   minMinutes = 30,
@@ -116,8 +119,12 @@ export function useTimelineDrag({
   unscheduleRef.current = onUnschedule;
 
   const parkingRefFor = useCallback(
-    (kind: DragKind) => (kind === "unit" ? unitParkingRef : itemParkingRef),
-    [unitParkingRef, itemParkingRef]
+    (kind: DragKind) => {
+      if (kind === "unit") return unitParkingRef;
+      if (kind === "expense") return expenseParkingRef;
+      return itemParkingRef;
+    },
+    [unitParkingRef, itemParkingRef, expenseParkingRef]
   );
 
   const compute = useCallback(

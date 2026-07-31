@@ -17,6 +17,8 @@ export interface SharedPlanPayload {
   };
   units: Unit[];
   items: Item[];
+  /** Tổng "Chi phí khác" của kế hoạch — chỉ số tổng, không liệt kê từng khoản (xem get_shared_plan). */
+  expensesTotal: number;
 }
 
 interface RawUnit {
@@ -65,6 +67,7 @@ interface RawPayload {
   items: RawItem[];
   locations: ItemLocation[];
   item_locations: RawItemLocation[];
+  expenses_total: number;
 }
 
 export async function fetchSharedPlan(token: string): Promise<QueryResult<SharedPlanPayload>> {
@@ -101,5 +104,8 @@ export async function fetchSharedPlan(token: string): Promise<QueryResult<Shared
     locations: locationsByItem.get(i.id) ?? [],
   }));
 
-  return { data: { plan: raw.plan, units, items }, error: null };
+  return {
+    data: { plan: raw.plan, units, items, expensesTotal: Number(raw.expenses_total) || 0 },
+    error: null,
+  };
 }

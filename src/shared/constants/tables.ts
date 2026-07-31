@@ -8,6 +8,7 @@ export const TABLES = {
   PLANS: "plans",
   UNIT_ROUTES: "unit_routes",
   PLAN_COLLABORATORS: "plan_collaborators",
+  PLAN_EXPENSES: "plan_expenses",
 } as const;
 
 export type TableName = (typeof TABLES)[keyof typeof TABLES];

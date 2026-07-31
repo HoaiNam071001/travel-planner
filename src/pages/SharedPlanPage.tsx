@@ -36,10 +36,10 @@ export default function SharedPlanPage() {
   }, [token]);
 
   const itemsByUnit = useMemo(() => groupItemsByUnit(payload?.items ?? []), [payload]);
-  const totals = useMemo(
-    () => planTotals(payload?.units ?? [], itemsByUnit),
-    [payload, itemsByUnit]
-  );
+  const totals = useMemo(() => {
+    const base = planTotals(payload?.units ?? [], itemsByUnit);
+    return { ...base, cost: base.cost + (payload?.expensesTotal ?? 0) };
+  }, [payload, itemsByUnit]);
   const visitedLocations = useMemo<VisitedLocation[]>(() => {
     const byId = new Map<Id, VisitedLocation>();
     for (const unit of payload?.units ?? []) {
@@ -178,7 +178,12 @@ export default function SharedPlanPage() {
                 </div>
 
                 <div className="space-y-6">
-                  <CostBreakdown planUnits={payload.units} itemsByUnit={itemsByUnit} total={totals.cost} />
+                  <CostBreakdown
+                    planUnits={payload.units}
+                    itemsByUnit={itemsByUnit}
+                    expensesCost={payload.expensesTotal}
+                    total={totals.cost}
+                  />
                   <VisitedLocations locations={visitedLocations} />
                 </div>
               </div>

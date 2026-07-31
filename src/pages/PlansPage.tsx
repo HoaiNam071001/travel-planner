@@ -4,15 +4,16 @@ import { Map, Plus } from "lucide-react";
 import { listPlans, createPlan, updatePlan, deletePlan, type PlanInput } from "../services/plans.service";
 import { listUnits } from "../services/units.service";
 import { listItems } from "../services/items.service";
+import { listAllPlanExpenses } from "../services/planExpenses.service";
 import { planPath } from "../shared/constants/routes";
-import { groupItemsByUnit, planTotals, unitsForPlan } from "../shared/utils/planStats";
+import { groupExpensesByPlan, groupItemsByUnit, planTotals, unitsForPlan } from "../shared/utils/planStats";
 import { useAuth } from "../context/AuthContext";
 import Button from "../shared/components/Button";
 import EmptyState from "../shared/components/EmptyState";
 import PageHeader from "../shared/components/PageHeader";
 import PlanCard from "../components/PlanCard";
 import PlanFormModal from "../components/PlanFormModal";
-import type { Id, Item, Plan, Unit } from "../shared/types/models";
+import type { Id, Item, Plan, PlanExpense, Unit } from "../shared/types/models";
 
 interface FormModalState {
   open: boolean;
@@ -26,6 +27,7 @@ export default function PlansPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
   const [items, setItems] = useState<Item[]>([]);
+  const [expenses, setExpenses] = useState<PlanExpense[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [formModal, setFormModal] = useState<FormModalState>({
@@ -40,7 +42,12 @@ export default function PlansPage() {
 
   async function loadData() {
     setLoading(true);
-    const [plansRes, unitsRes, itemsRes] = await Promise.all([listPlans(), listUnits(), listItems()]);
+    const [plansRes, unitsRes, itemsRes, expensesRes] = await Promise.all([
+      listPlans(),
+      listUnits(),
+      listItems(),
+      listAllPlanExpenses(),
+    ]);
 
     if (plansRes.error) {
       setError("Không tải được danh sách kế hoạch: " + plansRes.error.message);
@@ -49,10 +56,12 @@ export default function PlansPage() {
     }
     setUnits(unitsRes.data ?? []);
     setItems(itemsRes.data ?? []);
+    setExpenses(expensesRes.data ?? []);
     setLoading(false);
   }
 
   const itemsByUnit = useMemo(() => groupItemsByUnit(items), [items]);
+  const expensesByPlan = useMemo(() => groupExpensesByPlan(expenses), [expenses]);
 
   async function handleDelete(id: Id) {
     const { error: deleteError } = await deletePlan(id);
@@ -129,7 +138,11 @@ export default function PlansPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {plans.map((plan) => {
-            const totals = planTotals(unitsForPlan(units, plan.id), itemsByUnit);
+            const totals = planTotals(
+              unitsForPlan(units, plan.id),
+              itemsByUnit,
+              expensesByPlan.get(plan.id) ?? []
+            );
             return (
               <PlanCard
                 key={plan.id}

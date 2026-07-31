@@ -6,6 +6,7 @@ import {
   CalendarRange,
   LayoutList,
   Pencil,
+  Receipt,
   Share2,
   SlidersHorizontal,
   Trash2,
@@ -43,6 +44,15 @@ import {
 } from "../services/items.service";
 import { listLocations } from "../services/locations.service";
 import { listUnitTypes, createUnitType, deleteUnitType } from "../services/unitTypes.service";
+import {
+  listPlanExpenses,
+  createPlanExpense,
+  updatePlanExpense,
+  patchPlanExpenseTimes,
+  deletePlanExpense,
+  type PlanExpenseInput,
+  type PlanExpenseTimePatch,
+} from "../services/planExpenses.service";
 import { ROUTES } from "../shared/constants/routes";
 import { LIBRARY_LANE } from "../shared/constants/board";
 import { groupItemsByUnit, unitsForPlan } from "../shared/utils/planStats";
@@ -52,22 +62,25 @@ import Modal from "../shared/components/Modal";
 import PlanOverview from "../components/plan/PlanOverview";
 import PlanBoard from "../components/plan/PlanBoard";
 import PlanTimeline from "../components/plan/PlanTimeline";
+import PlanExpenses from "../components/plan/PlanExpenses";
 import PlanFormModal from "../components/PlanFormModal";
 import UnitFormModal from "../components/UnitFormModal";
 import ItemFormModal from "../components/ItemFormModal";
+import PlanExpenseFormModal from "../components/PlanExpenseFormModal";
 import UnitDetailModal from "../components/UnitDetailModal";
 import ItemDetailModal from "../components/ItemDetailModal";
 import ShareModal from "../components/plan/ShareModal";
 import { useAuth } from "../context/AuthContext";
-import type { Id, Item, LocationRow, Plan, Unit, UnitType } from "../shared/types/models";
+import type { Id, Item, LocationRow, Plan, PlanExpense, Unit, UnitType } from "../shared/types/models";
 import type { WriteResult } from "../services/types";
 
-type TabKey = "overview" | "build" | "schedule";
+type TabKey = "overview" | "build" | "schedule" | "expenses";
 
 const TABS: { value: TabKey; label: string; icon: LucideIcon }[] = [
   { value: "overview", label: "Tổng quan", icon: LayoutList },
   { value: "build", label: "Xây dựng", icon: SlidersHorizontal },
   { value: "schedule", label: "Lịch trình", icon: CalendarRange },
+  { value: "expenses", label: "Chi phí khác", icon: Receipt },
 ];
 
 interface UnitFormState {
@@ -81,19 +94,26 @@ interface ItemFormState {
   unitId: Id | null;
 }
 
+interface ExpenseFormState {
+  open: boolean;
+  expense: PlanExpense | null;
+}
+
 export default function PlanDetailPage() {
   const { planId } = useParams<{ planId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get("tab");
-  const tab: TabKey = tabParam === "build" || tabParam === "schedule" ? tabParam : "overview";
+  const tab: TabKey =
+    tabParam === "build" || tabParam === "schedule" || tabParam === "expenses" ? tabParam : "overview";
 
   const [plan, setPlan] = useState<Plan | null>(null);
   const [units, setUnits] = useState<Unit[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [locations, setLocations] = useState<LocationRow[]>([]);
   const [unitTypes, setUnitTypes] = useState<UnitType[]>([]);
+  const [expenses, setExpenses] = useState<PlanExpense[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState("");
@@ -106,6 +126,7 @@ export default function PlanDetailPage() {
     item: null,
     unitId: null,
   });
+  const [expenseForm, setExpenseForm] = useState<ExpenseFormState>({ open: false, expense: null });
   const [viewingUnit, setViewingUnit] = useState<Unit | null>(null);
   const [viewingItem, setViewingItem] = useState<Item | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
@@ -114,12 +135,13 @@ export default function PlanDetailPage() {
 
   const loadData = useCallback(async () => {
     if (!planId) return;
-    const [planRes, unitsRes, itemsRes, locationsRes, typesRes] = await Promise.all([
+    const [planRes, unitsRes, itemsRes, locationsRes, typesRes, expensesRes] = await Promise.all([
       getPlan(planId),
       listUnits(),
       listItems(),
       listLocations(),
       listUnitTypes(),
+      listPlanExpenses(planId),
     ]);
 
     if (planRes.error || !planRes.data) {
@@ -132,6 +154,7 @@ export default function PlanDetailPage() {
     setItems(itemsRes.data ?? []);
     setLocations(locationsRes.data ?? []);
     setUnitTypes(typesRes.data ?? []);
+    setExpenses(expensesRes.data ?? []);
     setLoading(false);
   }, [planId]);
 
@@ -417,6 +440,43 @@ export default function PlanDetailPage() {
     );
   }
 
+  // -------------------------------------------------------------- expenses
+  async function handleExpenseFormSubmit(values: PlanExpenseInput) {
+    if (expenseForm.expense) {
+      const { data, error: updateError } = await updatePlanExpense(expenseForm.expense.id, values);
+      if (updateError || !data) {
+        return { error: "Không lưu được thay đổi: " + (updateError?.message ?? "") };
+      }
+      setExpenses((prev) => prev.map((e) => (e.id === data.id ? data : e)));
+      setExpenseForm({ open: false, expense: null });
+      return {};
+    }
+
+    const { data, error: createError } = await createPlanExpense(values);
+    if (createError || !data) {
+      return { error: "Không thêm được chi phí: " + (createError?.message ?? "") };
+    }
+    setExpenses((prev) => [...prev, data]);
+    setExpenseForm({ open: false, expense: null });
+    return {};
+  }
+
+  async function handleDeleteExpense(expenseId: Id) {
+    setExpenses((prev) => prev.filter((e) => e.id !== expenseId));
+    await commit(() => deletePlanExpense(expenseId), "Không xoá được chi phí");
+  }
+
+  /** Kéo-thả trên tab Lịch trình — chỉ đụng tới mốc thời gian của khoản chi phí. */
+  async function scheduleExpense(expenseId: Id, patch: PlanExpenseTimePatch) {
+    setExpenses((prev) => prev.map((e) => (e.id === expenseId ? { ...e, ...patch } : e)));
+    await commit(() => patchPlanExpenseTimes(expenseId, patch), "Không lưu được giờ của chi phí");
+  }
+
+  /** Kéo 1 khoản chi phí ngược ra panel "Chưa xếp lịch" — gỡ giờ, giữ duration_minutes. */
+  async function unscheduleExpense(expenseId: Id) {
+    await scheduleExpense(expenseId, { start_time: null, end_time: null });
+  }
+
   // ------------------------------------------------------------------- plan
   async function handlePlanFormSubmit(values: PlanInput) {
     if (!planId) return {};
@@ -532,8 +592,10 @@ export default function PlanDetailPage() {
           plan={plan}
           planUnits={planUnits}
           itemsByUnit={itemsByUnit}
+          expenses={expenses}
           onStartBuilding={() => setSearchParams({ tab: "build" })}
           onEditUnit={(unit) => setUnitForm({ open: true, unit })}
+          onEditExpense={(expense) => setExpenseForm({ open: true, expense })}
         />
       ) : tab === "schedule" ? (
         <PlanTimeline
@@ -547,6 +609,11 @@ export default function PlanDetailPage() {
           onScheduleItem={(itemId, patch) => void scheduleItem(itemId, patch)}
           onAssignAndScheduleItem={(itemId, unitId, patch) => void assignAndScheduleItem(itemId, unitId, patch)}
           onUnassignItem={(itemId) => void moveItem(itemId, LIBRARY_LANE, null)}
+          expenses={expenses}
+          onScheduleExpense={(expenseId, patch) => void scheduleExpense(expenseId, patch)}
+          onUnscheduleExpense={(expenseId) => void unscheduleExpense(expenseId)}
+          onEditExpense={(expense) => setExpenseForm({ open: true, expense })}
+          onDeleteExpense={(expenseId) => void handleDeleteExpense(expenseId)}
           onEditUnit={(unit) => setUnitForm({ open: true, unit })}
           onRemoveUnit={(unitId) => void removeUnitFromPlan(unitId)}
           onDeleteUnit={(unitId) => setDeletingUnit(planUnits.find((u) => u.id === unitId) ?? null)}
@@ -555,6 +622,13 @@ export default function PlanDetailPage() {
           onDeleteItem={(itemId) => void handleDeleteItem(itemId)}
           onViewUnit={setViewingUnit}
           onViewItem={setViewingItem}
+        />
+      ) : tab === "expenses" ? (
+        <PlanExpenses
+          expenses={expenses}
+          onCreate={() => setExpenseForm({ open: true, expense: null })}
+          onEdit={(expense) => setExpenseForm({ open: true, expense })}
+          onDelete={(expenseId) => void handleDeleteExpense(expenseId)}
         />
       ) : (
         <PlanBoard
@@ -604,6 +678,16 @@ export default function PlanDetailPage() {
         locations={locations}
         onClose={() => setItemForm({ open: false, item: null, unitId: null })}
         onSubmit={handleItemFormSubmit}
+      />
+
+      <PlanExpenseFormModal
+        open={expenseForm.open}
+        mode={expenseForm.expense ? "edit" : "create"}
+        expense={expenseForm.expense}
+        planId={planId}
+        locations={locations}
+        onClose={() => setExpenseForm({ open: false, expense: null })}
+        onSubmit={handleExpenseFormSubmit}
       />
 
       <ShareModal

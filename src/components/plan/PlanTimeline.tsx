@@ -22,6 +22,7 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
+  Receipt,
   Route as RouteIcon,
   Search,
   Sparkles,
@@ -35,16 +36,18 @@ import EmptyState from "../../shared/components/EmptyState";
 import IconButton from "../../shared/components/IconButton";
 import Input from "../../shared/components/Input";
 import { formatDateTimeRange, formatDuration, formatPrice } from "../../shared/utils/format";
-import { unitStats } from "../../shared/utils/planStats";
+import { expenseColor, expenseColorIndex, unitStats } from "../../shared/utils/planStats";
 import {
   computeItemSchedule,
   itemDurationMinutes,
+  itemRange,
   unitDurationMinutes,
   unitRange,
   type TimeRange,
 } from "../../shared/utils/schedule";
-import type { Id, Item, Plan, Unit } from "../../shared/types/models";
+import type { Id, Item, Plan, PlanExpense, Unit } from "../../shared/types/models";
 import type { ItemTimePatch } from "../../services/items.service";
+import type { PlanExpenseTimePatch } from "../../services/planExpenses.service";
 import type { UnitTimePatch } from "../../services/units.service";
 import TimelineBar from "./timeline/TimelineBar";
 import { HoverPopover, ItemPopoverContent, UnitPopoverContent } from "./timeline/TimelineBarPopover";
@@ -75,6 +78,12 @@ export interface PlanTimelineProps {
   onAssignAndScheduleItem: (itemId: Id, unitId: Id, patch: ItemTimePatch) => void;
   /** Kéo 1 hoạt động đã lên lịch ra panel: gỡ khỏi chặng. */
   onUnassignItem: (itemId: Id) => void;
+  /** "Chi phí khác" của kế hoạch — không thuộc chặng nào, gom vào 1 hàng cha ảo trên gantt. */
+  expenses: PlanExpense[];
+  onScheduleExpense: (expenseId: Id, patch: PlanExpenseTimePatch) => void;
+  onUnscheduleExpense: (expenseId: Id) => void;
+  onEditExpense: (expense: PlanExpense) => void;
+  onDeleteExpense: (expenseId: Id) => void;
   onEditUnit: (unit: Unit) => void;
   onRemoveUnit: (unitId: Id) => void;
   onDeleteUnit: (unitId: Id) => void;
@@ -110,6 +119,11 @@ export default function PlanTimeline({
   onScheduleItem,
   onAssignAndScheduleItem,
   onUnassignItem,
+  expenses,
+  onScheduleExpense,
+  onUnscheduleExpense,
+  onEditExpense,
+  onDeleteExpense,
   onEditUnit,
   onRemoveUnit,
   onDeleteUnit,
@@ -121,15 +135,18 @@ export default function PlanTimeline({
 }: PlanTimelineProps) {
   const [zoom, setZoom] = useState<number | null>(null);
   const [expanded, setExpanded] = useState<Set<Id>>(() => new Set());
+  const [expensesExpanded, setExpensesExpanded] = useState(true);
   const [panelOpen, setPanelOpen] = useState(
     () => libraryItems.length > 0 || freeUnits.length > 0 || planUnits.some((u) => !u.start_date)
   );
   const [unitSearch, setUnitSearch] = useState("");
   const [itemSearch, setItemSearch] = useState("");
+  const [expenseSearch, setExpenseSearch] = useState("");
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const unitParkingRef = useRef<HTMLDivElement | null>(null);
   const itemParkingRef = useRef<HTMLDivElement | null>(null);
+  const expenseParkingRef = useRef<HTMLDivElement | null>(null);
 
   const hasWindow = Boolean(plan?.start_date && plan?.end_date);
   const scale = useMemo(
@@ -171,6 +188,34 @@ export default function PlanTimeline({
     return { scheduledRows: rows, unscheduledUnits: unscheduled };
   }, [planUnits, itemsByUnit]);
 
+  // Màu theo thứ tự created_at trong TOÀN BỘ danh sách chi phí (ổn định, không đổi khi 1
+  // khoản được lên lịch/gỡ lịch) — không có field phân loại nên phân biệt bằng màu.
+  const expenseColorIndexById = useMemo(() => expenseColorIndex(expenses), [expenses]);
+  const expenseColorOf = useCallback(
+    (expenseId: Id) => expenseColor(expenseColorIndexById.get(expenseId) ?? 0),
+    [expenseColorIndexById]
+  );
+  const { scheduledExpenses, unscheduledExpenses } = useMemo(() => {
+    const scheduled = expenses.filter((e) => e.start_time);
+    const unscheduled = expenses.filter((e) => !e.start_time);
+    scheduled.sort((a, b) => dayjs(a.start_time).valueOf() - dayjs(b.start_time).valueOf());
+    return { scheduledExpenses: scheduled, unscheduledExpenses: unscheduled };
+  }, [expenses]);
+  // Khoảng thời gian tóm tắt của hàng cha "Chi phí khác" — suy ra từ min/max của các
+  // khoản con đã lên lịch, không lưu riêng (hàng cha không có dữ liệu DB của chính nó).
+  const expensesSummaryRange = useMemo<TimeRange | null>(() => {
+    if (scheduledExpenses.length === 0) return null;
+    let start = dayjs(scheduledExpenses[0]!.start_time);
+    let end = itemRange(scheduledExpenses[0])!.end;
+    for (const expense of scheduledExpenses) {
+      const range = itemRange(expense);
+      if (!range) continue;
+      if (range.start.isBefore(start)) start = range.start;
+      if (range.end.isAfter(end)) end = range.end;
+    }
+    return { start, end };
+  }, [scheduledExpenses]);
+
   // Kéo 1 hoạt động từ panel vào gantt: tìm hàng chặng đang ở dưới con trỏ qua DOM,
   // dựa vào `data-unit-row-id` gắn trên từng hàng chặng/hoạt động bên dưới.
   const resolveRowTarget = useCallback((clientX: number, clientY: number): Id | null => {
@@ -184,6 +229,7 @@ export default function PlanTimeline({
     canvasRef,
     unitParkingRef,
     itemParkingRef,
+    expenseParkingRef,
     resolveRowTarget,
     snapMinutes: SNAP_MINUTES,
     onCommit: handleCommit,
@@ -219,6 +265,18 @@ export default function PlanTimeline({
       return;
     }
 
+    if (committed.kind === "expense") {
+      // Chi phí không có "hàng" riêng để thả vào — chỉ có 1 đích duy nhất là "Chi phí
+      // khác", giống cách kéo 1 chặng chưa xếp lịch (không cần overRowId).
+      onScheduleExpense(committed.id, {
+        start_time: committed.start.toISOString(),
+        end_time: committed.end.toISOString(),
+        duration_minutes: minutes,
+      });
+      setExpensesExpanded(true);
+      return;
+    }
+
     if (committed.mode === "schedule") {
       // Đến từ panel "hoạt động chưa gắn chặng" — cần thả đúng vào 1 hàng chặng.
       const unitId = committed.overRowId;
@@ -244,6 +302,10 @@ export default function PlanTimeline({
       onScheduleUnit(target.id, { start_date: null, end_date: null });
       return;
     }
+    if (target.kind === "expense") {
+      onUnscheduleExpense(target.id);
+      return;
+    }
     onUnassignItem(target.id);
   }
 
@@ -257,7 +319,7 @@ export default function PlanTimeline({
   }
 
   /** Khoảng thời gian đang hiển thị của 1 thanh: bản nháp khi kéo, DB khi không. */
-  function liveRange(kind: "unit" | "item", id: Id, fallback: TimeRange): TimeRange {
+  function liveRange(kind: "unit" | "item" | "expense", id: Id, fallback: TimeRange): TimeRange {
     if (draft && draft.kind === kind && draft.id === id && draft.mode !== "schedule") {
       return { start: draft.start, end: draft.end };
     }
@@ -305,6 +367,9 @@ export default function PlanTimeline({
   const filteredLibraryItems = libraryItems.filter((i) =>
     i.name.toLowerCase().includes(itemSearch.trim().toLowerCase())
   );
+  const filteredUnscheduledExpenses = unscheduledExpenses.filter((e) =>
+    e.name.toLowerCase().includes(expenseSearch.trim().toLowerCase())
+  );
 
   return (
     <div className="animate-fade-up space-y-4">
@@ -313,6 +378,7 @@ export default function PlanTimeline({
         onToggle={() => setPanelOpen((v) => !v)}
         unitParkingRef={unitParkingRef}
         itemParkingRef={itemParkingRef}
+        expenseParkingRef={expenseParkingRef}
         unscheduledUnits={filteredUnscheduledUnits}
         totalUnscheduledUnits={unscheduledUnits.length}
         freeUnits={filteredFreeUnits}
@@ -324,9 +390,15 @@ export default function PlanTimeline({
         itemSearch={itemSearch}
         onItemSearchChange={setItemSearch}
         itemsByUnit={itemsByUnit}
+        expenses={filteredUnscheduledExpenses}
+        totalExpenses={unscheduledExpenses.length}
+        expenseSearch={expenseSearch}
+        onExpenseSearchChange={setExpenseSearch}
         isUnitDropTarget={isDragging && draft?.kind === "unit" && draft.mode !== "schedule"}
         isItemDropTarget={isDragging && draft?.kind === "item" && draft.mode !== "schedule"}
+        isExpenseDropTarget={isDragging && draft?.kind === "expense" && draft.mode !== "schedule"}
         colorOf={colorOf}
+        expenseColorOf={expenseColorOf}
         onStartSchedulingUnit={(event, unit) => {
           const start = scale.origin;
           startScheduling(event, {
@@ -346,8 +418,19 @@ export default function PlanTimeline({
             end: start.add(duration, "minute"),
           });
         }}
+        onStartSchedulingExpense={(event, expense) => {
+          const start = scale.origin;
+          const duration = itemDurationMinutes(expense) || 60;
+          startScheduling(event, {
+            kind: "expense",
+            id: expense.id,
+            start,
+            end: start.add(duration, "minute"),
+          });
+        }}
         onEditUnit={onEditUnit}
         onEditItem={onEditItem}
+        onEditExpense={onEditExpense}
       />
 
       <section className="surface overflow-hidden">
@@ -380,7 +463,7 @@ export default function PlanTimeline({
           </div>
         </div>
 
-        {scheduledRows.length === 0 ? (
+        {scheduledRows.length === 0 && scheduledExpenses.length === 0 ? (
           <p className="px-5 py-10 text-center text-sm text-slate-400">
             {planUnits.length === 0
               ? "Kế hoạch chưa có chặng nào — thêm ở tab Xây dựng."
@@ -439,6 +522,29 @@ export default function PlanTimeline({
                   >
                     <span className={`h-2 w-2 shrink-0 rounded-full ${colorOf(schedulingUnit.id).dot}`} />
                     {schedulingUnit.name}
+                  </div>
+                )}
+
+                {/* "Chi phí khác" — hàng cha ẢO (không phải 1 unit thật), gom các khoản
+                    chi phí đã có giờ làm hàng con, giống cấu trúc chặng -> hoạt động. */}
+                {expenses.length > 0 && (
+                  <div>
+                    <ExpenseGroupLabel
+                      count={expenses.length}
+                      scheduledCount={scheduledExpenses.length}
+                      expanded={expensesExpanded}
+                      onToggle={() => setExpensesExpanded((v) => !v)}
+                    />
+                    {expensesExpanded &&
+                      scheduledExpenses.map((expense) => (
+                        <ExpenseLabel
+                          key={expense.id}
+                          expense={expense}
+                          color={expenseColorOf(expense.id)}
+                          onEdit={() => onEditExpense(expense)}
+                          onDelete={() => onDeleteExpense(expense.id)}
+                        />
+                      ))}
                   </div>
                 )}
               </div>
@@ -633,6 +739,106 @@ export default function PlanTimeline({
                           dragging
                           preview
                         />
+                      )}
+                    </div>
+                  )}
+
+                  {/* "Chi phí khác" — hàng header CHỈ hiện dải tóm tắt (không kéo/resize
+                      được, xem ExpenseGroupLabel), các khoản con bên dưới mới kéo được. */}
+                  {expenses.length > 0 && (
+                    <div>
+                      <div className="relative border-b border-slate-100" style={{ height: UNIT_ROW_HEIGHT }}>
+                        {expensesSummaryRange &&
+                          (() => {
+                            const clamped = clampBarToCanvas(
+                              scale.xOf(expensesSummaryRange.start),
+                              scale.widthOf(expensesSummaryRange.start, expensesSummaryRange.end),
+                              scale.width
+                            );
+                            return (
+                              <div
+                                title={`Chi phí khác · ${
+                                  formatDateTimeRange(expensesSummaryRange.start, expensesSummaryRange.end) ?? ""
+                                }`}
+                                className="absolute inset-y-2 rounded-lg bg-slate-300/60 ring-1 ring-slate-400/40"
+                                style={{ left: clamped.left, width: clamped.width }}
+                              />
+                            );
+                          })()}
+                      </div>
+
+                      {expensesExpanded &&
+                        scheduledExpenses.map((expense) => {
+                          const range = itemRange(expense)!;
+                          const live = liveRange("expense", expense.id, range);
+                          const color = expenseColorOf(expense.id);
+                          const clamped = clampBarToCanvas(
+                            scale.xOf(live.start),
+                            scale.widthOf(live.start, live.end),
+                            scale.width
+                          );
+
+                          return (
+                            <div
+                              key={expense.id}
+                              className="relative border-b border-slate-100 bg-slate-50/40"
+                              style={{ height: ITEM_ROW_HEIGHT }}
+                            >
+                              <TimelineBar
+                                left={clamped.left}
+                                width={clamped.width}
+                                colorClass={color.bar}
+                                dragging={
+                                  draft?.kind === "expense" &&
+                                  draft.id === expense.id &&
+                                  draft.mode !== "schedule"
+                                }
+                                clippedLeft={clamped.clippedLeft}
+                                clippedRight={clamped.clippedRight}
+                                title={`${expense.name} · ${formatDateTimeRange(live.start, live.end) ?? ""}`}
+                                onClick={() => {
+                                  if (!wasDraggedRef.current) onEditExpense(expense);
+                                }}
+                                onPointerDownBody={(event) =>
+                                  startDrag(event, { kind: "expense", id: expense.id, ...range }, "move", clamped.left)
+                                }
+                                onPointerDownStart={(event) =>
+                                  startDrag(
+                                    event,
+                                    { kind: "expense", id: expense.id, ...range },
+                                    "resize-start",
+                                    clamped.left
+                                  )
+                                }
+                                onPointerDownEnd={(event) =>
+                                  startDrag(
+                                    event,
+                                    { kind: "expense", id: expense.id, ...range },
+                                    "resize-end",
+                                    clamped.left
+                                  )
+                                }
+                              />
+                            </div>
+                          );
+                        })}
+
+                      {/* Hàng "thả vào đây" khi đang kéo 1 khoản chi phí từ panel vào. */}
+                      {draft?.kind === "expense" && draft.mode === "schedule" && (
+                        <div
+                          className="relative border-b border-dashed border-brand-300 bg-brand-50/60"
+                          style={{ height: ITEM_ROW_HEIGHT }}
+                        >
+                          {!draft.overParking && (
+                            <TimelineBar
+                              left={scale.xOf(draft.start)}
+                              width={scale.widthOf(draft.start, draft.end)}
+                              colorClass={expenseColorOf(draft.id).bar}
+                              dragging
+                              preview
+                            />
+                          )}
+                        </div>
                       )}
                     </div>
                   )}
@@ -854,6 +1060,79 @@ function ItemLabel({
   );
 }
 
+/**
+ * Hàng cha "Chi phí khác" — KHÔNG phải 1 `unit` thật (không có id/màu/type riêng), chỉ là
+ * 1 nhóm ảo gom mọi khoản chi phí đã lên lịch làm hàng con. Không có menu sửa/gỡ/xoá vì
+ * bản thân nhóm này không tồn tại trong DB — chỉ chevron mở rộng.
+ */
+function ExpenseGroupLabel({
+  count,
+  scheduledCount,
+  expanded,
+  onToggle,
+}: {
+  count: number;
+  scheduledCount: number;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div
+      className="flex items-center gap-1 border-b border-t-2 border-slate-100 border-t-slate-200 bg-slate-50/60 px-2 pr-1"
+      style={{ height: UNIT_ROW_HEIGHT }}
+    >
+      <button
+        type="button"
+        onClick={onToggle}
+        className="shrink-0 rounded p-0.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+        aria-label={expanded ? "Thu gọn chi phí khác" : "Xem chi phí khác"}
+      >
+        {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+      </button>
+      <Receipt className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-[13px] font-semibold text-slate-700">Chi phí khác</p>
+        <p className="truncate text-[11px] text-slate-400 tnum">
+          {scheduledCount}/{count} đã lên lịch
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function ExpenseLabel({
+  expense,
+  color,
+  onEdit,
+  onDelete,
+}: {
+  expense: PlanExpense;
+  color: UnitColor;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div
+      className="group flex items-center gap-1.5 border-b border-slate-100 bg-slate-50/40 pl-8 pr-1"
+      style={{ height: ITEM_ROW_HEIGHT }}
+    >
+      <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${color.dot}`} />
+      <button
+        type="button"
+        onClick={onEdit}
+        className="min-w-0 flex-1 truncate text-left text-[12px] text-slate-600"
+      >
+        {expense.name}
+      </button>
+      <span className="flex shrink-0 gap-0.5 opacity-0 transition group-hover:opacity-100 focus-within:opacity-100">
+        <IconButton size="sm" tone="brand" icon={Pencil} onClick={onEdit} aria-label="Sửa chi phí" />
+        <IconButton size="sm" tone="danger" icon={Trash2} onClick={onDelete} aria-label="Xoá chi phí" />
+      </span>
+    </div>
+  );
+}
+
 // -------------------------------------------------------- panel "chưa xếp lịch"
 
 interface UnscheduledPanelProps {
@@ -861,6 +1140,7 @@ interface UnscheduledPanelProps {
   onToggle: () => void;
   unitParkingRef: RefObject<HTMLDivElement | null>;
   itemParkingRef: RefObject<HTMLDivElement | null>;
+  expenseParkingRef: RefObject<HTMLDivElement | null>;
   unscheduledUnits: Unit[];
   totalUnscheduledUnits: number;
   freeUnits: Unit[];
@@ -872,13 +1152,21 @@ interface UnscheduledPanelProps {
   itemSearch: string;
   onItemSearchChange: (value: string) => void;
   itemsByUnit: Map<Id, Item[]>;
+  expenses: PlanExpense[];
+  totalExpenses: number;
+  expenseSearch: string;
+  onExpenseSearchChange: (value: string) => void;
   isUnitDropTarget: boolean;
   isItemDropTarget: boolean;
+  isExpenseDropTarget: boolean;
   colorOf: (unitId: Id) => UnitColor;
+  expenseColorOf: (expenseId: Id) => UnitColor;
   onStartSchedulingUnit: (event: ReactPointerEvent, unit: Unit) => void;
   onStartSchedulingItem: (event: ReactPointerEvent, item: Item) => void;
+  onStartSchedulingExpense: (event: ReactPointerEvent, expense: PlanExpense) => void;
   onEditUnit: (unit: Unit) => void;
   onEditItem: (item: Item) => void;
+  onEditExpense: (expense: PlanExpense) => void;
 }
 
 function UnscheduledPanel({
@@ -886,6 +1174,7 @@ function UnscheduledPanel({
   onToggle,
   unitParkingRef,
   itemParkingRef,
+  expenseParkingRef,
   unscheduledUnits,
   totalUnscheduledUnits,
   freeUnits,
@@ -897,13 +1186,21 @@ function UnscheduledPanel({
   itemSearch,
   onItemSearchChange,
   itemsByUnit,
+  expenses,
+  totalExpenses,
+  expenseSearch,
+  onExpenseSearchChange,
   isUnitDropTarget,
   isItemDropTarget,
+  isExpenseDropTarget,
   colorOf,
+  expenseColorOf,
   onStartSchedulingUnit,
   onStartSchedulingItem,
+  onStartSchedulingExpense,
   onEditUnit,
   onEditItem,
+  onEditExpense,
 }: UnscheduledPanelProps) {
   return (
     <section className="surface overflow-hidden">
@@ -915,7 +1212,8 @@ function UnscheduledPanel({
         <Inbox className="h-4 w-4 text-slate-400" />
         <span className="text-[13px] font-bold text-slate-700">Chưa xếp lịch</span>
         <span className="text-xs text-slate-400 tnum">
-          {totalUnscheduledUnits + totalFreeUnits} chặng · {totalLibraryItems} hoạt động
+          {totalUnscheduledUnits + totalFreeUnits} chặng · {totalLibraryItems} hoạt động ·{" "}
+          {totalExpenses} chi phí
         </span>
         {open ? (
           <ChevronUp className="ml-auto h-4 w-4 text-slate-400" />
@@ -925,7 +1223,7 @@ function UnscheduledPanel({
       </button>
 
       {open && (
-        <div className="grid gap-3 border-t border-slate-100 p-3.5 sm:grid-cols-2 sm:gap-0 sm:divide-x sm:divide-slate-100 sm:p-0">
+        <div className="grid gap-3 border-t border-slate-100 p-3.5 sm:grid-cols-3 sm:gap-0 sm:divide-x sm:divide-slate-100 sm:p-0">
           <div
             ref={unitParkingRef}
             className={`rounded-xl p-3 transition sm:rounded-none sm:p-3.5 ${
@@ -1013,6 +1311,41 @@ function UnscheduledPanel({
                   item={item}
                   onPointerDown={(event) => onStartSchedulingItem(event, item)}
                   onEdit={() => onEditItem(item)}
+                />
+              )}
+            />
+          </div>
+
+          <div
+            ref={expenseParkingRef}
+            className={`rounded-xl p-3 transition sm:rounded-none sm:p-3.5 ${
+              isExpenseDropTarget ? "bg-rose-50/60 ring-2 ring-inset ring-rose-300" : ""
+            }`}
+          >
+            <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+              <Receipt className="h-3.5 w-3.5" />
+              Chi phí chưa xếp lịch
+            </div>
+            <Input
+              size="small"
+              value={expenseSearch}
+              onChange={(e) => onExpenseSearchChange(e.target.value)}
+              placeholder="Tìm chi phí..."
+              prefix={<Search className="h-3.5 w-3.5 text-slate-400" />}
+              allowClear
+              className="mb-2.5"
+            />
+            <ScrollRevealList
+              items={expenses}
+              keyOf={(e) => e.id}
+              resetKey={expenseSearch}
+              emptyHint="Mọi chi phí đều đã có giờ (hoặc chưa có khoản nào)."
+              renderItem={(expense) => (
+                <UnscheduledExpenseCard
+                  expense={expense}
+                  color={expenseColorOf(expense.id)}
+                  onPointerDown={(event) => onStartSchedulingExpense(event, expense)}
+                  onEdit={() => onEditExpense(expense)}
                 />
               )}
             />
@@ -1163,6 +1496,52 @@ function LibraryItemCard({ item, onPointerDown, onEdit }: LibraryItemCardProps) 
         {item.locations?.length > 0 && (
           <Badge size="sm" numeric>
             {item.locations.length} địa điểm
+          </Badge>
+        )}
+      </div>
+    </div>
+  );
+}
+
+interface UnscheduledExpenseCardProps {
+  expense: PlanExpense;
+  color: UnitColor;
+  onPointerDown: (event: ReactPointerEvent) => void;
+  onEdit: () => void;
+}
+
+function UnscheduledExpenseCard({ expense, color, onPointerDown, onEdit }: UnscheduledExpenseCardProps) {
+  return (
+    <div
+      onPointerDown={onPointerDown}
+      className="group cursor-grab touch-none rounded-xl border border-slate-200 bg-white p-2.5 shadow-xs transition hover:border-brand-300 active:cursor-grabbing"
+    >
+      <div className="flex items-start gap-1.5">
+        <GripVertical className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-300" />
+        <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${color.dot}`} />
+        <p className="min-w-0 flex-1 text-[12px] font-semibold leading-snug text-slate-800">
+          {expense.name}
+        </p>
+        <IconButton
+          size="sm"
+          tone="brand"
+          icon={Pencil}
+          onClick={onEdit}
+          onPointerDown={(event) => event.stopPropagation()}
+          aria-label="Sửa chi phí"
+          className="opacity-0 transition group-hover:opacity-100"
+        />
+      </div>
+
+      <div className="mt-1.5 flex flex-wrap items-center gap-1 pl-5">
+        {expense.price != null && Number(expense.price) > 0 && (
+          <Badge size="sm" tone="emerald" numeric>
+            {formatPrice(expense.price)}
+          </Badge>
+        )}
+        {expense.location && (
+          <Badge size="sm" numeric>
+            {expense.location.name}
           </Badge>
         )}
       </div>

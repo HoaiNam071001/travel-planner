@@ -6,6 +6,7 @@ import {
   Layers,
   MapPin,
   Pencil,
+  Receipt,
   Route as RouteIcon,
   Sparkles,
   Wallet,
@@ -23,10 +24,11 @@ import {
   formatPrice,
   formatPriceShort,
 } from "../../shared/utils/format";
-import { planTotals, unitStats } from "../../shared/utils/planStats";
+import { expenseColor, expenseColorIndex, planTotals, unitStats } from "../../shared/utils/planStats";
 import { computeItemSchedule, itemDurationMinutes, unitRange } from "../../shared/utils/schedule";
-import type { Id, Item, ItemLocation, Plan, Unit } from "../../shared/types/models";
+import type { Id, Item, ItemLocation, Plan, PlanExpense, Unit } from "../../shared/types/models";
 import { unitColor, type UnitColor } from "./timeline/colors";
+import { ExpenseCard } from "./PlanExpenses";
 
 export interface VisitedLocation extends ItemLocation {
   visits: number;
@@ -36,18 +38,32 @@ export interface PlanOverviewProps {
   plan: Plan | null;
   planUnits: Unit[];
   itemsByUnit: Map<Id, Item[]>;
+  /** "Chi phí khác" của kế hoạch — cộng vào tổng chi phí, hiện thêm 1 dòng ở "Phân bổ chi
+   *  phí" và 1 khu vực liệt kê từng khoản (tên/giá/giờ/địa điểm/link/ghi chú nếu có). */
+  expenses: PlanExpense[];
   onStartBuilding: () => void;
   onEditUnit: (unit: Unit) => void;
+  onEditExpense: (expense: PlanExpense) => void;
 }
 
 export default function PlanOverview({
   plan,
   planUnits,
   itemsByUnit,
+  expenses,
   onStartBuilding,
   onEditUnit,
+  onEditExpense,
 }: PlanOverviewProps) {
-  const totals = useMemo(() => planTotals(planUnits, itemsByUnit), [planUnits, itemsByUnit]);
+  const totals = useMemo(
+    () => planTotals(planUnits, itemsByUnit, expenses),
+    [planUnits, itemsByUnit, expenses]
+  );
+  const expensesCost = useMemo(
+    () => expenses.reduce((sum, e) => sum + (Number(e.price) || 0), 0),
+    [expenses]
+  );
+  const expenseColorIndexById = useMemo(() => expenseColorIndex(expenses), [expenses]);
   const days = dayCount(plan?.start_date, plan?.end_date);
   const range = formatDateRange(plan?.start_date, plan?.end_date);
 
@@ -170,8 +186,30 @@ export default function PlanOverview({
 
           {/* ---------------------------------------------------- sidebar */}
           <div className="space-y-6">
-            <CostBreakdown planUnits={planUnits} itemsByUnit={itemsByUnit} total={totals.cost} />
+            <CostBreakdown
+              planUnits={planUnits}
+              itemsByUnit={itemsByUnit}
+              expensesCost={expensesCost}
+              total={totals.cost}
+            />
             <VisitedLocations locations={visitedLocations} />
+          </div>
+        </div>
+      )}
+
+      {/* "Chi phí khác" độc lập với chặng — hiện bất kể kế hoạch đã có chặng hay chưa. */}
+      {expenses.length > 0 && (
+        <div className="space-y-4">
+          <SectionLabel icon={Receipt}>Chi phí khác</SectionLabel>
+          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+            {expenses.map((expense) => (
+              <ExpenseCard
+                key={expense.id}
+                expense={expense}
+                color={expenseColor(expenseColorIndexById.get(expense.id) ?? 0)}
+                onEdit={() => onEditExpense(expense)}
+              />
+            ))}
           </div>
         </div>
       )}
@@ -408,12 +446,19 @@ function BreakTimelineRow({ breakMinutes, start }: { breakMinutes: number; start
 export interface CostBreakdownProps {
   planUnits: Unit[];
   itemsByUnit: Map<Id, Item[]>;
+  /** Tổng "Chi phí khác" của kế hoạch — hiện thêm 1 dòng riêng nếu > 0. */
+  expensesCost?: number;
   total: number;
 }
 
-export function CostBreakdown({ planUnits, itemsByUnit, total }: CostBreakdownProps) {
+export function CostBreakdown({ planUnits, itemsByUnit, expensesCost = 0, total }: CostBreakdownProps) {
   const rows = planUnits
-    .map((unit) => ({ unit, cost: unitStats(itemsByUnit.get(unit.id) ?? []).cost }))
+    .map((unit) => ({
+      key: unit.id,
+      label: unit.name,
+      cost: unitStats(itemsByUnit.get(unit.id) ?? []).cost,
+    }))
+    .concat(expensesCost > 0 ? [{ key: "expenses", label: "Chi phí khác", cost: expensesCost }] : [])
     .filter((row) => row.cost > 0)
     .sort((a, b) => b.cost - a.cost);
 
@@ -431,12 +476,12 @@ export function CostBreakdown({ planUnits, itemsByUnit, total }: CostBreakdownPr
             {formatPrice(total)}
           </p>
           <ul className="mt-4 space-y-3">
-            {rows.map(({ unit, cost }) => {
+            {rows.map(({ key, label, cost }) => {
               const percent = total > 0 ? Math.round((cost / total) * 100) : 0;
               return (
-                <li key={unit.id}>
+                <li key={key}>
                   <div className="mb-1.5 flex items-baseline justify-between gap-2">
-                    <span className="truncate text-xs font-medium text-slate-600">{unit.name}</span>
+                    <span className="truncate text-xs font-medium text-slate-600">{label}</span>
                     <span className="shrink-0 text-xs text-slate-500 tnum">
                       {formatPrice(cost)}
                       <span className="ml-1.5 text-slate-400">{percent}%</span>
