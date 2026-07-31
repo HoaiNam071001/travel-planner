@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { Loader2, MapPin, Route as RouteIcon } from "lucide-react";
 import Modal from "../../shared/components/Modal";
 import Badge from "../../shared/components/Badge";
+import Button from "../../shared/components/Button";
 import { formatDistance, formatDuration } from "../../shared/utils/format";
-import type { ItemLocation } from "../../shared/types/models";
+import type { Id, ItemLocation } from "../../shared/types/models";
 import type { RouteResult } from "../../services/openRouteService";
 import RouteMap from "./RouteMap";
 
@@ -13,31 +15,111 @@ export interface RouteMapModalProps {
   points: ItemLocation[];
   route: RouteResult | null;
   loading: boolean;
+  /** Bấm "Tìm đường" với đúng các địa điểm đang được tick, giữ nguyên thứ tự trong `points`. */
+  onFindRoute: (points: ItemLocation[]) => void;
 }
 
-export default function RouteMapModal({ open, onClose, title, points, route, loading }: RouteMapModalProps) {
+export default function RouteMapModal({
+  open,
+  onClose,
+  title,
+  points,
+  route,
+  loading,
+  onFindRoute,
+}: RouteMapModalProps) {
+  // `Modal` dùng `destroyOnHidden` nên component này mount lại mỗi lần mở — state khởi
+  // tạo từ `points` hiện tại là đủ, không cần effect đồng bộ lại khi đổi.
+  const [selectedIds, setSelectedIds] = useState<Set<Id>>(() => new Set(points.map((p) => p.id)));
+  // Id các điểm đã dùng để tính `route` hiện có — lệch với `selectedIds` nghĩa là người
+  // dùng vừa đổi lựa chọn sau khi đã tìm đường, route cũ không còn khớp nên phải ẩn đi.
+  const [fetchedIds, setFetchedIds] = useState<Set<Id> | null>(null);
+
+  const selectedPoints = points.filter((p) => selectedIds.has(p.id));
+  const isStale =
+    !fetchedIds || fetchedIds.size !== selectedIds.size || [...selectedIds].some((id) => !fetchedIds.has(id));
+  const shownRoute = !isStale ? route : null;
+
+  function toggle(id: Id) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAll() {
+    setSelectedIds(selectedIds.size === points.length ? new Set() : new Set(points.map((p) => p.id)));
+  }
+
+  function handleFindRoute() {
+    setFetchedIds(new Set(selectedIds));
+    onFindRoute(selectedPoints);
+  }
+
   return (
     <Modal open={open} onClose={onClose} title={title} width={720} footer={null}>
       <div className="space-y-4">
-        <div className="relative h-96 w-full overflow-hidden rounded-2xl">
+        <div className="relative h-80 w-full overflow-hidden rounded-2xl">
           {loading ? (
             <div className="flex h-full w-full items-center justify-center bg-slate-50 text-slate-400">
               <Loader2 className="h-5 w-5 animate-spin" />
             </div>
           ) : (
-            <RouteMap points={points} geometry={route?.geometry ?? null} mode={route?.mode ?? null} />
+            <RouteMap points={selectedPoints} geometry={shownRoute?.geometry ?? null} mode={shownRoute?.mode ?? null} />
           )}
         </div>
 
-        {!loading && route && (
+        {points.length > 1 && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-slate-500">
+                Chọn địa điểm muốn tính tuyến ({selectedIds.size}/{points.length})
+              </span>
+              <button type="button" onClick={toggleAll} className="text-xs font-medium text-brand-600 hover:underline">
+                {selectedIds.size === points.length ? "Bỏ chọn tất cả" : "Chọn tất cả"}
+              </button>
+            </div>
+            <ul className="scroll-thin max-h-48 divide-y divide-slate-100 overflow-y-auto rounded-2xl border border-slate-100">
+              {points.map((point, index) => (
+                <li key={point.id}>
+                  <label className="flex cursor-pointer items-center gap-2.5 px-3 py-2 text-sm hover:bg-slate-50">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(point.id)}
+                      onChange={() => toggle(point.id)}
+                      className="h-4 w-4 shrink-0 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                    />
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10px] font-semibold text-slate-500">
+                      {index + 1}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-slate-700">{point.name}</span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+
+            <Button
+              variant="primary"
+              block
+              icon={<RouteIcon className="h-4 w-4" />}
+              loading={loading}
+              disabled={selectedIds.size < 2}
+              onClick={handleFindRoute}
+            >
+              Tìm đường
+            </Button>
+          </div>
+        )}
+
+        {!loading && shownRoute && (
           <div className="flex flex-wrap items-center gap-2">
             <Badge icon={RouteIcon} tone="brand" numeric>
-              {formatDistance(route.distanceKm * 1000)}
+              {formatDistance(shownRoute.distanceKm * 1000)}
             </Badge>
-            {route.durationMin != null && (
-              <Badge numeric>{formatDuration(route.durationMin)}</Badge>
-            )}
-            {route.mode === "fallback" && (
+            {shownRoute.durationMin != null && <Badge numeric>{formatDuration(shownRoute.durationMin)}</Badge>}
+            {shownRoute.mode === "fallback" && (
               <span className="text-xs text-slate-400">
                 Ước tính theo đường chim bay — thêm ORS API key để có tuyến đường thật.
               </span>
@@ -45,11 +127,11 @@ export default function RouteMapModal({ open, onClose, title, points, route, loa
           </div>
         )}
 
-        {!loading && route && route.legs.length === points.length - 1 && (
+        {!loading && shownRoute && shownRoute.legs.length === selectedPoints.length - 1 && (
           <ol className="divide-y divide-slate-100 rounded-2xl border border-slate-100">
-            {route.legs.map((leg, index) => {
-              const from = points[index];
-              const to = points[index + 1];
+            {shownRoute.legs.map((leg, index) => {
+              const from = selectedPoints[index];
+              const to = selectedPoints[index + 1];
               if (!from || !to) return null;
               return (
                 <li key={`${from.id}-${to.id}-${index}`} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">

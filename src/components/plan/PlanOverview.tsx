@@ -124,38 +124,35 @@ export default function PlanOverview({
   }, [planUnits, itemsByUnit]);
 
   // Modal bản đồ dùng chung cho "xem địa điểm trong 1 chặng" và "quãng đường giữa 2 chặng".
+  // Không tự tìm đường khi mở modal nữa — chờ người dùng tick địa điểm rồi bấm "Tìm đường"
+  // (xem `RouteMapModal`), nên chỉ cần dọn route cũ mỗi khi đổi mục tiêu.
   const [mapModal, setMapModal] = useState<MapModalState>(null);
   const [modalRoute, setModalRoute] = useState<RouteResult | null>(null);
   const [modalLoading, setModalLoading] = useState(false);
 
   useEffect(() => {
-    if (!mapModal) return;
-    let cancelled = false;
-    setModalLoading(true);
     setModalRoute(null);
+    setModalLoading(false);
+  }, [mapModal]);
 
-    async function run() {
-      if (!mapModal) return;
-      if (mapModal.kind === "unit") {
-        const cached = unitRoutes.get(mapModal.unit.id);
-        const route = cached ?? (await resolveUnitRoute(mapModal.unit, mapModal.items));
-        if (!cancelled) setModalRoute(route);
-      } else {
-        const from = unitLocationSequence(mapModal.fromItems).at(-1);
-        const to = unitLocationSequence(mapModal.toItems)[0];
-        if (from && to) {
-          const route = await fetchRoute([from, to]);
-          if (!cancelled) setModalRoute(route);
-        }
-      }
-      if (!cancelled) setModalLoading(false);
+  async function handleFindRoute(selected: ItemLocation[]) {
+    if (!mapModal || selected.length < 2) return;
+    setModalLoading(true);
+    try {
+      const isFullUnitSequence =
+        mapModal.kind === "unit" &&
+        selected.length === modalPoints.length &&
+        selected.every((p, i) => p.id === modalPoints[i]?.id);
+
+      const route =
+        mapModal.kind === "unit" && isFullUnitSequence
+          ? unitRoutes.get(mapModal.unit.id) ?? (await resolveUnitRoute(mapModal.unit, mapModal.items))
+          : await fetchRoute(selected);
+      setModalRoute(route);
+    } finally {
+      setModalLoading(false);
     }
-
-    run();
-    return () => {
-      cancelled = true;
-    };
-  }, [mapModal, unitRoutes]);
+  }
 
   const modalPoints = useMemo<ItemLocation[]>(() => {
     if (!mapModal) return [];
@@ -353,6 +350,7 @@ export default function PlanOverview({
         points={modalPoints}
         route={modalRoute}
         loading={modalLoading}
+        onFindRoute={handleFindRoute}
       />
     </div>
   );

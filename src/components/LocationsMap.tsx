@@ -1,36 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MapContainer, TileLayer, Marker, Circle, Tooltip, ZoomControl, useMap } from "react-leaflet";
 import L from "leaflet";
-import { Crosshair, Layers, Loader2, Locate } from "lucide-react";
+import { Crosshair, Loader2, Locate } from "lucide-react";
 import "../shared/map/leafletIconFix";
+import { BASEMAPS, type BasemapKey } from "../shared/map/basemaps";
+import MapBasemapSwitcher from "../shared/components/MapBasemapSwitcher";
 import type { Id, LocationRow } from "../shared/types/models";
 import type { LatLng } from "../shared/utils/geo";
 import { formatDistance } from "../shared/utils/format";
 
 /** Bán kính mặc định của nút "tìm địa điểm quanh đây". */
 export const AREA_SEARCH_RADIUS_M = 700;
-
-// Tile miễn phí, không cần API key. CARTO Voyager nhìn "sạch" hơn OSM mặc định
-// (chữ nhỏ, màu nhạt) nên marker và tuyến đường nổi lên rõ hơn.
-const BASEMAPS = {
-  voyager: {
-    label: "Sáng",
-    url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-    subdomains: "abcd",
-    maxZoom: 20,
-  },
-  satellite: {
-    label: "Vệ tinh",
-    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-    attribution: "Tiles &copy; Esri, Maxar, Earthstar Geographics",
-    subdomains: "abc",
-    maxZoom: 19,
-  },
-} as const;
-
-type BasemapKey = keyof typeof BASEMAPS;
 
 /** Pin tự vẽ (divIcon) — gọn và đúng màu brand hơn icon mặc định của Leaflet. */
 function pinIcon(active: boolean): L.DivIcon {
@@ -122,25 +102,7 @@ function MapOverlay({ basemap, onBasemapChange, onSearchArea, searching }: MapOv
         </button>
       )}
 
-      <div className="ml-auto flex items-center gap-0.5 rounded-full bg-white/95 p-1 shadow-pop ring-1 ring-slate-200/80 backdrop-blur">
-        <span className="pl-2 pr-1 text-slate-400">
-          <Layers className="h-3.5 w-3.5" />
-        </span>
-        {(Object.keys(BASEMAPS) as BasemapKey[]).map((key) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => onBasemapChange(key)}
-            className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition ${
-              basemap === key
-                ? "bg-brand-600 text-white shadow-sm"
-                : "text-slate-500 hover:bg-slate-100 hover:text-slate-700"
-            }`}
-          >
-            {BASEMAPS[key].label}
-          </button>
-        ))}
-      </div>
+      <MapBasemapSwitcher value={basemap} onChange={onBasemapChange} className="ml-auto" />
     </div>
   );
 }

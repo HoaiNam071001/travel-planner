@@ -1,13 +1,11 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MapContainer, TileLayer, Marker, Polyline, Tooltip, useMap } from "react-leaflet";
 import L from "leaflet";
 import "../../shared/map/leafletIconFix";
+import { BASEMAPS, type BasemapKey } from "../../shared/map/basemaps";
+import MapBasemapSwitcher from "../../shared/components/MapBasemapSwitcher";
 import type { LatLng } from "../../shared/utils/geo";
 import type { ItemLocation } from "../../shared/types/models";
-
-const TILE_URL = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
-const TILE_ATTRIBUTION =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
 
 /** Điểm đầu/cuối tô màu khác để phân biệt hướng đi, các điểm giữa dùng màu brand. */
 function pinColor(index: number, total: number): string {
@@ -60,6 +58,9 @@ export interface RouteMapProps {
 }
 
 export default function RouteMap({ points, geometry, mode }: RouteMapProps) {
+  const [basemap, setBasemap] = useState<BasemapKey>("voyager");
+  const tiles = BASEMAPS[basemap];
+
   const center = useMemo<[number, number]>(() => {
     const first = points[0];
     return first ? [first.lat, first.lng] : [10.7769, 106.7009];
@@ -67,7 +68,11 @@ export default function RouteMap({ points, geometry, mode }: RouteMapProps) {
 
   return (
     <MapContainer center={center} zoom={13} zoomControl={false} scrollWheelZoom className="h-full w-full">
-      <TileLayer attribution={TILE_ATTRIBUTION} url={TILE_URL} subdomains="abcd" maxZoom={20} />
+      <TileLayer key={basemap} attribution={tiles.attribution} url={tiles.url} subdomains={tiles.subdomains} maxZoom={tiles.maxZoom} />
+
+      <div className="pointer-events-none absolute right-3 top-3 z-[500]">
+        <MapBasemapSwitcher value={basemap} onChange={setBasemap} className="pointer-events-auto" />
+      </div>
 
       <FitBounds bounds={points} />
 
