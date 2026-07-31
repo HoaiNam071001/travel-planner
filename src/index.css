@@ -82,6 +82,30 @@
   @apply rounded-tl-lg bg-white/80 text-[10px] text-slate-400;
 }
 
+/* Pin tự vẽ (divIcon) — giọt nước xoay 45°, chấm trắng ở giữa. */
+.tp-pin__shape {
+  @apply block h-6 w-6 rounded-full rounded-bl-none border-2 border-white shadow-[0_2px_6px_rgb(15_23_42_/_0.35)];
+  transform: rotate(-45deg);
+}
+
+.tp-pin__shape::after {
+  content: "";
+  @apply absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white;
+}
+
+.tp-pin {
+  @apply relative;
+}
+
+/* Tooltip của Leaflet cho khớp design system (nền tối, bo tròn). */
+.leaflet-tooltip {
+  @apply rounded-lg border-none bg-slate-900 px-2 py-1 text-[11px] font-medium text-white shadow-pop;
+}
+
+.leaflet-tooltip-top::before {
+  border-top-color: #0f172a;
+}
+
 /* antd: vài chỗ token không chạm tới được. */
 .ant-modal-content {
   @apply shadow-pop;

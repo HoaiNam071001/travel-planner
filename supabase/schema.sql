@@ -101,12 +101,15 @@ create table if not exists units (
 
 -- Đổi từ 1 cột `date` (chỉ ngày) sang start_date/end_date (timestamptz).
 -- Thêm "loại" động qua unit_types. Thêm break_minutes (khoảng nghỉ giữa hoạt động).
+-- `duration_minutes` = khoảng thời gian mặc định của chặng (luôn có, mặc định 6h);
+-- khi `end_date` có giá trị thì end_date được ưu tiên hơn start_date + duration.
 -- Dùng add/drop column if (not) exists nên chạy lại nhiều lần vẫn an toàn.
 alter table units drop column if exists date;
 alter table units add column if not exists start_date timestamptz;
 alter table units add column if not exists end_date timestamptz;
 alter table units add column if not exists unit_type_id uuid references unit_types(id) on delete set null;
 alter table units add column if not exists break_minutes int not null default 0;
+alter table units add column if not exists duration_minutes int not null default 360;
 
 alter table units enable row level security;
 
@@ -142,9 +145,6 @@ create table if not exists items (
   user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   unit_id uuid references units(id) on delete set null,
   name text not null,
-  price numeric,
-  duration_minutes int,
-  note text,
   order_index int not null default 0,
   created_at timestamptz not null default now()
 );
@@ -153,7 +153,22 @@ create table if not exists items (
 -- `location_id` cũ (1-1). Nếu bảng `items` đã tồn tại từ trước (đã chạy schema
 -- bản cũ), lệnh dưới xoá cột thừa; chạy lại vẫn an toàn vì có `if exists`.
 alter table items drop column if exists location_id;
+
+-- `create table if not exists` là no-op nếu bảng đã tồn tại, nên MỌI cột (kể cả
+-- những cột tưởng như "gốc") đều phải có dòng `add column if not exists` riêng ở
+-- đây — nếu chỉ khai báo trong khối create table phía trên, cột sẽ không bao giờ
+-- được thêm vào DB đã tồn tại từ trước (đây chính xác là lỗi đã gặp với
+-- `duration_minutes`: khai trong create table nhưng thiếu alter, nên bảng cũ
+-- không có cột này -> PostgREST báo "could not find column ... in schema cache").
+alter table items add column if not exists price numeric;
+alter table items add column if not exists note text;
+
+-- Giờ bắt đầu/kết thúc của hoạt động là mốc thời gian đầy đủ (timestamptz), không
+-- phải cột `time` như bản đầu. `duration_minutes` là khoảng thời gian dự phòng:
+-- khi có `end_time` thì end_time được ưu tiên hơn start_time + duration_minutes.
 alter table items add column if not exists start_time timestamptz;
+alter table items add column if not exists end_time timestamptz;
+alter table items add column if not exists duration_minutes int;
 
 alter table items enable row level security;
 
@@ -212,3 +227,9 @@ create index if not exists idx_items_user_id on items(user_id);
 create index if not exists idx_locations_user_id on locations(user_id);
 create index if not exists idx_plans_user_id on plans(user_id);
 create index if not exists idx_unit_routes_user_id on unit_routes(user_id);
+
+-- Supabase/PostgREST cache "hình dạng" schema để tự sinh REST API; thường tự
+-- reload sau DDL nhưng đôi khi không kịp (nhất là chạy nhiều alter liền nhau
+-- trong SQL Editor) -> lỗi "Could not find the 'x' column ... in schema cache"
+-- dù cột đã thật sự tồn tại. Câu lệnh dưới ép PostgREST nạp lại schema ngay.
+notify pgrst, 'reload schema';
