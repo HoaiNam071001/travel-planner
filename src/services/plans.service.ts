@@ -76,3 +76,9 @@ export async function updatePlan(
 export async function deletePlan(id: Id): Promise<WriteResult> {
   return supabase.from(TABLES.PLANS).delete().eq("id", id);
 }
+
+/** Bật/tắt/đổi link xem trước công khai — tách riêng khỏi `PlanInput` vì không thuộc
+ *  form metadata (`PlanFormModal`), chỉ đụng tới khi bấm nút "Chia sẻ". */
+export async function setPlanShareToken(id: Id, token: string | null): Promise<WriteResult> {
+  return supabase.from(TABLES.PLANS).update({ share_token: token }).eq("id", id);
+}

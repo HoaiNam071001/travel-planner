@@ -31,7 +31,7 @@ export default function LocationCard({
   return (
     <div
       onClick={() => onOpenDetail(location)}
-      className={`group surface flex cursor-pointer overflow-hidden transition duration-200 hover:-translate-y-0.5 hover:shadow-card-hover ${
+      className={`group surface flex min-h-[132px] cursor-pointer overflow-hidden transition duration-200 hover:-translate-y-0.5 hover:shadow-card-hover ${
         isFocused ? "border-brand-300 ring-1 ring-brand-200" : "hover:border-brand-200"
       }`}
     >
@@ -43,9 +43,9 @@ export default function LocationCard({
         </div>
       )}
 
-      <div className="min-w-0 flex-1 p-4">
+      <div className="flex min-w-0 flex-1 flex-col p-4">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="min-w-0 text-[15px] font-bold leading-snug">{location.name}</h3>
+          <h3 className="min-w-0 truncate text-[15px] font-bold leading-snug">{location.name}</h3>
           <div className="flex shrink-0 gap-0.5">
             <IconButton
               size="sm"
@@ -76,13 +76,12 @@ export default function LocationCard({
           </div>
         </div>
 
-        {location.description && (
-          <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-slate-500">
-            {location.description}
-          </p>
-        )}
+        {/* Chiều cao cố định dù có mô tả hay không, để mọi thẻ cao bằng nhau. */}
+        <p className="mt-1.5 line-clamp-2 min-h-[2.5rem] text-sm leading-relaxed text-slate-500">
+          {location.description || <span className="text-slate-300">Chưa có mô tả</span>}
+        </p>
 
-        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+        <div className="mt-auto flex flex-wrap items-center gap-1.5 pt-2">
           {distance != null && (
             <Badge size="sm" tone="brand" icon={Locate} numeric>
               {formatDistance(distance)}

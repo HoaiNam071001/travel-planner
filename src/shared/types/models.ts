@@ -86,6 +86,18 @@ export interface Plan {
   description: string | null;
   start_date: IsoDate | null;
   end_date: IsoDate | null;
+  /** Token ngẫu nhiên cho link xem trước công khai (`/p/:token`) — null = tắt chia sẻ. */
+  share_token: string | null;
+  created_at: IsoDateTime;
+}
+
+/** 1 lượt mời cộng tác — người được mời có toàn quyền sửa kế hoạch như chủ sở hữu. */
+export interface PlanCollaborator {
+  id: Id;
+  plan_id: Id;
+  user_id: Id;
+  /** Denormalize để hiển thị — KHÔNG join sang `users` (RLS bảng đó chỉ cho tự đọc dòng của mình). */
+  invited_email: string;
   created_at: IsoDateTime;
 }
 

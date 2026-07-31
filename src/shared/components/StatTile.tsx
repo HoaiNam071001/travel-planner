@@ -13,7 +13,7 @@ export interface StatTileProps {
 export default function StatTile({ icon: Icon, label, value, sub, inverse = false }: StatTileProps) {
   return (
     <div
-      className={`rounded-2xl px-4 py-3.5 ${
+      className={`rounded-2xl px-4 py-3 ${
         inverse
           ? "border border-white/10 bg-white/[0.07] backdrop-blur-sm"
           : "border border-slate-200/80 bg-white shadow-card"

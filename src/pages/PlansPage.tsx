@@ -6,6 +6,7 @@ import { listUnits } from "../services/units.service";
 import { listItems } from "../services/items.service";
 import { planPath } from "../shared/constants/routes";
 import { groupItemsByUnit, planTotals, unitsForPlan } from "../shared/utils/planStats";
+import { useAuth } from "../context/AuthContext";
 import Button from "../shared/components/Button";
 import EmptyState from "../shared/components/EmptyState";
 import PageHeader from "../shared/components/PageHeader";
@@ -21,6 +22,7 @@ interface FormModalState {
 
 export default function PlansPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
   const [items, setItems] = useState<Item[]>([]);
@@ -135,6 +137,7 @@ export default function PlansPage() {
                 unitCount={totals.unitCount}
                 itemCount={totals.itemCount}
                 totalCost={totals.cost}
+                isShared={plan.user_id !== user?.id}
                 onEdit={(p) => setFormModal({ open: true, mode: "edit", plan: p })}
                 onDelete={handleDelete}
               />

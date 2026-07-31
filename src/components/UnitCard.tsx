@@ -1,5 +1,5 @@
 import { Popconfirm } from "antd";
-import { CalendarClock, Clock, Map, Pencil, Sparkles, Trash2, Wallet } from "lucide-react";
+import { CalendarClock, Clock, Copy, Map, Pencil, Sparkles, Trash2, Wallet } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import Badge from "../shared/components/Badge";
@@ -14,6 +14,7 @@ export interface UnitCardProps {
   planName?: string | null;
   onOpenDetail: (unit: Unit) => void;
   onEdit: (unit: Unit) => void;
+  onClone: (unit: Unit) => void;
   onDelete: (id: Id) => void;
 }
 
@@ -23,6 +24,7 @@ export default function UnitCard({
   planName,
   onOpenDetail,
   onEdit,
+  onClone,
   onDelete,
 }: UnitCardProps) {
   const range = unitRange(unit);
@@ -37,6 +39,7 @@ export default function UnitCard({
         <h3 className="text-[15px] font-bold leading-snug">{unit.name}</h3>
         <div className="flex shrink-0 gap-0.5 opacity-0 transition group-hover:opacity-100 focus-within:opacity-100">
           <IconButton size="sm" tone="brand" icon={Pencil} onClick={() => onEdit(unit)} aria-label="Sửa" />
+          <IconButton size="sm" icon={Copy} onClick={() => onClone(unit)} aria-label="Nhân bản" />
           <Popconfirm
             title="Xoá chặng này?"
             description="Hoạt động bên trong sẽ được gỡ ra, không bị xoá."

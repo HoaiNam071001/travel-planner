@@ -36,6 +36,7 @@ interface FormModalState {
   open: boolean;
   mode: "create" | "edit";
   item: Item | null;
+  cloneFrom: Item | null;
 }
 
 export default function ItemsPage() {
@@ -50,6 +51,7 @@ export default function ItemsPage() {
     open: false,
     mode: "create",
     item: null,
+    cloneFrom: null,
   });
   const [detailItem, setDetailItem] = useState<Item | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -98,12 +100,19 @@ export default function ItemsPage() {
   const canReorder = unitFilter === ALL && !search.trim();
 
   function openCreateModal() {
-    setFormModal({ open: true, mode: "create", item: null });
+    setFormModal({ open: true, mode: "create", item: null, cloneFrom: null });
   }
 
   function openEditModal(item: Item) {
     setDetailItem(null);
-    setFormModal({ open: true, mode: "edit", item });
+    setFormModal({ open: true, mode: "edit", item, cloneFrom: null });
+  }
+
+  // Nhân bản: mở modal TẠO MỚI với field mồi từ hoạt động gốc (kể cả địa điểm — không
+  // độc quyền như chặng, mang theo không "cướp" của hoạt động gốc).
+  function openCloneModal(item: Item) {
+    setDetailItem(null);
+    setFormModal({ open: true, mode: "create", item: null, cloneFrom: item });
   }
 
   function closeFormModal() {
@@ -163,6 +172,7 @@ export default function ItemsPage() {
           unitName={item.unit_id ? unitNameById.get(item.unit_id) : null}
           onOpenDetail={setDetailItem}
           onEdit={openEditModal}
+          onClone={openCloneModal}
           onDelete={handleDelete}
         />
       ))}
@@ -259,6 +269,7 @@ export default function ItemsPage() {
         open={formModal.open}
         mode={formModal.mode}
         item={formModal.item}
+        cloneFrom={formModal.cloneFrom}
         locations={locations}
         onClose={closeFormModal}
         onSubmit={handleFormSubmit}
@@ -270,6 +281,7 @@ export default function ItemsPage() {
         unitName={detailItem?.unit_id ? unitNameById.get(detailItem.unit_id) : null}
         onClose={() => setDetailItem(null)}
         onEdit={openEditModal}
+        onClone={openCloneModal}
       />
     </div>
   );

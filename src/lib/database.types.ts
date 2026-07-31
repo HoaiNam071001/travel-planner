@@ -2,6 +2,7 @@ import type {
   ItemRow,
   LocationRow,
   Plan,
+  PlanCollaborator,
   UnitRoute,
   UnitRow,
   UnitType,
@@ -37,11 +38,26 @@ export interface ItemLocationRow {
   created_at: string;
 }
 
+// `plan_collaborators.user_id` KHÔNG có `default auth.uid()` như mọi bảng khác — giá
+// trị là id của người ĐƯỢC MỜI (service tự tra bằng `find_user_id_by_email` rồi điền),
+// không phải người đang gọi, nên không dùng `Insertable<T, Optional>` được (helper đó
+// unconditionally bỏ `user_id` vì giả định luôn có default).
+export interface PlanCollaboratorInsert {
+  plan_id: string;
+  user_id: string;
+  invited_email: string;
+  id?: string;
+  created_at?: string;
+}
+
 export interface Database {
   public: {
     Tables: {
       users: TableDef<UserProfile, Insertable<UserProfile, "email" | "full_name" | "avatar">>;
-      plans: TableDef<Plan, Insertable<Plan, "description" | "start_date" | "end_date">>;
+      plans: TableDef<
+        Plan,
+        Insertable<Plan, "description" | "start_date" | "end_date" | "share_token">
+      >;
       unit_types: TableDef<UnitType, Insertable<UnitType, never>>;
       units: TableDef<
         UnitRow,
@@ -76,9 +92,20 @@ export interface Database {
         UnitRoute,
         Insertable<UnitRoute, "distance_km" | "duration_min" | "route_geometry" | "updated_at">
       >;
+      plan_collaborators: TableDef<PlanCollaborator, Cols<PlanCollaboratorInsert>>;
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      find_user_id_by_email: {
+        Args: { target_email: string };
+        Returns: { user_id: string; full_name: string | null; avatar: string | null }[];
+      };
+      get_shared_plan: {
+        Args: { token: string };
+        // jsonb — theo đúng convention `unknown` đã dùng cho unit_routes.route_geometry.
+        Returns: unknown;
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };

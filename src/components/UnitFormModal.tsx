@@ -7,6 +7,7 @@ import Button from "../shared/components/Button";
 import Field from "../shared/components/Field";
 import Input, { TextArea } from "../shared/components/Input";
 import DatePicker from "../shared/components/DatePicker";
+import DurationInput from "../shared/components/DurationInput";
 import DualListPicker from "./DualListPicker";
 import { formatDateTimeRange, formatDuration } from "../shared/utils/format";
 import { DEFAULT_UNIT_DURATION_MINUTES } from "../shared/utils/schedule";
@@ -22,8 +23,7 @@ interface UnitFormState {
   start_date: Dayjs | null;
   /** Mốc kết thúc: có thì được ưu tiên hơn "bắt đầu + khoảng thời gian". */
   end_date: Dayjs | null;
-  durationHours: number;
-  durationMinutes: number;
+  duration: number;
   break_minutes: number;
   name: string;
   description: string;
@@ -31,13 +31,11 @@ interface UnitFormState {
 }
 
 function toFormState(unit: Unit | null | undefined, initialItemIds: Id[] | undefined): UnitFormState {
-  const minutes = unit?.duration_minutes ?? DEFAULT_UNIT_DURATION_MINUTES;
   return {
     unit_type_id: unit?.unit_type_id ?? null,
     start_date: unit?.start_date ? dayjs(unit.start_date) : null,
     end_date: unit?.end_date ? dayjs(unit.end_date) : null,
-    durationHours: Math.floor(minutes / 60),
-    durationMinutes: minutes % 60,
+    duration: unit?.duration_minutes ?? DEFAULT_UNIT_DURATION_MINUTES,
     break_minutes: unit?.break_minutes ?? 0,
     name: unit?.name ?? "",
     description: unit?.description ?? "",
@@ -145,6 +143,8 @@ export interface UnitFormModalProps {
   open: boolean;
   mode: "create" | "edit";
   unit: Unit | null;
+  /** Chỉ dùng để "mồi" giá trị ban đầu khi nhân bản (mode vẫn là "create", `unit` vẫn null). */
+  cloneFrom?: Unit | null;
   initialItemIds?: Id[];
   items?: Item[];
   unitTypes?: UnitType[];
@@ -161,6 +161,7 @@ export default function UnitFormModal({
   open,
   mode,
   unit,
+  cloneFrom,
   initialItemIds,
   items = [],
   unitTypes = [],
@@ -170,18 +171,18 @@ export default function UnitFormModal({
   onCreateType,
   onDeleteType,
 }: UnitFormModalProps) {
-  const [form, setForm] = useState<UnitFormState>(() => toFormState(unit, initialItemIds));
+  const [form, setForm] = useState<UnitFormState>(() => toFormState(unit ?? cloneFrom, initialItemIds));
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (open) {
-      setForm(toFormState(unit, initialItemIds));
+      setForm(toFormState(unit ?? cloneFrom, initialItemIds));
       setError("");
     }
-  }, [open, unit, initialItemIds]);
+  }, [open, unit, cloneFrom, initialItemIds]);
 
-  const manualMinutes = Math.max((form.durationHours || 0) * 60 + (form.durationMinutes || 0), 0);
+  const manualMinutes = Math.max(form.duration || 0, 0);
   // Xem trước đúng thứ tự ưu tiên mà UI dùng ở mọi nơi khác: end_date > duration.
   const previewEnd = form.end_date ?? form.start_date?.add(manualMinutes, "minute") ?? null;
   const previewRange =
@@ -271,24 +272,12 @@ export default function UnitFormModal({
           </Field>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <Field label="Khoảng thời gian (giờ)" hint="mặc định 6">
-            <InputNumber
-              className="w-full"
-              min={0}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Field label="Khoảng thời gian" hint="mặc định 6 giờ">
+            <DurationInput
+              value={form.duration}
+              onChange={(duration) => setForm((f) => ({ ...f, duration }))}
               disabled={Boolean(form.end_date)}
-              value={form.durationHours}
-              onChange={(val) => setForm((f) => ({ ...f, durationHours: val ?? 0 }))}
-            />
-          </Field>
-          <Field label="Phút">
-            <InputNumber
-              className="w-full"
-              min={0}
-              max={59}
-              disabled={Boolean(form.end_date)}
-              value={form.durationMinutes}
-              onChange={(val) => setForm((f) => ({ ...f, durationMinutes: val ?? 0 }))}
             />
           </Field>
           <Field label="Nghỉ giữa hoạt động (phút)">

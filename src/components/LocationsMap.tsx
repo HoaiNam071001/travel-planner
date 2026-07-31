@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MapContainer, TileLayer, Marker, Circle, Tooltip, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Circle, Tooltip, ZoomControl, useMap } from "react-leaflet";
 import L from "leaflet";
-import { Crosshair, Layers, Locate } from "lucide-react";
+import { Crosshair, Layers, Loader2, Locate } from "lucide-react";
 import "../shared/map/leafletIconFix";
 import type { Id, LocationRow } from "../shared/types/models";
 import type { LatLng } from "../shared/utils/geo";
@@ -111,14 +111,18 @@ function MapOverlay({ basemap, onBasemapChange, onSearchArea, searching }: MapOv
             const center = map.getCenter();
             onSearchArea({ lat: center.lat, lng: center.lng }, AREA_SEARCH_RADIUS_M);
           }}
-          className="flex items-center gap-1.5 rounded-full bg-slate-900/90 px-3.5 py-2 text-xs font-semibold text-white shadow-pop backdrop-blur transition hover:bg-slate-900 disabled:opacity-60"
+          className="group flex items-center gap-1.5 rounded-full bg-slate-900/95 px-3.5 py-2 text-xs font-semibold text-white shadow-pop ring-1 ring-white/10 backdrop-blur transition hover:-translate-y-px hover:bg-slate-900 hover:shadow-[0_10px_24px_-6px_rgb(6_182_212_/_0.45)] disabled:translate-y-0 disabled:opacity-70"
         >
-          <Crosshair className="h-3.5 w-3.5" />
+          {searching ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-brand-300" />
+          ) : (
+            <Crosshair className="h-3.5 w-3.5 text-brand-300 transition group-hover:scale-110" />
+          )}
           {searching ? "Đang tìm..." : `Tìm địa điểm ở đây (${AREA_SEARCH_RADIUS_M}m)`}
         </button>
       )}
 
-      <div className="ml-auto flex items-center gap-0.5 rounded-full bg-white/95 p-1 shadow-card ring-1 ring-slate-200">
+      <div className="ml-auto flex items-center gap-0.5 rounded-full bg-white/95 p-1 shadow-pop ring-1 ring-slate-200/80 backdrop-blur">
         <span className="pl-2 pr-1 text-slate-400">
           <Layers className="h-3.5 w-3.5" />
         </span>
@@ -128,7 +132,9 @@ function MapOverlay({ basemap, onBasemapChange, onSearchArea, searching }: MapOv
             type="button"
             onClick={() => onBasemapChange(key)}
             className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition ${
-              basemap === key ? "bg-brand-600 text-white" : "text-slate-500 hover:bg-slate-100"
+              basemap === key
+                ? "bg-brand-600 text-white shadow-sm"
+                : "text-slate-500 hover:bg-slate-100 hover:text-slate-700"
             }`}
           >
             {BASEMAPS[key].label}
@@ -169,7 +175,8 @@ export default function LocationsMap({
   }, [locations, area]);
 
   return (
-    <MapContainer center={center} zoom={13} scrollWheelZoom className="h-full w-full">
+    <MapContainer center={center} zoom={13} zoomControl={false} scrollWheelZoom className="h-full w-full">
+      <ZoomControl position="bottomleft" />
       <TileLayer
         key={basemap}
         attribution={tiles.attribution}

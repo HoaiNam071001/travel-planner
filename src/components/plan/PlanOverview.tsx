@@ -26,8 +26,9 @@ import {
 import { planTotals, unitStats } from "../../shared/utils/planStats";
 import { computeItemSchedule, itemDurationMinutes, unitRange } from "../../shared/utils/schedule";
 import type { Id, Item, ItemLocation, Plan, Unit } from "../../shared/types/models";
+import { unitColor, type UnitColor } from "./timeline/colors";
 
-interface VisitedLocation extends ItemLocation {
+export interface VisitedLocation extends ItemLocation {
   visits: number;
 }
 
@@ -68,7 +69,7 @@ export default function PlanOverview({
   return (
     <div className="animate-fade-up space-y-6">
       {/* ------------------------------------------------------------- hero */}
-      <section className="relative overflow-hidden rounded-3xl bg-slate-950 px-6 py-7 sm:px-8 sm:py-9">
+      <section className="relative overflow-hidden rounded-3xl bg-slate-950 px-6 py-5 sm:px-8 sm:py-6">
         <div
           aria-hidden
           className="absolute inset-0 bg-gradient-to-br from-brand-800/60 via-slate-950 to-slate-950"
@@ -80,24 +81,32 @@ export default function PlanOverview({
         />
 
         <div className="relative">
-          <div className="flex flex-wrap items-center gap-2">
-            {range && (
-              <Badge tone="inverse" icon={CalendarClock} numeric>
-                {range}
-              </Badge>
-            )}
-            {days > 0 && <Badge tone="inverse">{days} ngày</Badge>}
+          <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/10 ring-1 ring-white/15">
+                  <Sparkles className="h-3.5 w-3.5 text-brand-300" />
+                </span>
+                <h1 className="max-w-2xl truncate font-display text-2xl font-extrabold leading-tight text-white sm:text-[30px]">
+                  {plan?.name}
+                </h1>
+              </div>
+              {plan?.description && (
+                <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-white/55">{plan.description}</p>
+              )}
+            </div>
+
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              {range && (
+                <Badge tone="inverse" icon={CalendarClock} numeric>
+                  {range}
+                </Badge>
+              )}
+              {days > 0 && <Badge tone="inverse">{days} ngày</Badge>}
+            </div>
           </div>
 
-          <h1 className="mt-3.5 max-w-3xl font-display text-3xl font-extrabold leading-[1.15] text-white sm:text-[38px]">
-            {plan?.name}
-          </h1>
-
-          {plan?.description && (
-            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/60">{plan.description}</p>
-          )}
-
-          <div className="mt-7 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
             <StatTile
               inverse
               icon={RouteIcon}
@@ -152,6 +161,7 @@ export default function PlanOverview({
                 key={unit.id}
                 unit={unit}
                 index={index}
+                color={unitColor(index)}
                 items={itemsByUnit.get(unit.id) ?? []}
                 onEdit={onEditUnit}
               />
@@ -189,14 +199,16 @@ function SectionLabel({
   );
 }
 
-interface UnitTimelineCardProps {
+export interface UnitTimelineCardProps {
   unit: Unit;
   index: number;
+  color: UnitColor;
   items: Item[];
-  onEdit: (unit: Unit) => void;
+  /** Không truyền = ẩn nút "Sửa" (dùng cho trang preview công khai, chỉ-xem). */
+  onEdit?: (unit: Unit) => void;
 }
 
-function UnitTimelineCard({ unit, index, items, onEdit }: UnitTimelineCardProps) {
+export function UnitTimelineCard({ unit, index, color, items, onEdit }: UnitTimelineCardProps) {
   const stats = unitStats(items, unit.break_minutes);
   const range = unitRange(unit);
   const rangeLabel = range ? formatDateTimeRange(range.start, range.end) : null;
@@ -205,21 +217,25 @@ function UnitTimelineCard({ unit, index, items, onEdit }: UnitTimelineCardProps)
   return (
     <article className="surface overflow-hidden">
       <header className="flex items-start gap-3.5 border-b border-slate-100 px-5 py-4">
-        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-900 font-display text-[13px] font-bold text-white tnum">
+        <span
+          className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl font-display text-[13px] font-bold text-white tnum ${color.solidChip}`}
+        >
           {String(index + 1).padStart(2, "0")}
         </span>
 
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <h3 className="truncate text-[15px] font-bold">{unit.name}</h3>
-            <button
-              type="button"
-              onClick={() => onEdit(unit)}
-              className="flex shrink-0 items-center gap-1 rounded-lg px-1.5 py-1 text-xs font-medium text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-            >
-              <Pencil className="h-3.5 w-3.5" />
-              Sửa
-            </button>
+            {onEdit && (
+              <button
+                type="button"
+                onClick={() => onEdit(unit)}
+                className="flex shrink-0 items-center gap-1 rounded-lg px-1.5 py-1 text-xs font-medium text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                Sửa
+              </button>
+            )}
           </div>
 
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
@@ -265,14 +281,14 @@ function UnitTimelineCard({ unit, index, items, onEdit }: UnitTimelineCardProps)
       ) : schedule.length === 0 ? (
         <ol className="divide-y divide-slate-100">
           {items.map((item) => (
-            <ItemTimelineRow key={item.id} item={item} start={null} end={null} inferred />
+            <ItemTimelineRow key={item.id} item={item} color={color} start={null} end={null} inferred />
           ))}
         </ol>
       ) : (
         <ol className="divide-y divide-slate-100">
           {schedule.map(({ item, start, end, inferred }, index) => (
             <div key={item.id}>
-              <ItemTimelineRow item={item} start={start} end={end} inferred={inferred} />
+              <ItemTimelineRow item={item} color={color} start={start} end={end} inferred={inferred} />
               {index < schedule.length - 1 && unit.break_minutes > 0 && (
                 <BreakTimelineRow breakMinutes={unit.break_minutes} start={end} />
               )}
@@ -284,14 +300,15 @@ function UnitTimelineCard({ unit, index, items, onEdit }: UnitTimelineCardProps)
   );
 }
 
-interface ItemTimelineRowProps {
+export interface ItemTimelineRowProps {
   item: Item;
+  color: UnitColor;
   start: Dayjs | null;
   end: Dayjs | null;
   inferred: boolean;
 }
 
-function ItemTimelineRow({ item, start, end, inferred }: ItemTimelineRowProps) {
+export function ItemTimelineRow({ item, color, start, end, inferred }: ItemTimelineRowProps) {
   const duration = formatDuration(itemDurationMinutes(item));
   const thumb = item.locations?.find((l) => l.images?.length)?.images?.[0];
 
@@ -317,14 +334,14 @@ function ItemTimelineRow({ item, start, end, inferred }: ItemTimelineRowProps) {
 
       <div className="relative flex flex-col items-center pt-1.5">
         <span
-          className={`h-2 w-2 shrink-0 rounded-full ring-4 ${
-            inferred ? "bg-slate-300 ring-slate-100" : "bg-brand-400 ring-brand-50"
+          className={`h-2 w-2 shrink-0 rounded-full ring-4 ring-slate-50 ${
+            inferred ? "bg-slate-300" : color.dot
           }`}
         />
         <span className="mt-1 w-px flex-1 bg-slate-200" />
       </div>
 
-      <div className="min-w-0 flex-1">
+      <div className={`min-w-0 flex-1 border-l-2 pl-3 ${inferred ? "border-slate-100" : color.accentBorder}`}>
         <div className="flex items-start justify-between gap-3">
           <p className="text-sm font-semibold text-slate-800">{item.name}</p>
           {item.price != null && Number(item.price) > 0 && (
@@ -388,13 +405,13 @@ function BreakTimelineRow({ breakMinutes, start }: { breakMinutes: number; start
   );
 }
 
-interface CostBreakdownProps {
+export interface CostBreakdownProps {
   planUnits: Unit[];
   itemsByUnit: Map<Id, Item[]>;
   total: number;
 }
 
-function CostBreakdown({ planUnits, itemsByUnit, total }: CostBreakdownProps) {
+export function CostBreakdown({ planUnits, itemsByUnit, total }: CostBreakdownProps) {
   const rows = planUnits
     .map((unit) => ({ unit, cost: unitStats(itemsByUnit.get(unit.id) ?? []).cost }))
     .filter((row) => row.cost > 0)
@@ -441,7 +458,7 @@ function CostBreakdown({ planUnits, itemsByUnit, total }: CostBreakdownProps) {
   );
 }
 
-function VisitedLocations({ locations }: { locations: VisitedLocation[] }) {
+export function VisitedLocations({ locations }: { locations: VisitedLocation[] }) {
   return (
     <section className="surface p-5">
       <SectionLabel icon={MapPin}>Địa điểm ghé qua</SectionLabel>

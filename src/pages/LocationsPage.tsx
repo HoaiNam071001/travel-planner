@@ -254,11 +254,11 @@ export default function LocationsPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_440px]">
         {/* ------------------------------------------------------------ list */}
-        <div className="order-2 lg:order-1">
+        <div className="surface order-2 p-4 lg:order-1">
           {loading ? (
             <div className="flex flex-col gap-3">
               {[0, 1, 2, 3].map((i) => (
-                <div key={i} className="h-28 animate-pulse rounded-2xl bg-slate-200/50" />
+                <div key={i} className="h-24 animate-pulse rounded-2xl bg-slate-200/50" />
               ))}
             </div>
           ) : isEmpty ? (

@@ -6,10 +6,15 @@ import { formatPrice, formatDuration, formatTime } from "../../shared/utils/form
 import { itemDurationMinutes, itemRange } from "../../shared/utils/schedule";
 import IconButton from "../../shared/components/IconButton";
 import type { Id, Item } from "../../shared/types/models";
+import { itemColorInUnit, type UnitColor } from "./timeline/colors";
 
 export interface BoardItemCardProps {
   item: Item;
   laneId: Id;
+  /** Màu chặng cha (từ `colors.ts`) — undefined ở lane kho (không tô màu). */
+  laneColor?: UnitColor;
+  /** Thứ tự trong lane — chọn sắc thái xoay vòng cho `laneColor`. */
+  itemIndex?: number;
   onEdit: (item: Item) => void;
   onDelete: (id: Id) => void;
   onSendToLibrary?: (id: Id) => void;
@@ -20,6 +25,8 @@ export interface BoardItemCardProps {
 export default function BoardItemCard({
   item,
   laneId,
+  laneColor,
+  itemIndex = 0,
   onEdit,
   onDelete,
   onSendToLibrary,
@@ -36,10 +43,12 @@ export default function BoardItemCard({
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`group rounded-xl border bg-white p-2.5 shadow-xs transition ${
-        isDragging
-          ? "border-brand-300 opacity-40"
-          : "border-slate-200 hover:border-brand-300 hover:shadow-card"
+      className={`group rounded-xl border p-2.5 shadow-xs transition ${
+        isDragging ? "opacity-40" : "hover:shadow-card"
+      } ${
+        laneColor
+          ? `border-l-4 ${laneColor.accentBorder} border-y border-r border-y-slate-200 border-r-slate-200 ${itemColorInUnit(laneColor, itemIndex)}`
+          : "border-slate-200 bg-white hover:border-brand-300"
       } cursor-grab active:cursor-grabbing`}
       {...attributes}
       {...listeners}

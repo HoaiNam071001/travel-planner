@@ -7,6 +7,7 @@ import {
   Route as RouteIcon,
   Sparkles,
   Trash2,
+  Users,
 } from "lucide-react";
 import Badge from "../shared/components/Badge";
 import IconButton from "../shared/components/IconButton";
@@ -19,6 +20,8 @@ export interface PlanCardProps {
   unitCount: number;
   itemCount: number;
   totalCost: number;
+  /** Kế hoạch của người khác chia sẻ tới — ẩn nút xoá (chỉ chủ sở hữu xoá được). */
+  isShared?: boolean;
   onEdit: (plan: Plan) => void;
   onDelete: (id: Id) => void;
 }
@@ -28,6 +31,7 @@ export default function PlanCard({
   unitCount,
   itemCount,
   totalCost,
+  isShared = false,
   onEdit,
   onDelete,
 }: PlanCardProps) {
@@ -58,24 +62,32 @@ export default function PlanCard({
             }}
             aria-label="Sửa kế hoạch"
           />
-          <Popconfirm
-            title="Xoá kế hoạch này?"
-            description="Các chặng bên trong sẽ được gỡ ra, không bị xoá."
-            okText="Xoá"
-            cancelText="Huỷ"
-            okButtonProps={{ danger: true }}
-            onConfirm={() => onDelete(plan.id)}
-          >
-            <IconButton
-              size="sm"
-              tone="danger"
-              icon={Trash2}
-              onClick={(e) => e.preventDefault()}
-              aria-label="Xoá kế hoạch"
-            />
-          </Popconfirm>
+          {!isShared && (
+            <Popconfirm
+              title="Xoá kế hoạch này?"
+              description="Các chặng bên trong sẽ được gỡ ra, không bị xoá."
+              okText="Xoá"
+              cancelText="Huỷ"
+              okButtonProps={{ danger: true }}
+              onConfirm={() => onDelete(plan.id)}
+            >
+              <IconButton
+                size="sm"
+                tone="danger"
+                icon={Trash2}
+                onClick={(e) => e.preventDefault()}
+                aria-label="Xoá kế hoạch"
+              />
+            </Popconfirm>
+          )}
         </div>
       </div>
+
+      {isShared && (
+        <Badge tone="violet" size="sm" icon={Users} className="mt-1.5 self-start">
+          Được chia sẻ
+        </Badge>
+      )}
 
       {range && (
         <p className="mt-1.5 flex items-center gap-1.5 text-xs text-slate-500 tnum">

@@ -1,4 +1,4 @@
-import { CalendarClock, Clock, Map, MapPin, Pencil, Sparkles, Wallet } from "lucide-react";
+import { CalendarClock, Clock, Copy, Map, MapPin, Pencil, Sparkles, Wallet } from "lucide-react";
 import Modal from "../shared/components/Modal";
 import Button from "../shared/components/Button";
 import Badge from "../shared/components/Badge";
@@ -15,6 +15,7 @@ export interface UnitDetailModalProps {
   planName?: string | null;
   onClose: () => void;
   onEdit: (unit: Unit) => void;
+  onClone?: (unit: Unit) => void;
 }
 
 export default function UnitDetailModal({
@@ -24,6 +25,7 @@ export default function UnitDetailModal({
   planName,
   onClose,
   onEdit,
+  onClone,
 }: UnitDetailModalProps) {
   const stats = unitStats(items, unit?.break_minutes);
   const range = unitRange(unit);
@@ -39,6 +41,11 @@ export default function UnitDetailModal({
         unit && (
           <div className="flex justify-end gap-2">
             <Button onClick={onClose}>Đóng</Button>
+            {onClone && (
+              <Button icon={<Copy className="h-4 w-4" />} onClick={() => onClone(unit)}>
+                Nhân bản
+              </Button>
+            )}
             <Button variant="primary" icon={<Pencil className="h-4 w-4" />} onClick={() => onEdit(unit)}>
               Sửa
             </Button>

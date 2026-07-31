@@ -58,6 +58,37 @@ export function createScale(
   };
 }
 
+export interface ClampedBar {
+  left: number;
+  width: number;
+  /** Bị kẹp ở mép trái — thanh gốc bắt đầu trước `scale.origin`. */
+  clippedLeft: boolean;
+  /** Bị kẹp ở mép phải — thanh gốc kết thúc sau `scale.end`. */
+  clippedRight: boolean;
+}
+
+/**
+ * Kẹp vị trí/độ rộng 1 thanh vào trong `[0, canvasWidth]` để chặng/hoạt động có ngày
+ * nằm ngoài khoảng thời gian kế hoạch vẫn hiện được (dán vào rìa) và luôn bấm/kéo được,
+ * thay vì biến mất khỏi canvas hoặc yêu cầu cuộn tới toạ độ âm.
+ */
+export function clampBarToCanvas(
+  left: number,
+  width: number,
+  canvasWidth: number,
+  minVisible = 18
+): ClampedBar {
+  const right = left + width;
+  const clippedLeft = left < 0;
+  const clippedRight = right > canvasWidth;
+
+  const clampedLeft = Math.min(Math.max(left, 0), Math.max(canvasWidth - minVisible, 0));
+  const clampedRight = Math.max(Math.min(right, canvasWidth), Math.min(minVisible, canvasWidth));
+  const clampedWidth = Math.max(clampedRight - clampedLeft, minVisible);
+
+  return { left: clampedLeft, width: clampedWidth, clippedLeft, clippedRight };
+}
+
 /** Mức zoom vừa đủ để cả kế hoạch lọt vào bề rộng `containerWidth`. */
 export function fitZoom(planStart: string, planEnd: string, containerWidth: number): number {
   const hours = Math.max(

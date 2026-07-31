@@ -7,6 +7,7 @@ import ItemsPage from "./pages/ItemsPage";
 import UnitsPage from "./pages/UnitsPage";
 import PlansPage from "./pages/PlansPage";
 import PlanDetailPage from "./pages/PlanDetailPage";
+import SharedPlanPage from "./pages/SharedPlanPage";
 import { ROUTES } from "./shared/constants/routes";
 
 export default function App() {
@@ -14,6 +15,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path={ROUTES.LOGIN} element={<LoginPage />} />
+        <Route path={ROUTES.PLAN_PREVIEW} element={<SharedPlanPage />} />
 
         <Route element={<ProtectedRoute />}>
           <Route element={<AppLayout />}>

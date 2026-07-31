@@ -2,6 +2,7 @@ import { Popconfirm } from "antd";
 import {
   CalendarClock,
   Clock,
+  Copy,
   GripVertical,
   MapPin,
   Pencil,
@@ -23,10 +24,18 @@ export interface ItemCardProps {
   unitName?: string | null;
   onOpenDetail: (item: Item) => void;
   onEdit: (item: Item) => void;
+  onClone: (item: Item) => void;
   onDelete: (id: Id) => void;
 }
 
-export default function ItemCard({ item, unitName, onOpenDetail, onEdit, onDelete }: ItemCardProps) {
+export default function ItemCard({
+  item,
+  unitName,
+  onOpenDetail,
+  onEdit,
+  onClone,
+  onDelete,
+}: ItemCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
   });
@@ -72,6 +81,7 @@ export default function ItemCard({ item, unitName, onOpenDetail, onEdit, onDelet
               onClick={() => onEdit(item)}
               aria-label="Sửa"
             />
+            <IconButton size="sm" icon={Copy} onClick={() => onClone(item)} aria-label="Nhân bản" />
             <Popconfirm
               title="Xoá hoạt động này?"
               okText="Xoá"

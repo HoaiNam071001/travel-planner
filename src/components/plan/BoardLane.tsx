@@ -22,6 +22,7 @@ import { unitStats } from "../../shared/utils/planStats";
 import { unitRange } from "../../shared/utils/schedule";
 import type { Id, Item, Unit } from "../../shared/types/models";
 import BoardItemCard from "./BoardItemCard";
+import type { UnitColor } from "./timeline/colors";
 
 export interface BoardLaneProps {
   laneId: Id;
@@ -29,6 +30,8 @@ export interface BoardLaneProps {
   index: number;
   items: Item[];
   isLibrary?: boolean;
+  /** Màu chặng (từ `colors.ts`) — undefined ở lane kho (không tô màu). */
+  color?: UnitColor;
   canMoveLeft?: boolean;
   canMoveRight?: boolean;
   onMoveUnit: (unitId: Id, direction: -1 | 1) => void;
@@ -49,6 +52,7 @@ export default function BoardLane({
   index,
   items,
   isLibrary = false,
+  color,
   canMoveLeft = false,
   canMoveRight = false,
   onMoveUnit,
@@ -69,7 +73,9 @@ export default function BoardLane({
   return (
     <section
       className={`flex max-h-[calc(100vh-15rem)] w-[292px] shrink-0 flex-col rounded-2xl border transition ${
-        isLibrary ? "border-slate-200 bg-slate-100/70" : "border-slate-200/80 bg-white shadow-card"
+        isLibrary
+          ? "border-slate-200 bg-slate-100/70"
+          : `${color?.accentBorder ?? "border-slate-200/80"} ${color?.tintBg ?? "bg-white shadow-card"}`
       } ${isOver ? "ring-2 ring-brand-300 ring-offset-2 ring-offset-slate-50" : ""}`}
     >
       <header className="shrink-0 space-y-2.5 px-3 pb-2.5 pt-3">
@@ -179,11 +185,13 @@ export default function BoardLane({
         className="scroll-thin min-h-[96px] flex-1 space-y-2 overflow-y-auto px-2.5 pb-2.5"
       >
         <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
-          {items.map((item) => (
+          {items.map((item, itemIndex) => (
             <BoardItemCard
               key={item.id}
               item={item}
               laneId={laneId}
+              laneColor={isLibrary ? undefined : color}
+              itemIndex={itemIndex}
               onEdit={onEditItem}
               onDelete={onDeleteItem}
               onSendToLibrary={isLibrary ? undefined : onSendItemToLibrary}

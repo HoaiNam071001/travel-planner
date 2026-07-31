@@ -1,4 +1,4 @@
-import { CalendarClock, Clock, MapPin, Pencil, Route as RouteIcon, Wallet } from "lucide-react";
+import { CalendarClock, Clock, Copy, MapPin, Pencil, Route as RouteIcon, Wallet } from "lucide-react";
 import Modal from "../shared/components/Modal";
 import Button from "../shared/components/Button";
 import Badge from "../shared/components/Badge";
@@ -12,6 +12,7 @@ export interface ItemDetailModalProps {
   unitName?: string | null;
   onClose: () => void;
   onEdit: (item: Item) => void;
+  onClone?: (item: Item) => void;
 }
 
 export default function ItemDetailModal({
@@ -20,6 +21,7 @@ export default function ItemDetailModal({
   unitName,
   onClose,
   onEdit,
+  onClone,
 }: ItemDetailModalProps) {
   const duration = item ? formatDuration(itemDurationMinutes(item)) : null;
   const range = itemRange(item);
@@ -34,6 +36,11 @@ export default function ItemDetailModal({
         item && (
           <div className="flex justify-end gap-2">
             <Button onClick={onClose}>Đóng</Button>
+            {onClone && (
+              <Button icon={<Copy className="h-4 w-4" />} onClick={() => onClone(item)}>
+                Nhân bản
+              </Button>
+            )}
             <Button variant="primary" icon={<Pencil className="h-4 w-4" />} onClick={() => onEdit(item)}>
               Sửa
             </Button>

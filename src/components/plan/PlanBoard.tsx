@@ -19,6 +19,7 @@ import { planTotals } from "../../shared/utils/planStats";
 import type { Id, Item, Unit } from "../../shared/types/models";
 import BoardLane from "./BoardLane";
 import { BoardItemPreview } from "./BoardItemCard";
+import { unitColor } from "./timeline/colors";
 
 interface Lane {
   id: Id;
@@ -165,6 +166,7 @@ export default function PlanBoard({
               index={laneIndex - 1} // lane 0 là kho nên chặng đầu tiên có index 0
               items={lane.items}
               isLibrary={lane.isLibrary}
+              color={lane.isLibrary ? undefined : unitColor(laneIndex - 1)}
               canMoveLeft={!lane.isLibrary && laneIndex > 1}
               canMoveRight={!lane.isLibrary && laneIndex < lanes.length - 1}
               onMoveUnit={onMoveUnit}

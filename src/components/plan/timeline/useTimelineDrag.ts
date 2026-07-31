@@ -22,16 +22,29 @@ export interface DragTarget {
 
 export interface DragDraft extends DragTarget {
   mode: DragMode;
-  /** Con trỏ đang ở trên cột "chưa xếp lịch" -> thả sẽ gỡ chặng khỏi lịch. */
+  /** Con trỏ đang ở trên vùng thả để gỡ lịch (theo đúng kind) -> thả sẽ gỡ khỏi lịch. */
   overParking: boolean;
+  /**
+   * Id của hàng chặng đang ở dưới con trỏ — chỉ có ý nghĩa khi kéo 1 hoạt động chưa gắn
+   * chặng (kind "item", mode "schedule") từ panel vào gantt: xác định thả vào chặng nào.
+   */
+  overRowId: Id | null;
 }
 
 export interface UseTimelineDragOptions {
   scale: TimeScale;
   /** Phần tử có bề rộng đúng bằng `scale.width` — gốc toạ độ khi quy đổi. */
   canvasRef: RefObject<HTMLDivElement | null>;
-  /** Cột "chưa xếp lịch"; thả chặng vào đây là gỡ lịch. */
-  parkingRef?: RefObject<HTMLDivElement | null>;
+  /** Panel "chặng chưa xếp"; thả 1 chặng vào đây là gỡ lịch. */
+  unitParkingRef?: RefObject<HTMLDivElement | null>;
+  /** Panel "hoạt động chưa gắn chặng"; thả 1 hoạt động vào đây là gỡ khỏi chặng. */
+  itemParkingRef?: RefObject<HTMLDivElement | null>;
+  /**
+   * Tìm id chặng đang ở dưới con trỏ (dùng DOM `elementFromPoint` + `closest` trên
+   * `data-unit-row-id` do `PlanTimeline` gắn lên từng hàng) — chỉ cần khi kéo 1 hoạt
+   * động chưa gắn chặng từ panel vào gantt để biết thả vào chặng nào.
+   */
+  resolveRowTarget?: (clientX: number, clientY: number) => Id | null;
   snapMinutes?: number;
   minMinutes?: number;
   onCommit: (draft: DragDraft) => void;
@@ -42,17 +55,35 @@ interface ActiveDrag {
   target: DragTarget;
   mode: DragMode;
   durationMs: number;
-  /** Khoảng cách từ mép trái thanh tới điểm bấm (px) — giữ nguyên khi kéo. */
+  /** Khoảng cách từ mép trái thanh **đã render** tới điểm bấm (px) — giữ nguyên khi kéo. */
   grabOffsetPx: number;
 }
 
 export interface TimelineDragApi {
   draft: DragDraft | null;
-  /** Bắt đầu kéo/kéo mép một thanh đã có trên lịch. */
-  startDrag: (event: ReactPointerEvent, target: DragTarget, mode: DragMode) => void;
-  /** Bắt đầu kéo 1 chặng chưa xếp lịch từ cột bên cạnh vào lịch. */
+  /**
+   * Bắt đầu kéo/kéo mép một thanh đã có trên lịch. `renderedLeft` là toạ độ trái (px,
+   * trong hệ canvas) mà thanh **đang thực sự hiển thị** — có thể khác `scale.xOf(target.start)`
+   * khi thanh bị kẹp vào rìa canvas (chặng/hoạt động có ngày ngoài khung kế hoạch), nếu
+   * không dùng đúng toạ độ đã render thì lúc bắt đầu kéo thanh sẽ bị giật do offset sai.
+   */
+  startDrag: (
+    event: ReactPointerEvent,
+    target: DragTarget,
+    mode: DragMode,
+    renderedLeft: number
+  ) => void;
+  /** Bắt đầu kéo 1 chặng/hoạt động chưa xếp lịch từ panel bên trên vào lịch. */
   startScheduling: (event: ReactPointerEvent, target: DragTarget) => void;
   isDragging: boolean;
+  /**
+   * `true` nếu lần nhấn-thả gần nhất thực sự dời thanh (start/end đổi). Vì `startDrag`
+   * không gọi `setPointerCapture`, con trỏ luôn "thả" đúng lên thanh đang kéo nên trình
+   * duyệt luôn bắn thêm 1 sự kiện `click` ngay sau `pointerup` — kể cả sau một cú kéo
+   * thật. Đọc ref này (đồng bộ, không qua state) ngay trong handler `onClick` để phân
+   * biệt "bấm mở chi tiết" với "vừa kéo xong".
+   */
+  wasDraggedRef: RefObject<boolean>;
 }
 
 function rectContains(element: HTMLElement | null | undefined, x: number, y: number): boolean {
@@ -64,7 +95,9 @@ function rectContains(element: HTMLElement | null | undefined, x: number, y: num
 export function useTimelineDrag({
   scale,
   canvasRef,
-  parkingRef,
+  unitParkingRef,
+  itemParkingRef,
+  resolveRowTarget,
   snapMinutes = 15,
   minMinutes = 30,
   onCommit,
@@ -73,6 +106,7 @@ export function useTimelineDrag({
   const [draft, setDraft] = useState<DragDraft | null>(null);
   const activeRef = useRef<ActiveDrag | null>(null);
   const draftRef = useRef<DragDraft | null>(null);
+  const wasDraggedRef = useRef(false);
   // Giữ bản mới nhất của scale/callback để listener trên window không bị "cũ".
   const scaleRef = useRef(scale);
   scaleRef.current = scale;
@@ -80,6 +114,11 @@ export function useTimelineDrag({
   commitRef.current = onCommit;
   const unscheduleRef = useRef(onUnschedule);
   unscheduleRef.current = onUnschedule;
+
+  const parkingRefFor = useCallback(
+    (kind: DragKind) => (kind === "unit" ? unitParkingRef : itemParkingRef),
+    [unitParkingRef, itemParkingRef]
+  );
 
   const compute = useCallback(
     (clientX: number, clientY: number): DragDraft | null => {
@@ -91,7 +130,12 @@ export function useTimelineDrag({
       const x = clientX - canvas.getBoundingClientRect().left;
       const pointerTime = currentScale.timeAt(x);
       const minSpanMs = minMinutes * 60_000;
-      const overParking = rectContains(parkingRef?.current, clientX, clientY);
+      const overParking = rectContains(parkingRefFor(active.target.kind)?.current, clientX, clientY);
+      // Chỉ cần biết đang ở trên hàng chặng nào khi kéo 1 hoạt động từ panel vào gantt.
+      const overRowId =
+        active.target.kind === "item" && active.mode === "schedule" && resolveRowTarget
+          ? resolveRowTarget(clientX, clientY)
+          : null;
 
       if (active.mode === "resize-start") {
         const latest = active.target.end.subtract(minSpanMs, "millisecond");
@@ -100,13 +144,13 @@ export function useTimelineDrag({
           currentScale.origin,
           latest
         );
-        return { ...active.target, mode: active.mode, start, overParking };
+        return { ...active.target, mode: active.mode, start, overParking, overRowId };
       }
 
       if (active.mode === "resize-end") {
         const earliest = active.target.start.add(minSpanMs, "millisecond");
         const end = clampTime(snapToMinutes(pointerTime, snapMinutes), earliest, currentScale.end);
-        return { ...active.target, mode: active.mode, end, overParking };
+        return { ...active.target, mode: active.mode, end, overParking, overRowId };
       }
 
       // move | schedule: giữ nguyên độ dài, chỉ dời điểm bắt đầu.
@@ -122,9 +166,10 @@ export function useTimelineDrag({
         start,
         end: start.add(active.durationMs, "millisecond"),
         overParking,
+        overRowId,
       };
     },
-    [canvasRef, minMinutes, parkingRef, snapMinutes]
+    [canvasRef, minMinutes, parkingRefFor, resolveRowTarget, snapMinutes]
   );
 
   useEffect(() => {
@@ -145,17 +190,21 @@ export function useTimelineDrag({
       setDraft(null);
 
       if (!final) return;
-      // Kéo từ cột "chưa xếp lịch" rồi thả lại vào chính cột đó -> huỷ, không ghi gì.
+      // Kéo từ panel "chưa xếp" rồi thả lại vào chính panel đó -> huỷ, không ghi gì.
       if (active.mode === "schedule") {
         if (!final.overParking) commitRef.current(final);
         return;
       }
-      if (final.overParking && final.kind === "unit" && unscheduleRef.current) {
+      // Bấm mà không kéo (hoặc kéo rồi về đúng chỗ cũ) thì không cần ghi DB — đồng thời
+      // đây chính là tín hiệu để phân biệt "click mở chi tiết" với "vừa kéo xong".
+      wasDraggedRef.current = !(
+        final.start.isSame(active.target.start) && final.end.isSame(active.target.end)
+      );
+      if (final.overParking && unscheduleRef.current) {
         unscheduleRef.current(active.target);
         return;
       }
-      // Bấm mà không kéo (hoặc kéo rồi về đúng chỗ cũ) thì không cần ghi DB.
-      if (final.start.isSame(active.target.start) && final.end.isSame(active.target.end)) return;
+      if (!wasDraggedRef.current) return;
       commitRef.current(final);
     }
 
@@ -170,7 +219,7 @@ export function useTimelineDrag({
   }, [compute]);
 
   const startDrag = useCallback(
-    (event: ReactPointerEvent, target: DragTarget, mode: DragMode) => {
+    (event: ReactPointerEvent, target: DragTarget, mode: DragMode, renderedLeft: number) => {
       if (event.button !== 0) return;
       event.preventDefault();
       event.stopPropagation();
@@ -183,9 +232,9 @@ export function useTimelineDrag({
         target,
         mode,
         durationMs: Math.max(target.end.diff(target.start), 0),
-        grabOffsetPx: x - scaleRef.current.xOf(target.start),
+        grabOffsetPx: x - renderedLeft,
       };
-      const initial: DragDraft = { ...target, mode, overParking: false };
+      const initial: DragDraft = { ...target, mode, overParking: false, overRowId: null };
       draftRef.current = initial;
       setDraft(initial);
     },
@@ -204,12 +253,12 @@ export function useTimelineDrag({
         // Kéo từ ngoài vào thì mép trái thanh bám luôn vào con trỏ.
         grabOffsetPx: 0,
       };
-      const initial: DragDraft = { ...target, mode: "schedule", overParking: true };
+      const initial: DragDraft = { ...target, mode: "schedule", overParking: true, overRowId: null };
       draftRef.current = initial;
       setDraft(initial);
     },
     []
   );
 
-  return { draft, startDrag, startScheduling, isDragging: draft !== null };
+  return { draft, startDrag, startScheduling, isDragging: draft !== null, wasDraggedRef };
 }

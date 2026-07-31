@@ -6,11 +6,18 @@ import {
   CalendarRange,
   LayoutList,
   Pencil,
+  Share2,
   SlidersHorizontal,
   Trash2,
   type LucideIcon,
 } from "lucide-react";
-import { getPlan, updatePlan, deletePlan, type PlanInput } from "../services/plans.service";
+import {
+  getPlan,
+  updatePlan,
+  deletePlan,
+  setPlanShareToken,
+  type PlanInput,
+} from "../services/plans.service";
 import {
   listUnits,
   createUnit,
@@ -48,6 +55,10 @@ import PlanTimeline from "../components/plan/PlanTimeline";
 import PlanFormModal from "../components/PlanFormModal";
 import UnitFormModal from "../components/UnitFormModal";
 import ItemFormModal from "../components/ItemFormModal";
+import UnitDetailModal from "../components/UnitDetailModal";
+import ItemDetailModal from "../components/ItemDetailModal";
+import ShareModal from "../components/plan/ShareModal";
+import { useAuth } from "../context/AuthContext";
 import type { Id, Item, LocationRow, Plan, Unit, UnitType } from "../shared/types/models";
 import type { WriteResult } from "../services/types";
 
@@ -73,6 +84,7 @@ interface ItemFormState {
 export default function PlanDetailPage() {
   const { planId } = useParams<{ planId: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get("tab");
   const tab: TabKey = tabParam === "build" || tabParam === "schedule" ? tabParam : "overview";
@@ -94,6 +106,11 @@ export default function PlanDetailPage() {
     item: null,
     unitId: null,
   });
+  const [viewingUnit, setViewingUnit] = useState<Unit | null>(null);
+  const [viewingItem, setViewingItem] = useState<Item | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
+
+  const isOwner = Boolean(plan && user && plan.user_id === user.id);
 
   const loadData = useCallback(async () => {
     if (!planId) return;
@@ -242,6 +259,22 @@ export default function PlanDetailPage() {
     await commit(() => patchItemTimes(itemId, patch), "Không lưu được giờ của hoạt động");
   }
 
+  /** Kéo 1 hoạt động chưa gắn chặng từ panel vào 1 hàng chặng trên tab Lịch trình. */
+  async function assignAndScheduleItem(itemId: Id, unitId: Id, patch: ItemTimePatch) {
+    const ordered = [...laneItems(unitId).map((i) => i.id), itemId];
+    setItems((prev) =>
+      prev.map((i) => {
+        if (i.id === itemId) return { ...i, unit_id: unitId, order_index: ordered.length - 1, ...patch };
+        return i;
+      })
+    );
+    await commit(async () => {
+      const { error: assignError } = await assignItemsToUnit(unitId, ordered);
+      if (assignError) return { error: assignError };
+      return patchItemTimes(itemId, patch);
+    }, "Không xếp được lịch cho hoạt động");
+  }
+
   // ------------------------------------------------------------------ units
   async function addUnitToPlan(unitId: Id) {
     if (!planId) return;
@@ -329,6 +362,25 @@ export default function PlanDetailPage() {
     await commit(() => patchUnitTimes(unitId, patch), "Không lưu được lịch của chặng");
   }
 
+  /** Kéo 1 chặng chưa gắn kế hoạch nào từ panel vào tab Lịch trình: gắn vào kế hoạch
+   *  này + xếp giờ cùng lúc — tương tự `assignAndScheduleItem` nhưng cho chặng. */
+  async function attachAndScheduleUnit(unitId: Id, patch: UnitTimePatch) {
+    if (!planId) return;
+    const ordered = [...planUnits.map((u) => u.id), unitId];
+    setUnits((prev) =>
+      prev.map((u) =>
+        u.id === unitId
+          ? { ...u, plan_id: planId, order_index: ordered.length - 1, ...patch }
+          : u
+      )
+    );
+    await commit(async () => {
+      const { error: assignError } = await assignUnitsToPlan(planId, ordered);
+      if (assignError) return { error: assignError };
+      return patchUnitTimes(unitId, patch);
+    }, "Không xếp được lịch cho chặng");
+  }
+
   // Xoá chặng là thao tác phá huỷ nhưng trigger nằm trong Dropdown (Popconfirm lồng trong
   // menu item sẽ bị unmount khi menu đóng), nên dùng Modal xác nhận riêng của trang.
   async function handleDeleteUnit() {
@@ -373,6 +425,12 @@ export default function PlanDetailPage() {
     setPlan((prev) => (prev ? { ...prev, ...values } : prev));
     setPlanFormOpen(false);
     return {};
+  }
+
+  async function handleSetShareToken(token: string | null) {
+    if (!planId) return;
+    setPlan((prev) => (prev ? { ...prev, share_token: token } : prev));
+    await commit(() => setPlanShareToken(planId, token), "Không cập nhật được liên kết chia sẻ");
   }
 
   async function handleDeletePlan() {
@@ -440,19 +498,26 @@ export default function PlanDetailPage() {
         />
 
         <div className="flex items-center gap-2">
+          {isOwner && (
+            <Button icon={<Share2 className="h-4 w-4" />} onClick={() => setShareOpen(true)}>
+              Chia sẻ
+            </Button>
+          )}
           <Button icon={<Pencil className="h-4 w-4" />} onClick={() => setPlanFormOpen(true)}>
             Sửa thông tin
           </Button>
-          <Popconfirm
-            title="Xoá kế hoạch này?"
-            description="Các chặng bên trong sẽ được gỡ ra, không bị xoá."
-            okText="Xoá"
-            cancelText="Huỷ"
-            okButtonProps={{ danger: true }}
-            onConfirm={handleDeletePlan}
-          >
-            <Button variant="text" icon={<Trash2 className="h-4 w-4" />} aria-label="Xoá kế hoạch" />
-          </Popconfirm>
+          {isOwner && (
+            <Popconfirm
+              title="Xoá kế hoạch này?"
+              description="Các chặng bên trong sẽ được gỡ ra, không bị xoá."
+              okText="Xoá"
+              cancelText="Huỷ"
+              okButtonProps={{ danger: true }}
+              onConfirm={handleDeletePlan}
+            >
+              <Button variant="text" icon={<Trash2 className="h-4 w-4" />} aria-label="Xoá kế hoạch" />
+            </Popconfirm>
+          )}
         </div>
       </div>
 
@@ -475,14 +540,21 @@ export default function PlanDetailPage() {
           plan={plan}
           planUnits={planUnits}
           itemsByUnit={itemsByUnit}
+          libraryItems={libraryItems}
+          freeUnits={freeUnits}
           onScheduleUnit={(unitId, patch) => void scheduleUnit(unitId, patch)}
+          onAttachAndScheduleUnit={(unitId, patch) => void attachAndScheduleUnit(unitId, patch)}
           onScheduleItem={(itemId, patch) => void scheduleItem(itemId, patch)}
+          onAssignAndScheduleItem={(itemId, unitId, patch) => void assignAndScheduleItem(itemId, unitId, patch)}
+          onUnassignItem={(itemId) => void moveItem(itemId, LIBRARY_LANE, null)}
           onEditUnit={(unit) => setUnitForm({ open: true, unit })}
           onRemoveUnit={(unitId) => void removeUnitFromPlan(unitId)}
           onDeleteUnit={(unitId) => setDeletingUnit(planUnits.find((u) => u.id === unitId) ?? null)}
           onCreateItem={(unitId) => setItemForm({ open: true, item: null, unitId })}
           onEditItem={(item) => setItemForm({ open: true, item, unitId: item.unit_id })}
           onDeleteItem={(itemId) => void handleDeleteItem(itemId)}
+          onViewUnit={setViewingUnit}
+          onViewItem={setViewingItem}
         />
       ) : (
         <PlanBoard
@@ -532,6 +604,36 @@ export default function PlanDetailPage() {
         locations={locations}
         onClose={() => setItemForm({ open: false, item: null, unitId: null })}
         onSubmit={handleItemFormSubmit}
+      />
+
+      <ShareModal
+        open={shareOpen}
+        plan={plan}
+        onClose={() => setShareOpen(false)}
+        onToggleShare={(token) => void handleSetShareToken(token)}
+      />
+
+      <UnitDetailModal
+        open={!!viewingUnit}
+        unit={viewingUnit}
+        items={viewingUnit ? (itemsByUnit.get(viewingUnit.id) ?? []) : []}
+        planName={plan?.name}
+        onClose={() => setViewingUnit(null)}
+        onEdit={(unit) => {
+          setViewingUnit(null);
+          setUnitForm({ open: true, unit });
+        }}
+      />
+
+      <ItemDetailModal
+        open={!!viewingItem}
+        item={viewingItem}
+        unitName={units.find((u) => u.id === viewingItem?.unit_id)?.name ?? null}
+        onClose={() => setViewingItem(null)}
+        onEdit={(item) => {
+          setViewingItem(null);
+          setItemForm({ open: true, item, unitId: item.unit_id });
+        }}
       />
 
       <Modal

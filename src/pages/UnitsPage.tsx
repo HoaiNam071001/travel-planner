@@ -24,6 +24,7 @@ interface FormModalState {
   open: boolean;
   mode: "create" | "edit";
   unit: Unit | null;
+  cloneFrom: Unit | null;
   initialItemIds: Id[];
   previousItemIds: Id[];
 }
@@ -39,6 +40,7 @@ export default function UnitsPage() {
     open: false,
     mode: "create",
     unit: null,
+    cloneFrom: null,
     initialItemIds: [],
     previousItemIds: [],
   });
@@ -77,6 +79,7 @@ export default function UnitsPage() {
       open: true,
       mode: "create",
       unit: null,
+      cloneFrom: null,
       initialItemIds: [],
       previousItemIds: [],
     });
@@ -89,8 +92,23 @@ export default function UnitsPage() {
       open: true,
       mode: "edit",
       unit,
+      cloneFrom: null,
       initialItemIds: currentItemIds,
       previousItemIds: currentItemIds,
+    });
+  }
+
+  // Nhân bản: mở modal TẠO MỚI với field mồi từ chặng gốc — không mang theo hoạt động
+  // đã gắn (items chỉ thuộc 1 chặng, mang theo sẽ vô tình "cướp" chúng khỏi chặng gốc).
+  function openCloneModal(unit: Unit) {
+    setDetailUnit(null);
+    setFormModal({
+      open: true,
+      mode: "create",
+      unit: null,
+      cloneFrom: unit,
+      initialItemIds: [],
+      previousItemIds: [],
     });
   }
 
@@ -215,6 +233,7 @@ export default function UnitsPage() {
               planName={unit.plan_id ? planNameById.get(unit.plan_id) : null}
               onOpenDetail={setDetailUnit}
               onEdit={openEditModal}
+              onClone={openCloneModal}
               onDelete={handleDelete}
             />
           ))}
@@ -225,6 +244,7 @@ export default function UnitsPage() {
         open={formModal.open}
         mode={formModal.mode}
         unit={formModal.unit}
+        cloneFrom={formModal.cloneFrom}
         initialItemIds={formModal.initialItemIds}
         items={items}
         unitTypes={unitTypes}
@@ -241,6 +261,7 @@ export default function UnitsPage() {
         planName={detailUnit?.plan_id ? planNameById.get(detailUnit.plan_id) : null}
         onClose={() => setDetailUnit(null)}
         onEdit={openEditModal}
+        onClone={openCloneModal}
       />
     </div>
   );

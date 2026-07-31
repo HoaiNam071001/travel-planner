@@ -165,10 +165,26 @@ quan kế hoạch và cột trái trang đăng nhập.
 - `unit_types` ("loại" của chặng, vd Ngày/Tuần...): id, user_id (FK), name — **danh sách
   động do user tự tạo dần** qua `src/services/unitTypes.service.ts`, không có sẵn cố định;
   tạo/xoá ngay trong `UnitFormModal` (chip chọn loại, có ô thêm loại mới + nút xoá từng loại)
-- `plans` (kế hoạch tổng): id, user_id (FK), name, description, start_date, end_date
+- `plans` (kế hoạch tổng): id, user_id (FK), name, description, start_date, end_date,
+  **share_token (text, unique, nullable)** — có giá trị (uuid ngẫu nhiên) thì link xem
+  trước công khai `/p/:token` mở được, null = tắt chia sẻ
 - `unit_routes` (cache khoảng cách): unit_id, user_id (FK), distance_km, duration_min,
   route_geometry — tính bằng OpenRouteService Matrix API, chỉ recompute khi thứ tự/địa
   điểm trong unit đổi
+- `plan_collaborators` (chia sẻ kế hoạch cho user khác cùng sửa): id, plan_id (FK),
+  user_id (FK tới người **được mời** — khác mọi bảng khác, cột này **không** có
+  `default auth.uid()`), invited_email (denormalize để hiển thị, không join sang
+  `users` vì RLS bảng đó chỉ cho tự đọc dòng của mình). Người được mời có toàn quyền
+  sửa chặng/hoạt động/địa điểm/loại của kế hoạch đó như chủ sở hữu (RLS mở rộng qua
+  các hàm SQL `is_plan_collaborator`/`unit_is_shared_with_me`/`item_is_shared_with_me`/
+  `owner_shared_with_me` trong `schema.sql`, tất cả `security invoker` để tự lọc theo
+  đúng `auth.uid()` người gọi — không dùng `security definer` ở nhóm hàm này). Mời
+  bằng email qua RPC `find_user_id_by_email` (`security definer`, vì `users` RLS
+  không cho tự tra người khác). Chỉ chủ sở hữu xoá được kế hoạch/mời-gỡ collaborator;
+  collaborator sửa được mọi thứ khác nhưng không thấy nút xoá kế hoạch (ẩn ở UI, RLS
+  cũng chặn ở tầng DB). Link xem trước công khai (`share_token`) đọc qua RPC riêng
+  `get_shared_plan` (`security definer`, an toàn vì phải biết đúng token — không liệt
+  kê được), không qua RLS thường vì người xem không đăng nhập.
 
 Mọi bảng dữ liệu (trừ `users`) có cột `user_id uuid not null default auth.uid()` và **bật
 Row Level Security (RLS)** — mỗi user chỉ đọc/ghi được dữ liệu của chính mình, chặn thật ở
@@ -310,13 +326,53 @@ Edge Function):
      chỗ dễ sai nhất — nó ghi lại `order_index` cho **cả lane nguồn lẫn lane đích**, và khi
      thả về kho thì `unassignItemsFromUnit()` (đặt `order_index` về 0) rồi mới
      `reorderItems()` để thứ tự trong kho không bị mất sau khi tải lại.
+     - Tab Lịch trình: bấm (không kéo) vào 1 thanh/nhãn mở `UnitDetailModal`/
+       `ItemDetailModal` (chỉ xem) — phân biệt bấm với vừa-kéo-xong bằng
+       `wasDraggedRef` của `useTimelineDrag` (đọc đồng bộ trong `onClick`, vì pointer
+       không `setPointerCapture` nên trình duyệt luôn bắn thêm `click` sau mỗi lần kéo).
+       Hoạt động trong cùng 1 chặng có màu xoay vòng qua `itemColorInUnit()` (4 sắc thái/
+       tông màu, xem `colors.ts`) để phân biệt hoạt động cạnh nhau, không còn dùng
+       chung 1 màu như trước. Panel "Chưa xếp lịch" ngoài chặng-trong-kế-hoạch-nhưng-
+       chưa-có-giờ còn hiện thêm nhóm **chặng chưa gắn kế hoạch nào** (`freeUnits`,
+       chấm màu trung tính) — kéo thẳng vào gantt sẽ vừa gắn vào kế hoạch này (qua
+       `onAttachAndScheduleUnit`/`attachAndScheduleUnit()`) vừa xếp giờ trong 1 lần thả.
+   - Tab Xây dựng: lane chặng + thẻ hoạt động bên trong giờ tô màu khớp đúng bảng màu
+     của tab Lịch trình (`unitColor(laneIndex - 1)` + `itemColorInUnit()`, threading qua
+     `PlanBoard` → `BoardLane` → `BoardItemCard`) — border + nền lạt cho lane, viền trái
+     màu cho từng thẻ hoạt động; lane kho vẫn trung tính.
+   - **Nhân bản chặng/hoạt động**: nút "Nhân bản" trên `UnitCard`/`ItemCard`/
+     `UnitDetailModal`/`ItemDetailModal` (icon `Copy`) mở modal **tạo mới** với field mồi
+     từ bản gốc, qua prop `cloneFrom` (tách biệt với `unit`/`item` — prop đó vẫn quyết
+     định edit-hay-create) của `UnitFormModal`/`ItemFormModal`. Chặng nhân bản **không**
+     mang theo danh sách hoạt động (items độc quyền 1 chặng, mang theo sẽ cướp mất của
+     bản gốc); hoạt động nhân bản **có** mang theo địa điểm (không độc quyền).
+   - **Chia sẻ kế hoạch cho tài khoản khác cùng sửa**: nút "Chia sẻ" (chỉ chủ sở hữu thấy)
+     trên `PlanDetailPage` mở `src/components/plan/ShareModal.tsx` — mời theo email qua
+     `src/services/collaborators.service.ts` (bảng `plan_collaborators`, xem mục Data
+     model), và bật/tắt link xem trước công khai qua `setPlanShareToken()` trong
+     `plans.service.ts`. `PlanCard`/`PlansPage` hiện badge "Được chia sẻ" và ẩn nút xoá
+     khi `plan.user_id !== user.id` (kế hoạch của người khác chia sẻ tới).
+   - **Link xem trước công khai** `/p/:token` (route đăng ký ngoài `ProtectedRoute` trong
+     `App.tsx`, không qua `AppLayout`): `src/pages/SharedPlanPage.tsx` gọi
+     `src/services/sharedPlan.service.ts` (RPC `get_shared_plan`, không dùng
+     `units.service.ts`/`items.service.ts` vì 2 file đó luôn lọc theo `auth.uid()`), tái
+     dùng các sub-component đã export của `PlanOverview.tsx`
+     (`UnitTimelineCard`/`ItemTimelineRow`/`CostBreakdown`/`VisitedLocations`) để giao
+     diện không lệch giữa 2 trang, chỉ bỏ mọi callback sửa/xoá.
+   - `src/shared/components/DurationInput.tsx` — khối "giờ + phút" gộp chung 1 field
+     (thay 2 `InputNumber` tách rời trước đây) trong `UnitFormModal`/`ItemFormModal`,
+     làm việc trên tổng số phút (`value`/`onChange` đều là `number` phút).
 
 ## Việc cần làm tiếp theo (ngay bây giờ)
 
-- **Chạy lại `supabase/schema.sql`** trong Supabase SQL Editor — đợt này thêm
-  `items.end_time (timestamptz)` và `units.duration_minutes (int not null default 360)`;
-  script dùng `if exists`/`if not exists` nên chạy lại nhiều lần vẫn an toàn. Chưa chạy thì
-  form hoạt động/chặng sẽ lỗi khi lưu (cột không tồn tại).
+- **Chạy lại `supabase/schema.sql`** trong Supabase SQL Editor — đợt này thêm bảng
+  `plan_collaborators`, cột `plans.share_token`, 6 hàm SQL mới (`is_plan_collaborator`,
+  `unit_is_shared_with_me`, `item_is_shared_with_me`, `owner_shared_with_me`,
+  `find_user_id_by_email`, `get_shared_plan`) và cập nhật lại RLS của
+  `plans`/`units`/`items`/`item_locations`/`locations`/`unit_types` để mở quyền cho
+  collaborator; script dùng `if exists`/`if not exists`/`or replace` nên chạy lại nhiều
+  lần vẫn an toàn. Chưa chạy thì tính năng "Chia sẻ" (mời cộng tác + link xem trước công
+  khai) sẽ lỗi hoàn toàn (bảng/hàm/cột chưa tồn tại).
 - Bật Google OAuth provider thủ công trong Supabase Dashboard (xem mục "⚠️ Bước thủ công
   bắt buộc" ở trên) — bắt buộc trước khi test đăng nhập được
 - Deploy Edge Function `resolve-maps-link` (xem mục "⚠️ Bước thủ công bắt buộc" thứ 2 ở

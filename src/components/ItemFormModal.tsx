@@ -7,6 +7,7 @@ import Button from "../shared/components/Button";
 import Field from "../shared/components/Field";
 import Input, { TextArea } from "../shared/components/Input";
 import DatePicker from "../shared/components/DatePicker";
+import DurationInput from "../shared/components/DurationInput";
 import DualListPicker from "./DualListPicker";
 import { formatDuration } from "../shared/utils/format";
 import { itemDurationMinutes } from "../shared/utils/schedule";
@@ -25,13 +26,11 @@ interface ItemFormState {
   price: number | null;
   /** [bắt đầu, kết thúc] — kết thúc có thể để trống, khi đó dùng thời lượng. */
   timeRange: [Dayjs | null, Dayjs | null] | null;
-  durationHours: number;
-  durationMinutes: number;
+  duration: number;
   note: string;
 }
 
 function toFormState(item: Item | null | undefined): ItemFormState {
-  const minutes = itemDurationMinutes(item);
   return {
     locationIds: item?.locations?.map((loc) => loc.id) ?? [],
     name: item?.name ?? "",
@@ -39,8 +38,7 @@ function toFormState(item: Item | null | undefined): ItemFormState {
     timeRange: item?.start_time
       ? [dayjs(item.start_time), item.end_time ? dayjs(item.end_time) : null]
       : null,
-    durationHours: Math.floor(minutes / 60),
-    durationMinutes: minutes % 60,
+    duration: itemDurationMinutes(item),
     note: item?.note ?? "",
   };
 }
@@ -71,6 +69,8 @@ export interface ItemFormModalProps {
   open: boolean;
   mode: "create" | "edit";
   item: Item | null;
+  /** Chỉ dùng để "mồi" giá trị ban đầu khi nhân bản (mode vẫn là "create", `item` vẫn null). */
+  cloneFrom?: Item | null;
   locations: LocationRow[];
   onClose: () => void;
   onSubmit: (values: ItemInput) => Promise<ItemFormResult | void>;
@@ -80,20 +80,21 @@ export default function ItemFormModal({
   open,
   mode,
   item,
+  cloneFrom,
   locations,
   onClose,
   onSubmit,
 }: ItemFormModalProps) {
-  const [form, setForm] = useState<ItemFormState>(() => toFormState(item));
+  const [form, setForm] = useState<ItemFormState>(() => toFormState(item ?? cloneFrom));
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (open) {
-      setForm(toFormState(item));
+      setForm(toFormState(item ?? cloneFrom));
       setError("");
     }
-  }, [open, item]);
+  }, [open, item, cloneFrom]);
 
   const start = form.timeRange?.[0] ?? null;
   const end = form.timeRange?.[1] ?? null;
@@ -112,7 +113,6 @@ export default function ItemFormModal({
       return;
     }
 
-    const manualMinutes = (form.durationHours || 0) * 60 + (form.durationMinutes || 0);
     setSubmitting(true);
     const result = await onSubmit({
       locationIds: form.locationIds,
@@ -120,7 +120,7 @@ export default function ItemFormModal({
       price: form.price,
       start_time: start ? start.toISOString() : null,
       end_time: end ? end.toISOString() : null,
-      duration_minutes: derivedMinutes ?? (manualMinutes || null),
+      duration_minutes: derivedMinutes ?? (form.duration || null),
       note: form.note,
     });
     setSubmitting(false);
@@ -162,32 +162,15 @@ export default function ItemFormModal({
           />
         </Field>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field
-            label="Giờ"
+            label="Khoảng thời gian"
             hint={derivedMinutes != null ? "tính từ khung giờ" : "không bắt buộc"}
           >
-            <InputNumber
-              className="w-full"
-              min={0}
+            <DurationInput
+              value={derivedMinutes ?? form.duration}
+              onChange={(duration) => setForm((f) => ({ ...f, duration }))}
               disabled={derivedMinutes != null}
-              value={derivedMinutes != null ? Math.floor(derivedMinutes / 60) : form.durationHours}
-              onChange={(val) => setForm((f) => ({ ...f, durationHours: val ?? 0 }))}
-              placeholder="0"
-            />
-          </Field>
-          <Field
-            label="Phút"
-            hint={derivedMinutes != null ? "tính từ khung giờ" : "không bắt buộc"}
-          >
-            <InputNumber
-              className="w-full"
-              min={0}
-              max={59}
-              disabled={derivedMinutes != null}
-              value={derivedMinutes != null ? derivedMinutes % 60 : form.durationMinutes}
-              onChange={(val) => setForm((f) => ({ ...f, durationMinutes: val ?? 0 }))}
-              placeholder="0"
             />
           </Field>
           <Field label="Giá (đ)" hint="không bắt buộc">
