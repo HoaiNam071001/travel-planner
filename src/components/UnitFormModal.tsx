@@ -252,7 +252,7 @@ export default function UnitFormModal({
         </Field>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field label="Bắt đầu chặng" hint="không bắt buộc">
+          <Field label="Bắt đầu chặng">
             <DatePicker
               className="w-full"
               showTime={{ format: "HH:mm", minuteStep: 5 }}
@@ -261,7 +261,7 @@ export default function UnitFormModal({
               onChange={(date) => setForm((f) => ({ ...f, start_date: date }))}
             />
           </Field>
-          <Field label="Kết thúc chặng" hint="có thì ưu tiên hơn khoảng thời gian">
+          <Field label="Kết thúc chặng">
             <DatePicker
               className="w-full"
               showTime={{ format: "HH:mm", minuteStep: 5 }}
