@@ -1,9 +1,10 @@
-import { useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Dayjs } from "dayjs";
 import {
   CalendarClock,
   Clock,
   Layers,
+  Map as MapIcon,
   MapPin,
   Pencil,
   Receipt,
@@ -20,19 +21,29 @@ import {
   dayCount,
   formatDateRange,
   formatDateTimeRange,
+  formatDistance,
   formatDuration,
   formatPrice,
   formatPriceShort,
 } from "../../shared/utils/format";
 import { expenseColor, expenseColorIndex, planTotals, unitStats } from "../../shared/utils/planStats";
 import { computeItemSchedule, itemDurationMinutes, unitRange } from "../../shared/utils/schedule";
+import { itemTransitionLegs, locationSequenceSignature, unitLocationSequence } from "../../shared/utils/unitRoute";
 import type { Id, Item, ItemLocation, Plan, PlanExpense, Unit } from "../../shared/types/models";
+import { fetchRoute, type RouteLeg, type RouteResult } from "../../services/openRouteService";
+import { resolveUnitRoute } from "../../services/unitRoutes.service";
 import { unitColor, type UnitColor } from "./timeline/colors";
 import { ExpenseCard } from "./PlanExpenses";
+import RouteMapModal from "./RouteMapModal";
 
 export interface VisitedLocation extends ItemLocation {
   visits: number;
 }
+
+type MapModalState =
+  | { kind: "unit"; unit: Unit; items: Item[] }
+  | { kind: "connector"; fromUnit: Unit; toUnit: Unit; fromItems: Item[]; toItems: Item[] }
+  | null;
 
 export interface PlanOverviewProps {
   plan: Plan | null;
@@ -81,6 +92,84 @@ export default function PlanOverview({
     }
     return [...byId.values()].sort((a, b) => b.visits - a.visits);
   }, [planUnits, itemsByUnit]);
+
+  // Quãng đường trong từng chặng — tính nền (dùng cache `unit_routes`), phục vụ badge
+  // quãng đường ngay trong timeline mà không cần bấm gì.
+  const [unitRoutes, setUnitRoutes] = useState<Map<Id, RouteResult>>(new Map());
+  const resolvedSignatures = useRef<Map<Id, string>>(new Map());
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function run() {
+      for (const unit of planUnits) {
+        const items = itemsByUnit.get(unit.id) ?? [];
+        const sequence = unitLocationSequence(items);
+        if (sequence.length < 2) continue;
+
+        const signature = locationSequenceSignature(sequence);
+        if (resolvedSignatures.current.get(unit.id) === signature) continue;
+        resolvedSignatures.current.set(unit.id, signature);
+
+        const route = await resolveUnitRoute(unit, items);
+        if (cancelled) return;
+        if (route) setUnitRoutes((prev) => new Map(prev).set(unit.id, route));
+      }
+    }
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [planUnits, itemsByUnit]);
+
+  // Modal bản đồ dùng chung cho "xem địa điểm trong 1 chặng" và "quãng đường giữa 2 chặng".
+  const [mapModal, setMapModal] = useState<MapModalState>(null);
+  const [modalRoute, setModalRoute] = useState<RouteResult | null>(null);
+  const [modalLoading, setModalLoading] = useState(false);
+
+  useEffect(() => {
+    if (!mapModal) return;
+    let cancelled = false;
+    setModalLoading(true);
+    setModalRoute(null);
+
+    async function run() {
+      if (!mapModal) return;
+      if (mapModal.kind === "unit") {
+        const cached = unitRoutes.get(mapModal.unit.id);
+        const route = cached ?? (await resolveUnitRoute(mapModal.unit, mapModal.items));
+        if (!cancelled) setModalRoute(route);
+      } else {
+        const from = unitLocationSequence(mapModal.fromItems).at(-1);
+        const to = unitLocationSequence(mapModal.toItems)[0];
+        if (from && to) {
+          const route = await fetchRoute([from, to]);
+          if (!cancelled) setModalRoute(route);
+        }
+      }
+      if (!cancelled) setModalLoading(false);
+    }
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [mapModal, unitRoutes]);
+
+  const modalPoints = useMemo<ItemLocation[]>(() => {
+    if (!mapModal) return [];
+    if (mapModal.kind === "unit") return unitLocationSequence(mapModal.items);
+    const from = unitLocationSequence(mapModal.fromItems).at(-1);
+    const to = unitLocationSequence(mapModal.toItems)[0];
+    return [from, to].filter((p): p is ItemLocation => Boolean(p));
+  }, [mapModal]);
+
+  const modalTitle = !mapModal
+    ? ""
+    : mapModal.kind === "unit"
+      ? `Địa điểm trong "${mapModal.unit.name}"`
+      : `Từ "${mapModal.fromUnit.name}" → "${mapModal.toUnit.name}"`;
 
   return (
     <div className="animate-fade-up space-y-6">
@@ -172,16 +261,59 @@ export default function PlanOverview({
           <div className="space-y-4 lg:col-span-2">
             <SectionLabel icon={Layers}>Lịch trình</SectionLabel>
 
-            {planUnits.map((unit, index) => (
-              <UnitTimelineCard
-                key={unit.id}
-                unit={unit}
-                index={index}
-                color={unitColor(index)}
-                items={itemsByUnit.get(unit.id) ?? []}
-                onEdit={onEditUnit}
-              />
-            ))}
+            <div>
+              {planUnits.map((unit, index) => {
+                const items = itemsByUnit.get(unit.id) ?? [];
+                const nextUnit = planUnits[index + 1];
+                const nextItems = nextUnit ? itemsByUnit.get(nextUnit.id) ?? [] : [];
+                const canConnect =
+                  Boolean(nextUnit) &&
+                  unitLocationSequence(items).length > 0 &&
+                  unitLocationSequence(nextItems).length > 0;
+
+                return (
+                  <div
+                    key={unit.id}
+                    className="animate-fade-up"
+                    style={{ animationDelay: `${Math.min(index, 6) * 60}ms` }}
+                  >
+                    <UnitTimelineCard
+                      unit={unit}
+                      index={index}
+                      color={unitColor(index)}
+                      items={items}
+                      onEdit={onEditUnit}
+                      route={unitRoutes.get(unit.id) ?? null}
+                      onViewMap={() => setMapModal({ kind: "unit", unit, items })}
+                    />
+
+                    {nextUnit && (
+                      <div className="relative flex h-10 items-center justify-center">
+                        <span aria-hidden className="absolute inset-y-0 left-9 w-px bg-slate-200" />
+                        {canConnect && (
+                          <button
+                            type="button"
+                            title="Xem quãng đường tới chặng tiếp theo"
+                            onClick={() =>
+                              setMapModal({
+                                kind: "connector",
+                                fromUnit: unit,
+                                toUnit: nextUnit,
+                                fromItems: items,
+                                toItems: nextItems,
+                              })
+                            }
+                            className="relative z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white text-slate-400 shadow-xs ring-1 ring-slate-200 transition hover:-translate-y-0.5 hover:text-brand-600 hover:ring-brand-300 hover:shadow-card"
+                          >
+                            <RouteIcon className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           {/* ---------------------------------------------------- sidebar */}
@@ -213,6 +345,15 @@ export default function PlanOverview({
           </div>
         </div>
       )}
+
+      <RouteMapModal
+        open={Boolean(mapModal)}
+        onClose={() => setMapModal(null)}
+        title={modalTitle}
+        points={modalPoints}
+        route={modalRoute}
+        loading={modalLoading}
+      />
     </div>
   );
 }
@@ -244,16 +385,33 @@ export interface UnitTimelineCardProps {
   items: Item[];
   /** Không truyền = ẩn nút "Sửa" (dùng cho trang preview công khai, chỉ-xem). */
   onEdit?: (unit: Unit) => void;
+  /** Quãng đường đã tính cho chặng (null = chưa có/đang tính, không hiện badge). */
+  route?: RouteResult | null;
+  /** Không truyền = ẩn nút "Bản đồ" (dùng cho trang preview công khai, chỉ-xem). */
+  onViewMap?: () => void;
 }
 
-export function UnitTimelineCard({ unit, index, color, items, onEdit }: UnitTimelineCardProps) {
+export function UnitTimelineCard({ unit, index, color, items, onEdit, route, onViewMap }: UnitTimelineCardProps) {
   const stats = unitStats(items, unit.break_minutes);
   const range = unitRange(unit);
   const rangeLabel = range ? formatDateTimeRange(range.start, range.end) : null;
   const schedule = computeItemSchedule(unit, items, unit.break_minutes);
+  const rows = items.map((item, i) => {
+    const scheduled = schedule[i];
+    return {
+      item,
+      start: scheduled?.start ?? null,
+      end: scheduled?.end ?? null,
+      inferred: scheduled ? scheduled.inferred : true,
+    };
+  });
+  const transitionLegs = itemTransitionLegs(items, route?.legs ?? []);
+  const hasLocations = items.some((item) => item.locations?.length);
 
   return (
-    <article className="surface overflow-hidden">
+    <article className="surface relative overflow-hidden">
+      <span aria-hidden className={`absolute inset-y-0 left-0 w-1 ${color.dot}`} />
+
       <header className="flex items-start gap-3.5 border-b border-slate-100 px-5 py-4">
         <span
           className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl font-display text-[13px] font-bold text-white tnum ${color.solidChip}`}
@@ -264,16 +422,28 @@ export function UnitTimelineCard({ unit, index, color, items, onEdit }: UnitTime
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <h3 className="truncate text-[15px] font-bold">{unit.name}</h3>
-            {onEdit && (
-              <button
-                type="button"
-                onClick={() => onEdit(unit)}
-                className="flex shrink-0 items-center gap-1 rounded-lg px-1.5 py-1 text-xs font-medium text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-              >
-                <Pencil className="h-3.5 w-3.5" />
-                Sửa
-              </button>
-            )}
+            <div className="flex shrink-0 items-center gap-1">
+              {hasLocations && onViewMap && (
+                <button
+                  type="button"
+                  onClick={onViewMap}
+                  className="flex items-center gap-1 rounded-lg px-1.5 py-1 text-xs font-medium text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                >
+                  <MapIcon className="h-3.5 w-3.5" />
+                  Bản đồ
+                </button>
+              )}
+              {onEdit && (
+                <button
+                  type="button"
+                  onClick={() => onEdit(unit)}
+                  className="flex items-center gap-1 rounded-lg px-1.5 py-1 text-xs font-medium text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  Sửa
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
@@ -304,6 +474,11 @@ export function UnitTimelineCard({ unit, index, color, items, onEdit }: UnitTime
                 {formatPrice(stats.cost)}
               </Badge>
             )}
+            {route && route.distanceKm > 0.01 && (
+              <Badge size="sm" icon={RouteIcon} numeric>
+                {formatDistance(route.distanceKm * 1000)}
+              </Badge>
+            )}
           </div>
 
           {unit.description && (
@@ -316,19 +491,17 @@ export function UnitTimelineCard({ unit, index, color, items, onEdit }: UnitTime
         <p className="px-5 py-6 text-center text-xs text-slate-400">
           Chặng này chưa có hoạt động nào.
         </p>
-      ) : schedule.length === 0 ? (
-        <ol className="divide-y divide-slate-100">
-          {items.map((item) => (
-            <ItemTimelineRow key={item.id} item={item} color={color} start={null} end={null} inferred />
-          ))}
-        </ol>
       ) : (
         <ol className="divide-y divide-slate-100">
-          {schedule.map(({ item, start, end, inferred }, index) => (
+          {rows.map(({ item, start, end, inferred }, rowIndex) => (
             <div key={item.id}>
               <ItemTimelineRow item={item} color={color} start={start} end={end} inferred={inferred} />
-              {index < schedule.length - 1 && unit.break_minutes > 0 && (
-                <BreakTimelineRow breakMinutes={unit.break_minutes} start={end} />
+              {rowIndex < rows.length - 1 && (
+                <TransitionRow
+                  breakMinutes={unit.break_minutes}
+                  start={end}
+                  leg={transitionLegs[rowIndex] ?? null}
+                />
               )}
             </div>
           ))}
@@ -351,7 +524,7 @@ export function ItemTimelineRow({ item, color, start, end, inferred }: ItemTimel
   const thumb = item.locations?.find((l) => l.images?.length)?.images?.[0];
 
   return (
-    <li className="flex gap-4 px-5 py-3.5 transition hover:bg-slate-50/70">
+    <li className="group flex gap-4 px-5 py-3.5 transition hover:bg-slate-50/70">
       {/* Cột giờ + đường nối dọc tạo cảm giác timeline. */}
       <div className="flex w-[68px] shrink-0 flex-col items-end pt-0.5">
         {start && end ? (
@@ -381,7 +554,9 @@ export function ItemTimelineRow({ item, color, start, end, inferred }: ItemTimel
 
       <div className={`min-w-0 flex-1 border-l-2 pl-3 ${inferred ? "border-slate-100" : color.accentBorder}`}>
         <div className="flex items-start justify-between gap-3">
-          <p className="text-sm font-semibold text-slate-800">{item.name}</p>
+          <p className="text-sm font-semibold text-slate-800 transition-colors group-hover:text-brand-700">
+            {item.name}
+          </p>
           {item.price != null && Number(item.price) > 0 && (
             <span className="shrink-0 text-sm font-semibold text-slate-700 tnum">
               {formatPrice(item.price)}
@@ -410,25 +585,36 @@ export function ItemTimelineRow({ item, color, start, end, inferred }: ItemTimel
         <img
           src={thumb}
           alt=""
-          className="hidden h-14 w-20 shrink-0 rounded-xl border border-slate-200 object-cover sm:block"
+          className="hidden h-14 w-20 shrink-0 rounded-xl border border-slate-200 object-cover transition duration-200 group-hover:shadow-card sm:block"
         />
       )}
     </li>
   );
 }
 
-function BreakTimelineRow({ breakMinutes, start }: { breakMinutes: number; start: Dayjs }) {
-  const breakEnd = start.add(breakMinutes, "minute");
+interface TransitionRowProps {
+  breakMinutes: number;
+  start: Dayjs | null;
+  /** Quãng đường tới hoạt động kế tiếp — null khi 1 trong 2 hoạt động chưa có địa điểm. */
+  leg: RouteLeg | null;
+}
+
+function TransitionRow({ breakMinutes, start, leg }: TransitionRowProps) {
+  const showBreak = breakMinutes > 0 && Boolean(start);
+  const showDistance = Boolean(leg && leg.distanceKm > 0.01);
+  if (!showBreak && !showDistance) return null;
+
+  const breakEnd = showBreak && start ? start.add(breakMinutes, "minute") : null;
 
   return (
     <li className="flex gap-4 px-5 py-2 transition hover:bg-slate-50/70">
       <div className="flex w-[68px] shrink-0 flex-col items-end pt-0.5">
-        <span className="font-mono text-[11px] italic text-slate-400 tnum">
-          {start.format("HH:mm")}
-        </span>
-        <span className="font-mono text-[11px] italic text-slate-400 tnum">
-          {breakEnd.format("HH:mm")}
-        </span>
+        {start && breakEnd && (
+          <>
+            <span className="font-mono text-[11px] italic text-slate-400 tnum">{start.format("HH:mm")}</span>
+            <span className="font-mono text-[11px] italic text-slate-400 tnum">{breakEnd.format("HH:mm")}</span>
+          </>
+        )}
       </div>
 
       <div className="relative flex flex-col items-center pt-1.5">
@@ -437,7 +623,17 @@ function BreakTimelineRow({ breakMinutes, start }: { breakMinutes: number; start
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className="text-[13px] italic text-slate-400">Nghỉ {breakMinutes} phút</p>
+        <p className="flex flex-wrap items-center gap-x-1.5 text-[13px] text-slate-400">
+          {showBreak && <span className="italic">Nghỉ {breakMinutes} phút</span>}
+          {showBreak && showDistance && <span className="text-slate-300">·</span>}
+          {showDistance && leg && (
+            <span className="inline-flex items-center gap-1">
+              <RouteIcon className="h-3 w-3" />
+              {formatDistance(leg.distanceKm * 1000)}
+              {leg.durationMin != null && ` · ${formatDuration(leg.durationMin)}`}
+            </span>
+          )}
+        </p>
       </div>
     </li>
   );

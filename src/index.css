@@ -97,6 +97,21 @@
   @apply relative;
 }
 
+/* Pin đánh số (RouteMap) — cùng dáng giọt nước nhưng in số thứ tự thay vì chấm tròn. */
+.tp-pin-num__shape {
+  @apply flex h-7 w-7 items-center justify-center rounded-full rounded-bl-none border-2 border-white shadow-[0_2px_6px_rgb(15_23_42_/_0.35)];
+  transform: rotate(-45deg);
+}
+
+.tp-pin-num__label {
+  @apply font-display text-[11px] font-bold text-white;
+  transform: rotate(45deg);
+}
+
+.tp-pin-num {
+  @apply relative;
+}
+
 /* Tooltip của Leaflet cho khớp design system (nền tối, bo tròn). */
 .leaflet-tooltip {
   @apply rounded-lg border-none bg-slate-900 px-2 py-1 text-[11px] font-medium text-white shadow-pop;
