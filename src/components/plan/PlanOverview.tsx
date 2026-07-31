@@ -123,6 +123,42 @@ export default function PlanOverview({
     };
   }, [planUnits, itemsByUnit]);
 
+  // Quãng đường nối giữa 2 chặng liên tiếp — tính nền y hệt route trong từng chặng ở
+  // trên, để hiện badge ngay trên đường nối (nút RouteIcon giữa 2 card) mà không cần mở
+  // modal. Key = `fromUnitId:toUnitId`.
+  const [connectorRoutes, setConnectorRoutes] = useState<Map<string, RouteResult>>(new Map());
+  const resolvedConnectorSignatures = useRef<Map<string, string>>(new Map());
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function run() {
+      for (let i = 0; i < planUnits.length - 1; i++) {
+        const unit = planUnits[i];
+        const nextUnit = planUnits[i + 1];
+        if (!unit || !nextUnit) continue;
+
+        const from = unitLocationSequence(itemsByUnit.get(unit.id) ?? []).at(-1);
+        const to = unitLocationSequence(itemsByUnit.get(nextUnit.id) ?? [])[0];
+        if (!from || !to) continue;
+
+        const key = `${unit.id}:${nextUnit.id}`;
+        const signature = `${from.id}:${to.id}`;
+        if (resolvedConnectorSignatures.current.get(key) === signature) continue;
+        resolvedConnectorSignatures.current.set(key, signature);
+
+        const route = await fetchRoute([from, to]);
+        if (cancelled) return;
+        setConnectorRoutes((prev) => new Map(prev).set(key, route));
+      }
+    }
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [planUnits, itemsByUnit]);
+
   // Modal bản đồ dùng chung cho "xem địa điểm trong 1 chặng" và "quãng đường giữa 2 chặng".
   // Không tự tìm đường khi mở modal nữa — chờ người dùng tick địa điểm rồi bấm "Tìm đường"
   // (xem `RouteMapModal`), nên chỉ cần dọn route cũ mỗi khi đổi mục tiêu.
@@ -139,15 +175,18 @@ export default function PlanOverview({
     if (!mapModal || selected.length < 2) return;
     setModalLoading(true);
     try {
-      const isFullUnitSequence =
-        mapModal.kind === "unit" &&
-        selected.length === modalPoints.length &&
-        selected.every((p, i) => p.id === modalPoints[i]?.id);
+      const isFullDefaultSelection =
+        selected.length === modalPoints.length && selected.every((p, i) => p.id === modalPoints[i]?.id);
 
-      const route =
-        mapModal.kind === "unit" && isFullUnitSequence
-          ? unitRoutes.get(mapModal.unit.id) ?? (await resolveUnitRoute(mapModal.unit, mapModal.items))
-          : await fetchRoute(selected);
+      let route: RouteResult | null;
+      if (mapModal.kind === "unit" && isFullDefaultSelection) {
+        route = unitRoutes.get(mapModal.unit.id) ?? (await resolveUnitRoute(mapModal.unit, mapModal.items));
+      } else if (mapModal.kind === "connector" && isFullDefaultSelection) {
+        const key = `${mapModal.fromUnit.id}:${mapModal.toUnit.id}`;
+        route = connectorRoutes.get(key) ?? (await fetchRoute(selected));
+      } else {
+        route = await fetchRoute(selected);
+      }
       setModalRoute(route);
     } finally {
       setModalLoading(false);
@@ -267,6 +306,7 @@ export default function PlanOverview({
                   Boolean(nextUnit) &&
                   unitLocationSequence(items).length > 0 &&
                   unitLocationSequence(nextItems).length > 0;
+                const connectorRoute = nextUnit ? connectorRoutes.get(`${unit.id}:${nextUnit.id}`) : null;
 
                 return (
                   <div
@@ -285,25 +325,32 @@ export default function PlanOverview({
                     />
 
                     {nextUnit && (
-                      <div className="relative flex h-10 items-center justify-center">
+                      <div className="relative flex h-10 items-center justify-center gap-2">
                         <span aria-hidden className="absolute inset-y-0 left-9 w-px bg-slate-200" />
                         {canConnect && (
-                          <button
-                            type="button"
-                            title="Xem quãng đường tới chặng tiếp theo"
-                            onClick={() =>
-                              setMapModal({
-                                kind: "connector",
-                                fromUnit: unit,
-                                toUnit: nextUnit,
-                                fromItems: items,
-                                toItems: nextItems,
-                              })
-                            }
-                            className="relative z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white text-slate-400 shadow-xs ring-1 ring-slate-200 transition hover:-translate-y-0.5 hover:text-brand-600 hover:ring-brand-300 hover:shadow-card"
-                          >
-                            <RouteIcon className="h-3.5 w-3.5" />
-                          </button>
+                          <>
+                            {connectorRoute && connectorRoute.distanceKm > 0.01 && (
+                              <Badge size="sm" icon={RouteIcon} numeric className="relative z-10">
+                                {formatDistance(connectorRoute.distanceKm * 1000)}
+                              </Badge>
+                            )}
+                            <button
+                              type="button"
+                              title="Xem quãng đường tới chặng tiếp theo"
+                              onClick={() =>
+                                setMapModal({
+                                  kind: "connector",
+                                  fromUnit: unit,
+                                  toUnit: nextUnit,
+                                  fromItems: items,
+                                  toItems: nextItems,
+                                })
+                              }
+                              className="relative z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white text-slate-400 shadow-xs ring-1 ring-slate-200 transition hover:-translate-y-0.5 hover:text-brand-600 hover:ring-brand-300 hover:shadow-card"
+                            >
+                              <RouteIcon className="h-3.5 w-3.5" />
+                            </button>
+                          </>
                         )}
                       </div>
                     )}
