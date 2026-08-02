@@ -35,12 +35,14 @@ import Badge from "../../shared/components/Badge";
 import EmptyState from "../../shared/components/EmptyState";
 import IconButton from "../../shared/components/IconButton";
 import Input from "../../shared/components/Input";
-import { formatDateTimeRange, formatDuration, formatPrice } from "../../shared/utils/format";
+import { formatDateTimeRange, formatDuration, formatPriceShort } from "../../shared/utils/format";
 import { expenseColor, expenseColorIndex, unitStats } from "../../shared/utils/planStats";
 import {
+  clampTime,
   computeItemSchedule,
   itemDurationMinutes,
   itemRange,
+  snapToMinutes,
   unitDurationMinutes,
   unitRange,
   type TimeRange,
@@ -60,7 +62,12 @@ const HEADER_HEIGHT = 52;
 const UNIT_ROW_HEIGHT = 52;
 const ITEM_ROW_HEIGHT = 34;
 const SNAP_MINUTES = 15;
+/** Khớp với `minMinutes` mặc định của `useTimelineDrag` — truyền tường minh để dùng lại
+ * đúng giá trị này khi "vẽ" giờ mới cho hoạt động chưa có ngày (xem `startUndatedItemDraw`). */
+const MIN_ITEM_MINUTES = 30;
 const REVEAL_STEP = 20;
+/** Bề rộng tối thiểu (px) cho hoạt động chưa có giờ riêng lẫn thời lượng — đủ để bấm-kéo. */
+const UNDATED_ITEM_WIDTH_PX = 32;
 
 export interface PlanTimelineProps {
   plan: Plan | null;
@@ -232,9 +239,34 @@ export default function PlanTimeline({
     expenseParkingRef,
     resolveRowTarget,
     snapMinutes: SNAP_MINUTES,
+    minMinutes: MIN_ITEM_MINUTES,
     onCommit: handleCommit,
     onUnschedule: handleUnschedule,
   });
+
+  // Hoạt động chưa có giờ riêng LẪN không có `duration_minutes` (chưa từng đặt giờ)
+  // được xếp lịch suy ra 0 phút -> không có thanh thật để "dời", nên bấm-kéo ở đây
+  // không dời thanh mà "vẽ" thanh mới: điểm bấm = giờ bắt đầu, kéo tới đâu là giờ kết
+  // thúc tới đó (tái dùng mode "resize-end" của engine kéo, chỉ khác điểm xuất phát).
+  const startUndatedItemDraw = useCallback(
+    (event: ReactPointerEvent, item: Item, unitId: Id) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const x = event.clientX - canvas.getBoundingClientRect().left;
+      const start = clampTime(
+        snapToMinutes(scale.timeAt(x), SNAP_MINUTES),
+        scale.origin,
+        scale.end.subtract(MIN_ITEM_MINUTES, "minute")
+      );
+      startDrag(
+        event,
+        { kind: "item", id: item.id, parentId: unitId, start, end: start.add(MIN_ITEM_MINUTES, "minute") },
+        "resize-end",
+        scale.xOf(start)
+      );
+    },
+    [scale, startDrag]
+  );
 
   // Trong lúc kéo, chặn bôi đen chữ cho đỡ rối mắt.
   useEffect(() => {
@@ -645,9 +677,15 @@ export default function PlanTimeline({
                               : { start: live.start, end: live.start };
                             const itemLive = liveRange("item", item.id, base);
                             const inferred = slot?.inferred !== false;
+                            // Chưa từng đặt giờ VÀ không có `duration_minutes` -> xếp lịch suy
+                            // ra 0 phút, không có thanh thật để "dời". Cho 1 bề rộng tối thiểu
+                            // để bấm được, và bấm-kéo sẽ "vẽ" giờ mới thay vì dời thanh rỗng.
+                            const isUndated = inferred && itemDurationMinutes(item) === 0;
                             const itemClamped = clampBarToCanvas(
                               scale.xOf(itemLive.start),
-                              scale.widthOf(itemLive.start, itemLive.end),
+                              isUndated
+                                ? UNDATED_ITEM_WIDTH_PX
+                                : scale.widthOf(itemLive.start, itemLive.end),
                               scale.width
                             );
 
@@ -659,46 +697,71 @@ export default function PlanTimeline({
                                 style={{ height: ITEM_ROW_HEIGHT }}
                               >
                                 <HoverPopover
-                                  content={<ItemPopoverContent item={item} range={itemLive} inferred={inferred} />}
+                                  content={
+                                    isUndated ? (
+                                      <p className="text-xs text-slate-500">
+                                        <span className="font-bold text-slate-800">{item.name}</span> chưa có giờ —
+                                        kéo thanh này để đặt giờ.
+                                      </p>
+                                    ) : (
+                                      <ItemPopoverContent item={item} range={itemLive} inferred={inferred} />
+                                    )
+                                  }
                                 >
                                   <TimelineBar
                                     left={itemClamped.left}
                                     width={itemClamped.width}
-                                    colorClass={itemColorInUnit(color, itemIndex, inferred)}
+                                    colorClass={
+                                      isUndated
+                                        ? "border border-dashed border-slate-300 bg-slate-100/80"
+                                        : itemColorInUnit(color, itemIndex, inferred)
+                                    }
                                     dragging={
                                       draft?.kind === "item" && draft.id === item.id && draft.mode !== "schedule"
                                     }
                                     clippedLeft={itemClamped.clippedLeft}
                                     clippedRight={itemClamped.clippedRight}
-                                    title={`${item.name} · ${
-                                      formatDateTimeRange(itemLive.start, itemLive.end) ?? ""
-                                    }${inferred ? " (giờ dự kiến)" : ""}`}
+                                    title={
+                                      isUndated
+                                        ? `${item.name} · Kéo để đặt giờ`
+                                        : `${item.name} · ${
+                                            formatDateTimeRange(itemLive.start, itemLive.end) ?? ""
+                                          }${inferred ? " (giờ dự kiến)" : ""}`
+                                    }
                                     onClick={() => {
                                       if (!wasDraggedRef.current) onViewItem(item);
                                     }}
                                     onPointerDownBody={(event) =>
-                                      startDrag(
-                                        event,
-                                        { kind: "item", id: item.id, parentId: unit.id, ...base },
-                                        "move",
-                                        itemClamped.left
-                                      )
+                                      isUndated
+                                        ? startUndatedItemDraw(event, item, unit.id)
+                                        : startDrag(
+                                            event,
+                                            { kind: "item", id: item.id, parentId: unit.id, ...base },
+                                            "move",
+                                            itemClamped.left
+                                          )
                                     }
-                                    onPointerDownStart={(event) =>
-                                      startDrag(
-                                        event,
-                                        { kind: "item", id: item.id, parentId: unit.id, ...base },
-                                        "resize-start",
-                                        itemClamped.left
-                                      )
+                                    onPointerDownStart={
+                                      isUndated
+                                        ? undefined
+                                        : (event) =>
+                                            startDrag(
+                                              event,
+                                              { kind: "item", id: item.id, parentId: unit.id, ...base },
+                                              "resize-start",
+                                              itemClamped.left
+                                            )
                                     }
-                                    onPointerDownEnd={(event) =>
-                                      startDrag(
-                                        event,
-                                        { kind: "item", id: item.id, parentId: unit.id, ...base },
-                                        "resize-end",
-                                        itemClamped.left
-                                      )
+                                    onPointerDownEnd={
+                                      isUndated
+                                        ? undefined
+                                        : (event) =>
+                                            startDrag(
+                                              event,
+                                              { kind: "item", id: item.id, parentId: unit.id, ...base },
+                                              "resize-end",
+                                              itemClamped.left
+                                            )
                                     }
                                   />
                                 </HoverPopover>
@@ -1248,15 +1311,19 @@ function UnscheduledPanel({
               keyOf={(u) => u.id}
               resetKey={unitSearch}
               emptyHint="Mọi chặng đều đã có giờ."
-              renderItem={(unit) => (
-                <UnscheduledUnitCard
-                  unit={unit}
-                  color={colorOf(unit.id)}
-                  itemCount={itemsByUnit.get(unit.id)?.length ?? 0}
-                  onPointerDown={(event) => onStartSchedulingUnit(event, unit)}
-                  onEdit={() => onEditUnit(unit)}
-                />
-              )}
+              renderItem={(unit) => {
+                const stats = unitStats(itemsByUnit.get(unit.id) ?? [], unit.break_minutes);
+                return (
+                  <UnscheduledUnitCard
+                    unit={unit}
+                    color={colorOf(unit.id)}
+                    itemCount={stats.itemCount}
+                    cost={stats.cost}
+                    onPointerDown={(event) => onStartSchedulingUnit(event, unit)}
+                    onEdit={() => onEditUnit(unit)}
+                  />
+                );
+              }}
             />
 
             {freeUnits.length > 0 && (
@@ -1269,14 +1336,18 @@ function UnscheduledPanel({
                   keyOf={(u) => u.id}
                   resetKey={unitSearch}
                   emptyHint="Không có chặng nào."
-                  renderItem={(unit) => (
-                    <UnscheduledUnitCard
-                      unit={unit}
-                      itemCount={itemsByUnit.get(unit.id)?.length ?? 0}
-                      onPointerDown={(event) => onStartSchedulingUnit(event, unit)}
-                      onEdit={() => onEditUnit(unit)}
-                    />
-                  )}
+                  renderItem={(unit) => {
+                    const stats = unitStats(itemsByUnit.get(unit.id) ?? [], unit.break_minutes);
+                    return (
+                      <UnscheduledUnitCard
+                        unit={unit}
+                        itemCount={stats.itemCount}
+                        cost={stats.cost}
+                        onPointerDown={(event) => onStartSchedulingUnit(event, unit)}
+                        onEdit={() => onEditUnit(unit)}
+                      />
+                    );
+                  }}
                 />
               </>
             )}
@@ -1411,16 +1482,27 @@ function ScrollRevealList<T>({ items, keyOf, resetKey, renderItem, emptyHint }: 
   );
 }
 
+/** Số tiền gọn, đặt cạnh tên thay vì 1 Badge riêng — đỡ chiếm chỗ trên thẻ nhỏ của panel. */
+function InlineCost({ value }: { value: number | string | null | undefined }) {
+  if (value == null || Number(value) <= 0) return null;
+  return (
+    <span className="shrink-0 text-[11px] font-semibold text-emerald-600 tnum">
+      {formatPriceShort(value)}
+    </span>
+  );
+}
+
 interface UnscheduledUnitCardProps {
   unit: Unit;
   /** Không truyền = chặng chưa gắn kế hoạch nào, chưa có màu theo `planUnits`. */
   color?: UnitColor;
   itemCount: number;
+  cost: number;
   onPointerDown: (event: ReactPointerEvent) => void;
   onEdit: () => void;
 }
 
-function UnscheduledUnitCard({ unit, color, itemCount, onPointerDown, onEdit }: UnscheduledUnitCardProps) {
+function UnscheduledUnitCard({ unit, color, itemCount, cost, onPointerDown, onEdit }: UnscheduledUnitCardProps) {
   return (
     <div
       onPointerDown={onPointerDown}
@@ -1429,7 +1511,10 @@ function UnscheduledUnitCard({ unit, color, itemCount, onPointerDown, onEdit }: 
       <div className="flex items-start gap-1.5">
         <GripVertical className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-300" />
         <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${color?.dot ?? "bg-slate-300"}`} />
-        <p className="min-w-0 flex-1 text-[12px] font-semibold leading-snug text-slate-800">{unit.name}</p>
+        <div className="flex min-w-0 flex-1 items-baseline justify-between gap-1.5">
+          <p className="min-w-0 truncate text-[12px] font-semibold leading-snug text-slate-800">{unit.name}</p>
+          <InlineCost value={cost} />
+        </div>
         <IconButton
           size="sm"
           tone="brand"
@@ -1470,7 +1555,10 @@ function LibraryItemCard({ item, onPointerDown, onEdit }: LibraryItemCardProps) 
     >
       <div className="flex items-start gap-1.5">
         <GripVertical className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-300" />
-        <p className="min-w-0 flex-1 text-[12px] font-semibold leading-snug text-slate-800">{item.name}</p>
+        <div className="flex min-w-0 flex-1 items-baseline justify-between gap-1.5">
+          <p className="min-w-0 truncate text-[12px] font-semibold leading-snug text-slate-800">{item.name}</p>
+          <InlineCost value={item.price} />
+        </div>
         <IconButton
           size="sm"
           tone="brand"
@@ -1486,11 +1574,6 @@ function LibraryItemCard({ item, onPointerDown, onEdit }: LibraryItemCardProps) 
         {duration && (
           <Badge size="sm" tone="brand" icon={Clock} numeric>
             {duration}
-          </Badge>
-        )}
-        {item.price != null && Number(item.price) > 0 && (
-          <Badge size="sm" tone="emerald" numeric>
-            {formatPrice(item.price)}
           </Badge>
         )}
         {item.locations?.length > 0 && (
@@ -1519,9 +1602,10 @@ function UnscheduledExpenseCard({ expense, color, onPointerDown, onEdit }: Unsch
       <div className="flex items-start gap-1.5">
         <GripVertical className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-300" />
         <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${color.dot}`} />
-        <p className="min-w-0 flex-1 text-[12px] font-semibold leading-snug text-slate-800">
-          {expense.name}
-        </p>
+        <div className="flex min-w-0 flex-1 items-baseline justify-between gap-1.5">
+          <p className="min-w-0 truncate text-[12px] font-semibold leading-snug text-slate-800">{expense.name}</p>
+          <InlineCost value={expense.price} />
+        </div>
         <IconButton
           size="sm"
           tone="brand"
@@ -1534,11 +1618,6 @@ function UnscheduledExpenseCard({ expense, color, onPointerDown, onEdit }: Unsch
       </div>
 
       <div className="mt-1.5 flex flex-wrap items-center gap-1 pl-5">
-        {expense.price != null && Number(expense.price) > 0 && (
-          <Badge size="sm" tone="emerald" numeric>
-            {formatPrice(expense.price)}
-          </Badge>
-        )}
         {expense.location && (
           <Badge size="sm" numeric>
             {expense.location.name}
