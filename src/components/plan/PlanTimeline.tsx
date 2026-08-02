@@ -9,7 +9,7 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
-import { Dropdown } from "antd";
+import { Dropdown, Slider } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
 import {
   CalendarClock,
@@ -28,6 +28,7 @@ import {
   Sparkles,
   Trash2,
   Unlink,
+  Wallet,
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
@@ -35,8 +36,14 @@ import Badge from "../../shared/components/Badge";
 import EmptyState from "../../shared/components/EmptyState";
 import IconButton from "../../shared/components/IconButton";
 import Input from "../../shared/components/Input";
-import { formatDateTimeRange, formatDuration, formatPriceShort } from "../../shared/utils/format";
-import { expenseColor, expenseColorIndex, unitStats } from "../../shared/utils/planStats";
+import {
+  dayCount,
+  formatDateTimeRange,
+  formatDuration,
+  formatPrice,
+  formatPriceShort,
+} from "../../shared/utils/format";
+import { expenseColor, expenseColorIndex, planTotals, unitStats } from "../../shared/utils/planStats";
 import {
   clampTime,
   computeItemSchedule,
@@ -53,14 +60,29 @@ import type { PlanExpenseTimePatch } from "../../services/planExpenses.service";
 import type { UnitTimePatch } from "../../services/units.service";
 import TimelineBar from "./timeline/TimelineBar";
 import { HoverPopover, ItemPopoverContent, UnitPopoverContent } from "./timeline/TimelineBarPopover";
-import { ZOOM_LEVELS, clampBarToCanvas, createScale, fitZoom, type TimeScale } from "./timeline/scale";
-import { itemColorInUnit, unitColor, type UnitColor } from "./timeline/colors";
+import {
+  ZOOM_DEFAULT,
+  ZOOM_MAX,
+  ZOOM_MIN,
+  ZOOM_STEP,
+  clampBarToCanvas,
+  clampZoom,
+  createScale,
+  fitZoom,
+  type TimeScale,
+} from "./timeline/scale";
+import { itemColorInUnit, priceShadeIndex, unitColor, type UnitColor } from "./timeline/colors";
 import { useTimelineDrag, type DragDraft, type DragTarget } from "./timeline/useTimelineDrag";
+import { useRowReorder } from "./timeline/useRowReorder";
 
 const LABEL_WIDTH = 216;
-const HEADER_HEIGHT = 52;
-const UNIT_ROW_HEIGHT = 52;
-const ITEM_ROW_HEIGHT = 34;
+const HEADER_HEIGHT = 46;
+// Hàng thấp hơn trước (52/34) để nhiều chặng lọt vào khung nhìn hơn — gantt dài
+// vài chục hàng thì chiều cao là thứ đắt nhất.
+const UNIT_ROW_HEIGHT = 38;
+const ITEM_ROW_HEIGHT = 26;
+/** Bề rộng 1 dải sọc nền (giờ) — 00:00-04:00 trắng, 04:00-08:00 xanh nhạt, xen kẽ. */
+const BAND_HOURS = 4;
 const SNAP_MINUTES = 15;
 /** Khớp với `minMinutes` mặc định của `useTimelineDrag` — truyền tường minh để dùng lại
  * đúng giá trị này khi "vẽ" giờ mới cho hoạt động chưa có ngày (xem `startUndatedItemDraw`). */
@@ -68,6 +90,22 @@ const MIN_ITEM_MINUTES = 30;
 const REVEAL_STEP = 20;
 /** Bề rộng tối thiểu (px) cho hoạt động chưa có giờ riêng lẫn thời lượng — đủ để bấm-kéo. */
 const UNDATED_ITEM_WIDTH_PX = 32;
+
+/** Tên "group" cho `useRowReorder` — xem chú thích trong `useRowReorder.ts`. */
+const UNIT_GROUP = "units";
+const ITEM_GROUP_PREFIX = "items:";
+
+/**
+ * Ghép thứ tự mới của 1 TẬP CON (`subset`) vào danh sách đầy đủ (`all`): những phần tử
+ * không nằm trong tập con giữ nguyên chỗ, các ô còn lại được lấp theo đúng thứ tự mới.
+ * Dùng khi kéo sắp lại chặng trên gantt — ở đó chỉ thấy chặng đã xếp lịch, nhưng khi ghi
+ * `order_index` thì phải ghi cho toàn bộ chặng của kế hoạch.
+ */
+function mergeOrder(all: Id[], subset: Id[]): Id[] {
+  const inSubset = new Set(subset);
+  let cursor = 0;
+  return all.map((id) => (inSubset.has(id) ? (subset[cursor++] ?? id) : id));
+}
 
 export interface PlanTimelineProps {
   plan: Plan | null;
@@ -91,6 +129,10 @@ export interface PlanTimelineProps {
   onUnscheduleExpense: (expenseId: Id) => void;
   onEditExpense: (expense: PlanExpense) => void;
   onDeleteExpense: (expenseId: Id) => void;
+  /** Kéo tay cầm ở cột nhãn để sắp lại `order_index` của các chặng trong kế hoạch. */
+  onReorderUnits: (unitIds: Id[]) => void;
+  /** Kéo tay cầm để sắp lại `order_index` của các hoạt động BÊN TRONG 1 chặng. */
+  onReorderItems: (unitId: Id, itemIds: Id[]) => void;
   onEditUnit: (unit: Unit) => void;
   onRemoveUnit: (unitId: Id) => void;
   onDeleteUnit: (unitId: Id) => void;
@@ -131,6 +173,8 @@ export default function PlanTimeline({
   onUnscheduleExpense,
   onEditExpense,
   onDeleteExpense,
+  onReorderUnits,
+  onReorderItems,
   onEditUnit,
   onRemoveUnit,
   onDeleteUnit,
@@ -149,6 +193,8 @@ export default function PlanTimeline({
   const [unitSearch, setUnitSearch] = useState("");
   const [itemSearch, setItemSearch] = useState("");
   const [expenseSearch, setExpenseSearch] = useState("");
+  /** Toạ độ X (trong hệ canvas) của con trỏ khi rê trên gantt — vẽ đường dóng dash. */
+  const [hoverX, setHoverX] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const unitParkingRef = useRef<HTMLDivElement | null>(null);
@@ -157,7 +203,7 @@ export default function PlanTimeline({
 
   const hasWindow = Boolean(plan?.start_date && plan?.end_date);
   const scale = useMemo(
-    () => createScale(plan?.start_date ?? "", plan?.end_date ?? "", zoom ?? ZOOM_LEVELS[2]),
+    () => createScale(plan?.start_date ?? "", plan?.end_date ?? "", zoom ?? ZOOM_DEFAULT),
     [plan?.start_date, plan?.end_date, zoom]
   );
 
@@ -180,6 +226,9 @@ export default function PlanTimeline({
     [unitIndexById]
   );
 
+  // Thứ tự hàng = `order_index` của chặng (planUnits đã sắp sẵn), KHÔNG sắp lại theo giờ
+  // bắt đầu — có vậy thứ tự nhìn thấy ở đây mới khớp tab Xây dựng/Tổng quan và mới có
+  // nghĩa để kéo sắp lại bằng tay.
   const { scheduledRows, unscheduledUnits } = useMemo(() => {
     const rows: UnitRow[] = [];
     const unscheduled: Unit[] = [];
@@ -191,9 +240,51 @@ export default function PlanTimeline({
       }
       rows.push({ unit, items: itemsByUnit.get(unit.id) ?? [], range });
     }
-    rows.sort((a, b) => a.range.start.valueOf() - b.range.start.valueOf());
     return { scheduledRows: rows, unscheduledUnits: unscheduled };
   }, [planUnits, itemsByUnit]);
+
+  const reorder = useRowReorder((group, ids) => {
+    if (group === UNIT_GROUP) {
+      // `ids` chỉ gồm chặng ĐÃ xếp lịch; ghép lại vào danh sách đầy đủ để chặng chưa xếp
+      // giữ nguyên chỗ của nó trong `order_index` chung thay vì bị dồn xuống cuối.
+      onReorderUnits(mergeOrder(planUnits.map((u) => u.id), ids));
+      return;
+    }
+    onReorderItems(group.slice(ITEM_GROUP_PREFIX.length), ids);
+  });
+
+  // Áp thứ tự đang kéo (nếu có) lên cả cột nhãn lẫn canvas — 2 bên cùng đọc 1 mảng.
+  const rows = useMemo(() => {
+    const order = reorder.orderOf(UNIT_GROUP, scheduledRows.map((r) => r.unit.id));
+    const byId = new Map(scheduledRows.map((r) => [r.unit.id, r]));
+    return order.flatMap((id) => {
+      const row = byId.get(id);
+      if (!row) return [];
+      const itemOrder = reorder.orderOf(
+        ITEM_GROUP_PREFIX + id,
+        row.items.map((i) => i.id)
+      );
+      const itemById = new Map(row.items.map((i) => [i.id, i]));
+      return [{ ...row, items: itemOrder.flatMap((itemId) => itemById.get(itemId) ?? []) }];
+    });
+  }, [scheduledRows, reorder]);
+
+  const rowUnitIds = useMemo(() => rows.map((r) => r.unit.id), [rows]);
+
+  // Giá cao nhất trong kế hoạch — mốc chung để quy đổi giá của từng hoạt động ra độ đậm
+  // của màu (xem `priceShadeIndex`), nhờ vậy 2 chặng cạnh nhau vẫn so được với nhau.
+  const maxItemPrice = useMemo(() => {
+    let max = 0;
+    for (const items of itemsByUnit.values()) {
+      for (const item of items) max = Math.max(max, Number(item.price) || 0);
+    }
+    return max;
+  }, [itemsByUnit]);
+
+  const totals = useMemo(
+    () => planTotals(planUnits, itemsByUnit, expenses),
+    [planUnits, itemsByUnit, expenses]
+  );
 
   // Màu theo thứ tự created_at trong TOÀN BỘ danh sách chi phí (ổn định, không đổi khi 1
   // khoản được lên lịch/gỡ lịch) — không có field phân loại nên phân biệt bằng màu.
@@ -358,14 +449,9 @@ export default function PlanTimeline({
     return fallback;
   }
 
+  /** ± đi 1 bước lớn (5 nấc) cho nhanh; slider mới là chỗ chỉnh mịn từng nấc. */
   function changeZoom(direction: 1 | -1) {
-    const current = zoom ?? ZOOM_LEVELS[2];
-    const index = ZOOM_LEVELS.indexOf(current as (typeof ZOOM_LEVELS)[number]);
-    const nextIndex = Math.min(
-      Math.max((index === -1 ? 2 : index) + direction, 0),
-      ZOOM_LEVELS.length - 1
-    );
-    setZoom(ZOOM_LEVELS[nextIndex] ?? current);
+    setZoom(clampZoom((zoom ?? ZOOM_DEFAULT) + direction * ZOOM_STEP * 5));
   }
 
   if (!hasWindow) {
@@ -467,35 +553,59 @@ export default function PlanTimeline({
 
       <section className="surface overflow-hidden">
         {/* ------------------------------------------------------------ toolbar */}
-        <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 px-4 py-3">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-slate-100 px-4 py-2.5">
           <Badge tone="brand" icon={CalendarClock} numeric>
             {formatDateTimeRange(scale.origin, scale.end.subtract(1, "minute"))}
           </Badge>
-          <span className="hidden text-xs text-slate-400 lg:block">
-            Kéo thanh để dời, kéo 2 mép để đổi giờ (bước {SNAP_MINUTES} phút) · giữ chuột 0.5s
-            để xem chi tiết.
-          </span>
+          <Badge icon={CalendarClock} numeric>
+            {dayCount(plan?.start_date, plan?.end_date)} ngày
+          </Badge>
+          <Badge tone={unscheduledUnits.length > 0 ? "amber" : "emerald"} icon={RouteIcon} numeric>
+            {scheduledRows.length}/{planUnits.length} chặng đã xếp
+          </Badge>
+          <Badge tone="violet" icon={Sparkles} numeric>
+            {totals.itemCount} hoạt động
+          </Badge>
+          {totals.minutes > 0 && (
+            <Badge icon={Clock} numeric>
+              {formatDuration(totals.minutes)}
+            </Badge>
+          )}
+          {totals.cost > 0 && (
+            <Badge tone="emerald" icon={Wallet} numeric>
+              {formatPrice(totals.cost)}
+            </Badge>
+          )}
 
-          <div className="ml-auto flex items-center gap-1">
+          <div className="ml-auto flex items-center gap-1.5">
             <IconButton
               icon={ZoomOut}
               onClick={() => changeZoom(-1)}
               aria-label="Thu nhỏ"
-              disabled={(zoom ?? ZOOM_LEVELS[2]) === ZOOM_LEVELS[0]}
+              disabled={(zoom ?? ZOOM_DEFAULT) <= ZOOM_MIN}
             />
-            <span className="w-16 text-center text-[11px] text-slate-400 tnum">
-              {scale.pxPerHour}px/giờ
-            </span>
+            <Slider
+              min={ZOOM_MIN}
+              max={ZOOM_MAX}
+              step={ZOOM_STEP}
+              value={zoom ?? ZOOM_DEFAULT}
+              onChange={(value) => setZoom(clampZoom(value))}
+              tooltip={{ formatter: (value) => `${value ?? 0}px/giờ` }}
+              className="!my-0 w-28 shrink-0"
+            />
             <IconButton
               icon={ZoomIn}
               onClick={() => changeZoom(1)}
               aria-label="Phóng to"
-              disabled={(zoom ?? ZOOM_LEVELS[2]) === ZOOM_LEVELS[ZOOM_LEVELS.length - 1]}
+              disabled={(zoom ?? ZOOM_DEFAULT) >= ZOOM_MAX}
             />
+            <span className="w-16 shrink-0 text-right text-[11px] text-slate-400 tnum">
+              {scale.pxPerHour}px/giờ
+            </span>
           </div>
         </div>
 
-        {scheduledRows.length === 0 && scheduledExpenses.length === 0 ? (
+        {rows.length === 0 && scheduledExpenses.length === 0 ? (
           <p className="px-5 py-10 text-center text-sm text-slate-400">
             {planUnits.length === 0
               ? "Kế hoạch chưa có chặng nào — thêm ở tab Xây dựng."
@@ -518,34 +628,48 @@ export default function PlanTimeline({
                   Chặng
                 </div>
 
-                {scheduledRows.map(({ unit, items }) => (
-                  <div key={unit.id}>
-                    <UnitLabel
-                      unit={unit}
-                      color={colorOf(unit.id)}
-                      itemCount={items.length}
-                      expanded={expanded.has(unit.id)}
-                      onToggle={() => toggleExpand(unit.id)}
-                      onView={() => onViewUnit(unit)}
-                      onEdit={() => onEditUnit(unit)}
-                      onRemove={() => onRemoveUnit(unit.id)}
-                      onDelete={() => onDeleteUnit(unit.id)}
-                      onCreateItem={() => onCreateItem(unit.id)}
-                    />
-                    {expanded.has(unit.id) &&
-                      items.map((item, itemIndex) => (
-                        <ItemLabel
-                          key={item.id}
-                          item={item}
-                          color={colorOf(unit.id)}
-                          itemIndex={itemIndex}
-                          onView={() => onViewItem(item)}
-                          onEdit={() => onEditItem(item)}
-                          onDelete={() => onDeleteItem(item.id)}
-                        />
-                      ))}
-                  </div>
-                ))}
+                {rows.map(({ unit, items }, rowIndex) => {
+                  const itemIds = items.map((i) => i.id);
+                  return (
+                    <div key={unit.id} data-reorder-group={UNIT_GROUP} data-reorder-id={unit.id}>
+                      <UnitLabel
+                        unit={unit}
+                        order={rowIndex + 1}
+                        color={colorOf(unit.id)}
+                        itemCount={items.length}
+                        expanded={expanded.has(unit.id)}
+                        dragging={reorder.draft?.activeId === unit.id}
+                        onReorderStart={(event) =>
+                          reorder.start(event, UNIT_GROUP, rowUnitIds, unit.id)
+                        }
+                        onToggle={() => toggleExpand(unit.id)}
+                        onView={() => onViewUnit(unit)}
+                        onEdit={() => onEditUnit(unit)}
+                        onRemove={() => onRemoveUnit(unit.id)}
+                        onDelete={() => onDeleteUnit(unit.id)}
+                        onCreateItem={() => onCreateItem(unit.id)}
+                      />
+                      {expanded.has(unit.id) &&
+                        items.map((item, itemIndex) => (
+                          <ItemLabel
+                            key={item.id}
+                            item={item}
+                            color={colorOf(unit.id)}
+                            order={itemIndex + 1}
+                            maxPrice={maxItemPrice}
+                            group={ITEM_GROUP_PREFIX + unit.id}
+                            dragging={reorder.draft?.activeId === item.id}
+                            onReorderStart={(event) =>
+                              reorder.start(event, ITEM_GROUP_PREFIX + unit.id, itemIds, item.id)
+                            }
+                            onView={() => onViewItem(item)}
+                            onEdit={() => onEditItem(item)}
+                            onDelete={() => onDeleteItem(item.id)}
+                          />
+                        ))}
+                    </div>
+                  );
+                })}
 
                 {schedulingUnit && (
                   <div
@@ -583,7 +707,20 @@ export default function PlanTimeline({
 
               {/* ------------------------------------------------- dải thời gian */}
               <div className="shrink-0" style={{ width: scale.width }}>
-                <div ref={canvasRef} className="relative" style={{ width: scale.width }}>
+                <div
+                  ref={canvasRef}
+                  className="relative"
+                  style={{ width: scale.width }}
+                  onPointerMove={(event) => {
+                    const rect = event.currentTarget.getBoundingClientRect();
+                    setHoverX(event.clientX - rect.left);
+                  }}
+                  onPointerLeave={() => setHoverX(null)}
+                >
+                  {/* Sọc nền xen kẽ theo khung 4 giờ — vẽ TRƯỚC header để header (nền
+                      trắng mờ, sticky) vẫn nằm đè lên trên khi cuộn dọc. */}
+                  <TimeBands scale={scale} />
+
                   <TimelineHeader
                     days={scale.days}
                     hourStep={scale.hourStep}
@@ -601,7 +738,7 @@ export default function PlanTimeline({
                     {scale.days.map((day) => (
                       <span
                         key={day.toISOString()}
-                        className="absolute top-0 h-full w-px bg-slate-200"
+                        className="absolute top-0 h-full w-px bg-slate-300"
                         style={{ left: scale.xOf(day) }}
                       />
                     ))}
@@ -613,7 +750,7 @@ export default function PlanTimeline({
                     )}
                   </div>
 
-                  {scheduledRows.map(({ unit, items, range }) => {
+                  {rows.map(({ unit, items, range }) => {
                     const live = liveRange("unit", unit.id, range);
                     const color = colorOf(unit.id);
                     const stats = unitStats(items, unit.break_minutes);
@@ -670,7 +807,7 @@ export default function PlanTimeline({
                         </div>
 
                         {expanded.has(unit.id) &&
-                          items.map((item, itemIndex) => {
+                          items.map((item) => {
                             const slot = schedule.find((entry) => entry.item.id === item.id);
                             const base: TimeRange = slot
                               ? { start: slot.start, end: slot.end }
@@ -714,7 +851,13 @@ export default function PlanTimeline({
                                     colorClass={
                                       isUndated
                                         ? "border border-dashed border-slate-300 bg-slate-100/80"
-                                        : itemColorInUnit(color, itemIndex, inferred)
+                                        : // Sắc thái theo GIÁ chứ không theo thứ tự trong chặng:
+                                          // hoạt động càng đắt thanh càng đậm.
+                                          itemColorInUnit(
+                                            color,
+                                            priceShadeIndex(item.price, maxItemPrice),
+                                            inferred
+                                          )
                                     }
                                     dragging={
                                       draft?.kind === "item" && draft.id === item.id && draft.mode !== "schedule"
@@ -778,7 +921,7 @@ export default function PlanTimeline({
                             <TimelineBar
                               left={scale.xOf(draft.start)}
                               width={scale.widthOf(draft.start, draft.end)}
-                              colorClass={itemColorInUnit(color, items.length)}
+                              colorClass={itemColorInUnit(color, 1)}
                               dragging
                               preview
                             />
@@ -906,6 +1049,9 @@ export default function PlanTimeline({
                     </div>
                   )}
 
+                  {/* Đường dóng khi chỉ rê chuột (không kéo) — đọc nhanh "chỗ này là mấy
+                      giờ" mà không phải nhìn chéo lên hàng ngày/giờ. */}
+                  {hoverX !== null && !isDragging && <HoverGuide x={hoverX} scale={scale} />}
                   {draft && <DragTimeGuide draft={draft} scale={scale} />}
                 </div>
               </div>
@@ -961,6 +1107,46 @@ function TimelineHeader({ days, hourStep, pxPerHour, width, xOf }: TimelineHeade
   );
 }
 
+/**
+ * Sọc nền xen kẽ theo khung `BAND_HOURS` giờ (00:00-04:00 trắng, 04:00-08:00 xanh nhạt...).
+ * Một ngày chia chẵn 6 khung nên hoạ tiết lặp y hệt nhau ở mọi ngày — mắt bám được "đang
+ * nhìn buổi nào trong ngày" mà không phải dóng lên hàng giờ ở trên.
+ */
+function TimeBands({ scale }: { scale: TimeScale }) {
+  const bandWidth = BAND_HOURS * scale.pxPerHour;
+  const bandCount = Math.ceil(scale.totalMs / (BAND_HOURS * 60 * 60 * 1000));
+
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0">
+      {Array.from({ length: bandCount }, (_, i) => i)
+        .filter((i) => i % 2 === 1)
+        .map((i) => (
+          <span
+            key={i}
+            className="absolute inset-y-0 bg-brand-500/[0.07]"
+            style={{ left: i * bandWidth, width: bandWidth }}
+          />
+        ))}
+    </div>
+  );
+}
+
+/** Đường dóng dọc dạng gạch đứt bám theo con trỏ, chạy suốt lên tận hàng ngày/giờ. */
+function HoverGuide({ x, scale }: { x: number; scale: TimeScale }) {
+  if (x < 0 || x > scale.width) return null;
+
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-y-0 z-20" style={{ left: x }}>
+      <span className="absolute inset-y-0 left-0 border-l border-dashed border-slate-500/60" />
+      {/* `sticky` để nhãn giờ luôn dính ở mép trên khung cuộn, không trôi mất khi
+          cuộn xuống các chặng phía dưới. */}
+      <span className="sticky top-1 block whitespace-nowrap rounded-full bg-slate-700/90 px-1.5 py-0.5 text-[10px] font-semibold text-white tnum">
+        {scale.timeAt(x).format("HH:mm")}
+      </span>
+    </div>
+  );
+}
+
 /** Đường dóng dọc + nhãn giờ khi đang kéo — đọc chính xác đang kéo tới thời điểm nào. */
 function DragTimeGuide({ draft, scale }: { draft: DragDraft; scale: TimeScale }) {
   const clamp = (x: number) => Math.max(0, Math.min(x, scale.width));
@@ -998,11 +1184,37 @@ function GuideLine({ x, label, align = "left" }: { x: number; label: string; ali
   );
 }
 
+/** Tay cầm kéo sắp thứ tự, đặt trước tên ở cột nhãn (xem `useRowReorder`). */
+function ReorderGrip({
+  onPointerDown,
+  label,
+}: {
+  onPointerDown: (event: ReactPointerEvent) => void;
+  label: string;
+}) {
+  return (
+    <span
+      onPointerDown={onPointerDown}
+      role="button"
+      tabIndex={-1}
+      aria-label={label}
+      title={label}
+      className="shrink-0 cursor-grab touch-none rounded text-slate-300 opacity-0 transition hover:text-slate-600 active:cursor-grabbing group-hover:opacity-100"
+    >
+      <GripVertical className="h-3.5 w-3.5" />
+    </span>
+  );
+}
+
 interface UnitLabelProps {
   unit: Unit;
+  /** Số thứ tự hiển thị (1-based) — chính là `order_index` sau khi sắp. */
+  order: number;
   color: UnitColor;
   itemCount: number;
   expanded: boolean;
+  dragging: boolean;
+  onReorderStart: (event: ReactPointerEvent) => void;
   onToggle: () => void;
   onView: () => void;
   onEdit: () => void;
@@ -1013,9 +1225,12 @@ interface UnitLabelProps {
 
 function UnitLabel({
   unit,
+  order,
   color,
   itemCount,
   expanded,
+  dragging,
+  onReorderStart,
   onToggle,
   onView,
   onEdit,
@@ -1025,22 +1240,27 @@ function UnitLabel({
 }: UnitLabelProps) {
   return (
     <div
-      className="group flex items-center gap-1 border-b border-slate-100 px-2 pr-1"
+      className={`group flex items-center gap-0.5 border-b border-slate-100 pl-1 pr-1 transition-colors ${
+        dragging ? "bg-brand-50 ring-1 ring-inset ring-brand-300" : ""
+      }`}
       style={{ height: UNIT_ROW_HEIGHT }}
     >
+      <ReorderGrip onPointerDown={onReorderStart} label="Kéo để đổi thứ tự chặng" />
       <button
         type="button"
         onClick={onToggle}
         className="shrink-0 rounded p-0.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
         aria-label={expanded ? "Thu gọn hoạt động" : "Xem hoạt động"}
       >
-        {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+        {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
       </button>
       <span className={`h-2 w-2 shrink-0 rounded-full ${color.dot}`} />
 
-      <button type="button" onClick={onView} className="min-w-0 flex-1 text-left">
-        <p className="truncate text-[13px] font-semibold text-slate-800">{unit.name}</p>
-        <p className="truncate text-[11px] text-slate-400 tnum">
+      <button type="button" onClick={onView} className="min-w-0 flex-1 pl-1 text-left leading-tight">
+        <p className="truncate text-[12px] font-semibold text-slate-800">
+          <span className="text-slate-400 tnum">{order}.</span> {unit.name}
+        </p>
+        <p className="truncate text-[10px] text-slate-400 tnum">
           {itemCount} hoạt động
           {unit.unit_type ? ` · ${unit.unit_type.name}` : ""}
         </p>
@@ -1086,34 +1306,52 @@ function UnitLabel({
   );
 }
 
-const ITEM_DOT_OPACITY = [1, 0.75, 0.55, 0.4];
+/** Chấm màu mờ dần theo giá — cùng thang với độ đậm của thanh trên gantt. */
+const ITEM_DOT_OPACITY = [0.4, 0.6, 0.8, 1];
 
 function ItemLabel({
   item,
   color,
-  itemIndex,
+  order,
+  maxPrice,
+  group,
+  dragging,
+  onReorderStart,
   onView,
   onEdit,
   onDelete,
 }: {
   item: Item;
   color: UnitColor;
-  itemIndex: number;
+  order: number;
+  maxPrice: number;
+  group: string;
+  dragging: boolean;
+  onReorderStart: (event: ReactPointerEvent) => void;
   onView: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }) {
   return (
     <div
-      className="group flex items-center gap-1.5 border-b border-slate-100 bg-slate-50/40 pl-8 pr-1"
+      data-reorder-group={group}
+      data-reorder-id={item.id}
+      className={`group flex items-center gap-1 border-b border-slate-100 bg-slate-50/40 pl-4 pr-1 transition-colors ${
+        dragging ? "bg-brand-50 ring-1 ring-inset ring-brand-300" : ""
+      }`}
       style={{ height: ITEM_ROW_HEIGHT }}
     >
+      <ReorderGrip onPointerDown={onReorderStart} label="Kéo để đổi thứ tự hoạt động" />
       <span
         className={`h-1.5 w-1.5 shrink-0 rounded-full ${color.dot}`}
-        style={{ opacity: ITEM_DOT_OPACITY[itemIndex % ITEM_DOT_OPACITY.length] }}
+        style={{ opacity: ITEM_DOT_OPACITY[priceShadeIndex(item.price, maxPrice)] }}
       />
-      <button type="button" onClick={onView} className="min-w-0 flex-1 truncate text-left text-[12px] text-slate-600">
-        {item.name}
+      <button
+        type="button"
+        onClick={onView}
+        className="min-w-0 flex-1 truncate text-left text-[11px] text-slate-600"
+      >
+        <span className="text-slate-400 tnum">{order}.</span> {item.name}
       </button>
       <span className="flex shrink-0 gap-0.5 opacity-0 transition group-hover:opacity-100 focus-within:opacity-100">
         <IconButton size="sm" tone="brand" icon={Pencil} onClick={onEdit} aria-label="Sửa hoạt động" />

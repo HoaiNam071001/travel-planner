@@ -193,3 +193,26 @@ export function itemColorInUnit(color: UnitColor, itemIndexInUnit: number, infer
   const i = ((itemIndexInUnit % variants.length) + variants.length) % variants.length;
   return variants[i] ?? variants[0]!;
 }
+
+/** Số sắc thái mỗi tông màu có — cũng là số bậc giá phân biệt được. */
+export const ITEM_SHADE_COUNT = 4;
+
+/**
+ * Bậc "đậm nhạt" theo GIÁ thay vì theo thứ tự trong chặng: cùng tông màu với chặng cha,
+ * nhưng hoạt động càng đắt thì màu càng đậm — nhìn gantt là đoán được tiền đang đổ vào
+ * đâu. `maxPrice` là giá cao nhất trong toàn kế hoạch (mốc so sánh chung, để 2 chặng
+ * cạnh nhau vẫn so sánh được với nhau chứ không mỗi chặng một thang riêng).
+ *
+ * Thang chia theo CĂN BẬC HAI của tỉ lệ giá, không tuyến tính: chi phí du lịch thường
+ * lệch mạnh (1 khoản vé máy bay át hết mọi khoản ăn uống), chia tuyến tính thì gần như
+ * mọi thứ rơi hết vào bậc 0.
+ */
+export function priceShadeIndex(
+  price: number | string | null | undefined,
+  maxPrice: number
+): number {
+  const value = Number(price) || 0;
+  if (value <= 0 || maxPrice <= 0) return 0;
+  const ratio = Math.sqrt(Math.min(value / maxPrice, 1));
+  return Math.min(Math.round(ratio * (ITEM_SHADE_COUNT - 1)), ITEM_SHADE_COUNT - 1);
+}

@@ -256,22 +256,36 @@ create index if not exists idx_plan_collaborators_user_id on plan_collaborators(
 
 -- ---------------------------------------------------------------------------
 -- Chia sẻ kế hoạch — hàm & RLS.
--- 4 hàm dưới đây CHỦ Ý dùng `security invoker` (mặc định): khi được gọi bên
--- trong policy của bảng khác, hàm chạy với đúng auth.uid() của người đang
--- truy vấn, nên subquery bên trong vẫn bị RLS của bảng đó lọc lại theo đúng
--- user hiện tại. Nếu đổi sang `security definer`, hàm sẽ bỏ qua RLS và luôn
--- "thấy" hết dữ liệu bất kể ai gọi — sai mục đích, có thể lộ dữ liệu người khác.
+--
+-- ⚠️ 4 hàm dưới đây BẮT BUỘC phải là `security definer`.
+-- Trước đây chúng là `security invoker` (mặc định) với ý định "subquery bên
+-- trong vẫn bị RLS lọc lại theo đúng người gọi". Ý định đó nghe hợp lý nhưng
+-- tạo ra ĐỆ QUY RLS: policy của `plans` gọi is_plan_collaborator() -> hàm đọc
+-- `plan_collaborators` -> policy của bảng đó lại subquery `plans` -> policy của
+-- `plans` lại gọi is_plan_collaborator()... Postgres không phát hiện được vòng
+-- lặp vì nó đi qua 1 hàm, nên chỉ phình ra theo cấp số nhân rồi chết với
+-- "canceling statement due to statement timeout".
+--
+-- Chủ sở hữu không thấy lỗi vì `auth.uid() = user_id` (vế trái của OR) đã đúng
+-- ngay ở mọi dòng của mình nên hàm gần như không bị gọi. Tài khoản khác thì
+-- vế trái sai ở MỌI dòng -> hàm bị gọi cho từng dòng -> timeout. Đó chính là
+-- triệu chứng "đăng nhập gmail khác là không tải được danh sách kế hoạch".
+--
+-- `security definer` ở đây an toàn: mỗi hàm đều tự lọc bằng `auth.uid()` của
+-- người đang gọi và chỉ trả về `boolean` (có phải collaborator hay không),
+-- không trả dữ liệu của ai ra ngoài. `set search_path = public` để hàm không
+-- bị đánh lừa bằng schema khác.
 -- ---------------------------------------------------------------------------
 create or replace function is_plan_collaborator(target_plan_id uuid)
-returns boolean language sql stable as $$
+returns boolean language sql stable security definer set search_path = public as $$
   select exists (
     select 1 from plan_collaborators
-    where plan_id = target_plan_id and user_id = auth.uid()
+    where plan_id = target_plan_id and user_id = (select auth.uid())
   );
 $$;
 
 create or replace function unit_is_shared_with_me(target_unit_id uuid)
-returns boolean language sql stable as $$
+returns boolean language sql stable security definer set search_path = public as $$
   select exists (
     select 1 from units u
     where u.id = target_unit_id and u.plan_id is not null and is_plan_collaborator(u.plan_id)
@@ -279,7 +293,7 @@ returns boolean language sql stable as $$
 $$;
 
 create or replace function item_is_shared_with_me(target_item_id uuid)
-returns boolean language sql stable as $$
+returns boolean language sql stable security definer set search_path = public as $$
   select exists (
     select 1 from items i
     where i.id = target_item_id and i.unit_id is not null and unit_is_shared_with_me(i.unit_id)
@@ -287,13 +301,22 @@ returns boolean language sql stable as $$
 $$;
 
 create or replace function owner_shared_with_me(owner_id uuid)
-returns boolean language sql stable as $$
+returns boolean language sql stable security definer set search_path = public as $$
   select exists (
     select 1 from plan_collaborators pc
     join plans p on p.id = pc.plan_id
-    where p.user_id = owner_id and pc.user_id = auth.uid()
+    where p.user_id = owner_id and pc.user_id = (select auth.uid())
   );
 $$;
+
+grant execute on function is_plan_collaborator(uuid) to authenticated;
+grant execute on function unit_is_shared_with_me(uuid) to authenticated;
+grant execute on function item_is_shared_with_me(uuid) to authenticated;
+grant execute on function owner_shared_with_me(uuid) to authenticated;
+
+-- Index phục vụ đúng cái exists() ở trên (tra theo người đang đăng nhập trước).
+create index if not exists idx_plan_collaborators_user_plan
+  on plan_collaborators(user_id, plan_id);
 
 -- plans: select/update mở cho chủ sở hữu HOẶC collaborator; insert/delete chỉ
 -- chủ sở hữu (RLS là row-level, đây là ranh giới rõ nhất đặt được).

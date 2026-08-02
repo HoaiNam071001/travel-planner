@@ -325,16 +325,9 @@ export default function PlanDetailPage() {
     }, "Không gỡ được chặng khỏi kế hoạch");
   }
 
-  async function moveUnit(unitId: Id, direction: -1 | 1) {
+  /** Ghi lại `order_index` cho toàn bộ chặng của kế hoạch theo đúng `ids`. */
+  async function reorderUnits(ids: Id[]) {
     if (!planId) return;
-    const ids = planUnits.map((u) => u.id);
-    const from = ids.indexOf(unitId);
-    const to = from + direction;
-    if (from === -1 || to < 0 || to >= ids.length) return;
-    const [moved] = ids.splice(from, 1);
-    if (!moved) return;
-    ids.splice(to, 0, moved);
-
     setUnits((prev) =>
       prev.map((u) => {
         const idx = ids.indexOf(u.id);
@@ -342,6 +335,17 @@ export default function PlanDetailPage() {
       })
     );
     await commit(() => assignUnitsToPlan(planId, ids), "Không lưu được thứ tự chặng");
+  }
+
+  /** Sắp lại thứ tự hoạt động BÊN TRONG 1 chặng (không đổi chặng cha). */
+  async function reorderUnitItems(unitId: Id, ids: Id[]) {
+    setItems((prev) =>
+      prev.map((i) => {
+        const idx = ids.indexOf(i.id);
+        return idx === -1 ? i : { ...i, order_index: idx };
+      })
+    );
+    await commit(() => assignItemsToUnit(unitId, ids), "Không lưu được thứ tự hoạt động");
   }
 
   async function quickCreateUnit(name: string) {
@@ -614,6 +618,8 @@ export default function PlanDetailPage() {
           onUnscheduleExpense={(expenseId) => void unscheduleExpense(expenseId)}
           onEditExpense={(expense) => setExpenseForm({ open: true, expense })}
           onDeleteExpense={(expenseId) => void handleDeleteExpense(expenseId)}
+          onReorderUnits={(unitIds) => void reorderUnits(unitIds)}
+          onReorderItems={(unitId, itemIds) => void reorderUnitItems(unitId, itemIds)}
           onEditUnit={(unit) => setUnitForm({ open: true, unit })}
           onRemoveUnit={(unitId) => void removeUnitFromPlan(unitId)}
           onDeleteUnit={(unitId) => setDeletingUnit(planUnits.find((u) => u.id === unitId) ?? null)}
@@ -638,7 +644,7 @@ export default function PlanDetailPage() {
           freeUnits={freeUnits}
           hasLocations={locations.length > 0}
           onMoveItem={(itemId, toLane, toIndex) => void moveItem(itemId, toLane, toIndex)}
-          onMoveUnit={(unitId, direction) => void moveUnit(unitId, direction)}
+          onReorderUnits={(unitIds) => void reorderUnits(unitIds)}
           onAddUnit={(unitId) => void addUnitToPlan(unitId)}
           onQuickCreateUnit={quickCreateUnit}
           onRemoveUnit={(unitId) => void removeUnitFromPlan(unitId)}

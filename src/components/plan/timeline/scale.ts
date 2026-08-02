@@ -4,8 +4,20 @@ import { HOUR_MS } from "../../../shared/utils/schedule";
 // Quy đổi thời gian <-> pixel cho tab Lịch trình. Tách riêng khỏi component để
 // phần "đúng tỉ lệ thời gian" có thể suy luận (và sửa) một chỗ duy nhất.
 
-/** Các mức zoom (px cho mỗi giờ) — nhỏ nhất xem được cả tháng, lớn nhất xem theo giờ. */
-export const ZOOM_LEVELS = [3, 6, 12, 24, 48] as const;
+// Zoom là 1 dải liên tục (px cho mỗi giờ) thay vì vài nấc cố định như trước, để
+// slider trên toolbar chỉnh được mượt: 2px/giờ xem được cả tháng, 100px/giờ xem
+// từng khung 15 phút.
+export const ZOOM_MIN = 2;
+export const ZOOM_MAX = 100;
+export const ZOOM_STEP = 2;
+/** Mức mặc định khi chưa đo được bề rộng khung để `fitZoom`. */
+export const ZOOM_DEFAULT = 12;
+
+/** Kẹp về đúng dải + đúng bội của `ZOOM_STEP` (slider chỉ nhận các giá trị này). */
+export function clampZoom(value: number): number {
+  const stepped = Math.round(value / ZOOM_STEP) * ZOOM_STEP;
+  return Math.min(Math.max(stepped, ZOOM_MIN), ZOOM_MAX);
+}
 
 export interface TimeScale {
   /** 00:00 của ngày bắt đầu kế hoạch. */
@@ -95,8 +107,7 @@ export function fitZoom(planStart: string, planEnd: string, containerWidth: numb
     dayjs(planEnd).endOf("day").diff(dayjs(planStart).startOf("day"), "hour"),
     1
   );
-  const ideal = containerWidth / hours;
-  // Chọn mức lớn nhất mà vẫn vừa khung; nếu không mức nào vừa thì lấy mức nhỏ nhất.
-  const fitting = ZOOM_LEVELS.filter((level) => level <= ideal);
-  return fitting.length > 0 ? Math.max(...fitting) : ZOOM_LEVELS[0];
+  // Làm tròn XUỐNG bội của ZOOM_STEP để chắc chắn vẫn vừa khung, rồi kẹp về dải hợp lệ.
+  const ideal = Math.floor(containerWidth / hours / ZOOM_STEP) * ZOOM_STEP;
+  return Math.min(Math.max(ideal, ZOOM_MIN), ZOOM_MAX);
 }

@@ -1,15 +1,27 @@
 import { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
+import { Segmented } from "antd";
 import {
   DndContext,
   DragOverlay,
+  MeasuringStrategy,
   PointerSensor,
+  closestCenter,
   closestCorners,
   useSensor,
   useSensors,
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { Plus, Route as RouteIcon, Search, Sparkles, Wallet } from "lucide-react";
+import { SortableContext, horizontalListSortingStrategy } from "@dnd-kit/sortable";
+import {
+  Inbox,
+  Plus,
+  Route as RouteIcon,
+  Search,
+  Sparkles,
+  Wallet,
+} from "lucide-react";
 import Badge from "../../shared/components/Badge";
 import Button from "../../shared/components/Button";
 import Input from "../../shared/components/Input";
@@ -17,9 +29,17 @@ import { LIBRARY_LANE } from "../../shared/constants/board";
 import { formatPrice } from "../../shared/utils/format";
 import { planTotals } from "../../shared/utils/planStats";
 import type { Id, Item, Unit } from "../../shared/types/models";
-import BoardLane from "./BoardLane";
+import BoardLane, { LANE_SORT_PREFIX, type MoveTarget } from "./BoardLane";
 import { BoardItemPreview } from "./BoardItemCard";
 import { unitColor } from "./timeline/colors";
+
+/**
+ * 2 chế độ kéo, chọn bằng `Segmented` ở đầu board. Tách hẳn ra thay vì cho kéo lẫn lộn
+ * vì 2 thao tác này cần 2 kiểu va chạm khác nhau (lane xếp NGANG, hoạt động xếp DỌC
+ * trong lane) — trộn chung thì dnd-kit hay chọn nhầm đích, và cầm nhầm thứ mình muốn kéo.
+ * Ở chế độ nào thì CHỈ loại tương ứng được đăng ký với dnd-kit.
+ */
+type BoardMode = "unit" | "item";
 
 interface Lane {
   id: Id;
@@ -35,7 +55,8 @@ export interface PlanBoardProps {
   freeUnits: Unit[];
   hasLocations: boolean;
   onMoveItem: (itemId: Id, toLane: Id, toIndex: number | null) => void;
-  onMoveUnit: (unitId: Id, direction: -1 | 1) => void;
+  /** Ghi lại `order_index` cho toàn bộ chặng của kế hoạch theo đúng thứ tự truyền vào. */
+  onReorderUnits: (unitIds: Id[]) => void;
   onAddUnit: (unitId: Id) => void;
   onQuickCreateUnit: (name: string) => Promise<void>;
   onRemoveUnit: (unitId: Id) => void;
@@ -54,7 +75,7 @@ export default function PlanBoard({
   freeUnits,
   hasLocations,
   onMoveItem,
-  onMoveUnit,
+  onReorderUnits,
   onAddUnit,
   onQuickCreateUnit,
   onRemoveUnit,
@@ -65,6 +86,7 @@ export default function PlanBoard({
   onEditItem,
   onDeleteItem,
 }: PlanBoardProps) {
+  const [mode, setMode] = useState<BoardMode>("unit");
   const [activeId, setActiveId] = useState<Id | null>(null);
   const [librarySearch, setLibrarySearch] = useState("");
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -86,8 +108,20 @@ export default function PlanBoard({
     [filteredLibrary, planUnits, itemsByUnit]
   );
 
+  // Danh sách đích cho nút "Chuyển tới…" trên từng thẻ hoạt động — cách đổi chặng KHÔNG
+  // cần kéo (kéo ngang qua chục lane rất cực), luôn dùng được ở cả 2 chế độ.
+  const moveTargets = useMemo<MoveTarget[]>(
+    () => [
+      { id: LIBRARY_LANE, name: "Kho hoạt động", isLibrary: true },
+      ...planUnits.map((unit, index) => ({ id: unit.id, name: `${index + 1}. ${unit.name}` })),
+    ],
+    [planUnits]
+  );
+
+  const laneSortIds = useMemo(() => planUnits.map((u) => LANE_SORT_PREFIX + u.id), [planUnits]);
+
   const activeItem = useMemo(() => {
-    if (!activeId) return null;
+    if (!activeId || activeId.startsWith(LANE_SORT_PREFIX)) return null;
     for (const lane of lanes) {
       const found = lane.items.find((i) => i.id === activeId);
       if (found) return found;
@@ -95,13 +129,32 @@ export default function PlanBoard({
     return null;
   }, [lanes, activeId]);
 
+  const activeUnit = useMemo(() => {
+    if (!activeId?.startsWith(LANE_SORT_PREFIX)) return null;
+    const unitId = activeId.slice(LANE_SORT_PREFIX.length);
+    return planUnits.find((u) => u.id === unitId) ?? null;
+  }, [activeId, planUnits]);
+
   function handleDragStart({ active }: DragStartEvent) {
     setActiveId(String(active.id));
   }
 
   function handleDragEnd({ active, over }: DragEndEvent) {
     setActiveId(null);
-    if (!over) return;
+    if (!over || active.id === over.id) return;
+
+    const activeKey = String(active.id);
+    if (activeKey.startsWith(LANE_SORT_PREFIX)) {
+      const ids = laneSortIds.slice();
+      const from = ids.indexOf(activeKey);
+      const to = ids.indexOf(String(over.id));
+      if (from === -1 || to === -1) return;
+      const [moved] = ids.splice(from, 1);
+      if (!moved) return;
+      ids.splice(to, 0, moved);
+      onReorderUnits(ids.map((id) => id.slice(LANE_SORT_PREFIX.length)));
+      return;
+    }
 
     const overData = over.data.current as { type?: string; laneId?: Id } | undefined;
     const toLane = overData?.type === "item" ? overData.laneId : (overData?.laneId ?? String(over.id));
@@ -112,16 +165,40 @@ export default function PlanBoard({
     if (overData?.type === "item" && toLane !== LIBRARY_LANE) {
       const lane = lanes.find((l) => l.id === toLane);
       const toIndex = lane?.items.findIndex((i) => i.id === over.id) ?? -1;
-      onMoveItem(String(active.id), toLane, toIndex === -1 ? null : toIndex);
+      onMoveItem(activeKey, toLane, toIndex === -1 ? null : toIndex);
       return;
     }
-    onMoveItem(String(active.id), toLane, null);
+    onMoveItem(activeKey, toLane, null);
   }
 
   return (
     <div className="animate-fade-up">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
+          <Segmented<BoardMode>
+            value={mode}
+            onChange={setMode}
+            options={[
+              {
+                value: "unit",
+                label: (
+                  <span className="flex items-center gap-1.5 px-1 font-medium">
+                    <RouteIcon className="h-3.5 w-3.5" />
+                    Sắp chặng
+                  </span>
+                ),
+              },
+              {
+                value: "item",
+                label: (
+                  <span className="flex items-center gap-1.5 px-1 font-medium">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Sắp hoạt động
+                  </span>
+                ),
+              },
+            ]}
+          />
           <Badge tone="brand" icon={RouteIcon} numeric>
             {totals.unitCount} chặng
           </Badge>
@@ -133,15 +210,18 @@ export default function PlanBoard({
               {formatPrice(totals.cost)}
             </Badge>
           )}
-          <span className="hidden text-xs text-slate-400 lg:block">
-            Kéo hoạt động giữa các chặng để sắp xếp lịch trình.
-          </span>
         </div>
 
         <Button icon={<Plus className="h-4 w-4" />} onClick={onCreateUnit}>
           Chặng mới (chi tiết)
         </Button>
       </div>
+
+      <p className="mb-3 text-xs text-slate-400">
+        {mode === "unit"
+          ? "Kéo tay cầm ở đầu mỗi chặng để đổi thứ tự. Hoạt động đang khoá — đổi chặng cho nó bằng nút “Chuyển tới…” trên từng thẻ."
+          : "Kéo hoạt động giữa các chặng hoặc lên xuống trong 1 chặng để sắp thứ tự. Chặng đang khoá, quay lại “Sắp chặng” để đổi thứ tự chặng."}
+      </p>
 
       {!hasLocations && (
         <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-800">
@@ -152,45 +232,52 @@ export default function PlanBoard({
 
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCorners}
+        // Lane xếp ngang -> so tâm là đủ và ổn định; hoạt động xếp dọc trong lane hẹp ->
+        // closestCorners bám mép tốt hơn khi thả gần đầu/cuối danh sách.
+        collisionDetection={mode === "unit" ? closestCenter : closestCorners}
+        // Đo lại vùng thả LIÊN TỤC thay vì chỉ 1 lần lúc bắt đầu kéo: board vừa cuộn ngang
+        // (cả dải lane) vừa cuộn dọc (bên trong từng lane), nên rect đo 1 lần sẽ cũ ngay
+        // khi vừa cuộn — đó là lúc thả bị "lệch" vào nhầm lane/nhầm vị trí.
+        measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
         onDragStart={handleDragStart}
         onDragCancel={() => setActiveId(null)}
         onDragEnd={handleDragEnd}
       >
-        <div className="scroll-thin flex gap-4 overflow-x-auto pb-4">
-          {lanes.map((lane, laneIndex) => (
-            <BoardLane
-              key={lane.id}
-              laneId={lane.id}
-              unit={lane.unit}
-              index={laneIndex - 1} // lane 0 là kho nên chặng đầu tiên có index 0
-              items={lane.items}
-              isLibrary={lane.isLibrary}
-              color={lane.isLibrary ? undefined : unitColor(laneIndex - 1)}
-              canMoveLeft={!lane.isLibrary && laneIndex > 1}
-              canMoveRight={!lane.isLibrary && laneIndex < lanes.length - 1}
-              onMoveUnit={onMoveUnit}
-              onEditUnit={onEditUnit}
-              onRemoveUnit={onRemoveUnit}
-              onDeleteUnit={onDeleteUnit}
-              onCreateItem={onCreateItem}
-              onEditItem={onEditItem}
-              onDeleteItem={onDeleteItem}
-              onSendItemToLibrary={(itemId) => onMoveItem(itemId, LIBRARY_LANE, null)}
-              header={
-                lane.isLibrary ? (
-                  <Input
-                    size="small"
-                    value={librarySearch}
-                    onChange={(e) => setLibrarySearch(e.target.value)}
-                    placeholder="Tìm hoạt động..."
-                    prefix={<Search className="h-3.5 w-3.5 text-slate-400" />}
-                    allowClear
-                  />
-                ) : null
-              }
-            />
-          ))}
+        <div className="scroll-thin flex items-start gap-3 overflow-x-auto pb-4">
+          <SortableContext items={laneSortIds} strategy={horizontalListSortingStrategy}>
+            {lanes.map((lane, laneIndex) => (
+              <BoardLane
+                key={lane.id}
+                laneId={lane.id}
+                unit={lane.unit}
+                index={laneIndex - 1} // lane 0 là kho nên chặng đầu tiên có index 0
+                items={lane.items}
+                isLibrary={lane.isLibrary}
+                mode={mode}
+                color={lane.isLibrary ? undefined : unitColor(laneIndex - 1)}
+                moveTargets={moveTargets}
+                onMoveItemTo={(itemId, toLane) => onMoveItem(itemId, toLane, null)}
+                onEditUnit={onEditUnit}
+                onRemoveUnit={onRemoveUnit}
+                onDeleteUnit={onDeleteUnit}
+                onCreateItem={onCreateItem}
+                onEditItem={onEditItem}
+                onDeleteItem={onDeleteItem}
+                header={
+                  lane.isLibrary ? (
+                    <Input
+                      size="small"
+                      value={librarySearch}
+                      onChange={(e) => setLibrarySearch(e.target.value)}
+                      placeholder="Tìm hoạt động..."
+                      prefix={<Search className="h-3.5 w-3.5 text-slate-400" />}
+                      allowClear
+                    />
+                  ) : null
+                }
+              />
+            ))}
+          </SortableContext>
 
           <AddUnitLane
             freeUnits={freeUnits}
@@ -199,9 +286,27 @@ export default function PlanBoard({
           />
         </div>
 
-        <DragOverlay dropAnimation={{ duration: 180, easing: "cubic-bezier(0.16, 1, 0.3, 1)" }}>
-          {activeItem && <BoardItemPreview item={activeItem} />}
-        </DragOverlay>
+        {/*
+          Portal ra thẳng `document.body`: `DragOverlay` định vị bằng `position: fixed`, mà
+          bọc ngoài board có `animate-fade-up` — animation này kết thúc ở `translateY(0)` với
+          `fill-mode: both`, tức transform VẪN còn (khác `none`) sau khi chạy xong. Một
+          transform bất kỳ tạo ra containing block mới cho con `fixed`, nên overlay bị tính
+          toạ độ theo cái div đó thay vì theo viewport -> thẻ đang kéo lệch hẳn khỏi con trỏ.
+        */}
+        {createPortal(
+          <DragOverlay dropAnimation={{ duration: 180, easing: "cubic-bezier(0.16, 1, 0.3, 1)" }}>
+            {activeItem && <BoardItemPreview item={activeItem} />}
+            {activeUnit && (
+              <div className="w-[232px] rotate-1 cursor-grabbing rounded-2xl border border-brand-300 bg-white px-3 py-2.5 shadow-pop">
+                <p className="truncate text-[13px] font-bold text-slate-800">{activeUnit.name}</p>
+                <p className="mt-0.5 text-[11px] text-slate-400 tnum">
+                  {(itemsByUnit.get(activeUnit.id) ?? []).length} hoạt động
+                </p>
+              </div>
+            )}
+          </DragOverlay>,
+          document.body
+        )}
       </DndContext>
     </div>
   );
@@ -227,7 +332,7 @@ function AddUnitLane({ freeUnits, onAddUnit, onQuickCreateUnit }: AddUnitLanePro
   }
 
   return (
-    <section className="flex max-h-[calc(100vh-15rem)] w-[292px] shrink-0 flex-col rounded-2xl border border-dashed border-slate-300 bg-white/40 p-3">
+    <section className="flex max-h-[calc(100vh-15rem)] w-[248px] shrink-0 flex-col rounded-2xl border border-dashed border-slate-300 bg-white/40 p-3">
       <h3 className="text-[13px] font-bold text-slate-600">Thêm chặng</h3>
       <p className="mt-0.5 text-[11px] leading-relaxed text-slate-400">
         Nhập tên để tạo nhanh, hoặc chọn một chặng đã có sẵn.
@@ -265,7 +370,7 @@ function AddUnitLane({ freeUnits, onAddUnit, onQuickCreateUnit }: AddUnitLanePro
                 className="flex w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-left transition hover:border-brand-300 hover:bg-brand-50/40"
               >
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-400">
-                  <RouteIcon className="h-3.5 w-3.5" />
+                  <Inbox className="h-3.5 w-3.5" />
                 </span>
                 <span className="min-w-0 flex-1 truncate text-xs font-medium text-slate-700">
                   {unit.name}

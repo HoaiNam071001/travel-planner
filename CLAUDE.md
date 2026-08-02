@@ -38,9 +38,20 @@ và nhiều chặng gộp thành 1 "kế hoạch" (plan) tổng.
 - Drag & drop: `@dnd-kit/core` + `@dnd-kit/sortable` — 3 chỗ dùng:
   1. lưới trang Hoạt động (`ItemsPage`, `rectSortingStrategy`),
   2. cột "đã chọn" của `DualListPicker` (`verticalListSortingStrategy`),
-  3. **Plan Builder** (`src/components/plan/PlanBoard.tsx`) — board nhiều lane, kéo hoạt
-     động **giữa các lane** (mỗi lane là 1 chặng, lane đầu là kho hoạt động chưa gắn chặng)
-     bằng 1 `DndContext` + `closestCorners` + `useDroppable` cho từng lane
+  3. **Plan Builder** (`src/components/plan/PlanBoard.tsx`) — board nhiều lane, **2 chế độ
+     kéo** loại trừ nhau chọn bằng `Segmented`: "Sắp chặng" (kéo lane đổi thứ tự, ngang,
+     `closestCenter`) và "Sắp hoạt động" (kéo hoạt động giữa/trong lane, `closestCorners`).
+     Ở chế độ nào thì **chỉ loại tương ứng được đăng ký** với dnd-kit (`disabled` của
+     `useSortable`/`useDroppable`), tránh dnd-kit chọn nhầm đích khi trộn 2 trục.
+     Lane khi là phần tử sortable dùng id có tiền tố `LANE_SORT_PREFIX` (`"lane:"`) để
+     **khác** id lúc nó là vùng thả hoạt động — cùng id thì không phân biệt được đang thả
+     chặng hay thả hoạt động.
+     ⚠️ 2 thứ bắt buộc, bỏ là "kéo bị lệch": (a) `DragOverlay` phải `createPortal` ra
+     `document.body` — nó dùng `position: fixed`, mà wrapper board có `animate-fade-up`
+     (`fill-mode: both`) nên giữ lại `transform: translateY(0)`, và **mọi** transform khác
+     `none` đều tạo containing block mới cho con `fixed`; (b)
+     `measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}` — board cuộn ngang
+     ở ngoài + cuộn dọc trong từng lane, đo rect 1 lần lúc bắt đầu kéo là cũ ngay khi cuộn.
 - Deploy frontend: Vercel hoặc Netlify (free tier)
 - Giải mã link Google Maps (dán vào modal địa điểm để tự điền tên + lat/lng): Supabase Edge
   Function `supabase/functions/resolve-maps-link` (theo redirect của link rút gọn
@@ -118,11 +129,16 @@ quan kế hoạch và cột trái trang đăng nhập.
 - `src/components/plan/` — các mảnh của trang chi tiết kế hoạch (`PlanOverview`,
   `PlanBoard`, `BoardLane`, `BoardItemCard`, `PlanTimeline`); đây là feature nhiều mảnh nên
   được gom thư mục con, phần còn lại của `src/components/` vẫn phẳng.
-- `src/components/plan/timeline/` — phần "gantt" của tab Lịch trình, tách 3 mảnh để phần
+- `src/components/plan/timeline/` — phần "gantt" của tab Lịch trình, tách nhỏ để phần
   toán pixel↔thời gian suy luận được một chỗ: `scale.ts` (`createScale`/`fitZoom`,
-  `xOf`/`timeAt`/`widthOf`, `ZOOM_LEVELS`), `useTimelineDrag.ts` (engine kéo/kéo-mép/kéo-từ-
-  cột-chờ bằng pointer event thô + snap 15 phút, trả `draft` để vẽ preview), `TimelineBar.tsx`
-  (thanh có 2 mép resize; hẹp quá thì nhãn tự nhảy ra ngoài bên phải).
+  `xOf`/`timeAt`/`widthOf`; zoom là **dải liên tục** `ZOOM_MIN=2 … ZOOM_MAX=100` bước
+  `ZOOM_STEP=2` px/giờ cho slider, không còn vài nấc cố định — dùng `clampZoom()` để kẹp),
+  `useTimelineDrag.ts` (engine kéo/kéo-mép/kéo-từ-cột-chờ bằng pointer event thô + snap 15
+  phút, trả `draft` để vẽ preview), `useRowReorder.ts` (kéo tay cầm ở cột nhãn để sắp lại
+  `order_index`; **không** dùng dnd-kit vì mỗi hàng nằm ở 2 nhánh DOM — nhãn cột trái +
+  thanh ở canvas — nên chỉ tính ra 1 mảng id rồi cho cả 2 cột cùng render theo nó),
+  `TimelineBar.tsx` (thanh có 2 mép resize), `colors.ts` (bảng màu chặng + `priceShadeIndex()`
+  quy giá ra 1 trong 4 sắc thái đậm dần).
 - `src/components/DualListPicker.tsx` — UI 2 cột "chọn + sắp thứ tự" dùng chung cho
   `ItemFormModal` (chọn địa điểm) và `UnitFormModal` (chọn hoạt động): trái là danh sách
   nguồn có search + `Pagination` (5 dòng/trang), phải là danh sách đã chọn kéo-thả sắp xếp
@@ -302,14 +318,26 @@ Edge Function):
    - **Xây dựng** (`src/components/plan/PlanBoard.tsx`): board kéo-thả. Lane 0 = **kho hoạt
      động chưa gắn chặng** (`LIBRARY_LANE`, có ô search), các lane sau = chặng theo đúng
      `order_index`, lane cuối = ô "Thêm chặng" (tạo nhanh bằng tên, hoặc chọn chặng đã có
-     mà chưa gắn kế hoạch nào). Kéo hoạt động giữa các lane để gán/gỡ/sắp thứ tự; đổi thứ
-     tự chặng bằng nút ‹ › trên header lane; menu ⋯ mỗi lane để sửa/gỡ khỏi kế hoạch/xoá
-     chặng; tạo & sửa hoạt động ngay trong board qua `ItemFormModal`.
+     mà chưa gắn kế hoạch nào). **2 chế độ kéo** (xem mục "Drag & drop" ở trên):
+     "Sắp chặng" — lane thu hẹp (232px), hoạt động rút thành 1 dòng (`BoardItemRow`),
+     kéo tay cầm ⠿ ở header lane để đổi thứ tự chặng (ghi qua `onReorderUnits`);
+     "Sắp hoạt động" — lane 268px với thẻ đầy đủ (`BoardItemCard`), kéo hoạt động giữa
+     các lane / lên xuống trong lane. Ở **cả 2 chế độ**, mỗi hoạt động có nút "Chuyển
+     tới…" (`MoveMenu`) chọn chặng đích hoặc kho — đây mới là cách chính để đổi chặng,
+     kéo ngang qua chục lane là thao tác cực nhất của board. Menu ⋯ mỗi lane để sửa/gỡ
+     khỏi kế hoạch/xoá chặng; tạo & sửa hoạt động ngay trong board qua `ItemFormModal`.
    - **Lịch trình** (`src/components/plan/PlanTimeline.tsx`): gantt vẽ **đúng tỉ lệ thời
      gian** trên khoảng ngày của kế hoạch (bắt buộc kế hoạch phải có start/end date).
      - Cột trái là nhãn chặng (sticky-left), phần phải là dải thời gian; **cả 2 nằm trong
        cùng 1 khung cuộn 2 chiều** để hàng ngày/giờ sticky-top và cột nhãn sticky-left hoạt
        động đúng — đừng tách thành 2 khung cuộn riêng.
+     - Thứ tự hàng = `order_index` của chặng (**không** sắp lại theo giờ bắt đầu), để khớp
+       tab Xây dựng/Tổng quan. Kéo tay cầm ⠿ trước tên ở cột nhãn để sắp lại thứ tự chặng
+       (hoặc hoạt động trong 1 chặng) — xem `useRowReorder.ts`; chặng chưa xếp lịch không
+       có hàng nên `mergeOrder()` ghép thứ tự mới vào danh sách đầy đủ trước khi ghi DB.
+     - Nền vẽ **sọc xen kẽ theo khung 4 giờ** (`BAND_HOURS`, `TimeBands`) để đọc được
+       "đang nhìn buổi nào" mà không phải dóng lên hàng giờ; rê chuột trên gantt có đường
+       **gạch đứt** dóng lên tận hàng ngày/giờ kèm nhãn `HH:mm` (`HoverGuide`).
      - Kéo giữa thanh = dời chặng (giữ nguyên độ dài), kéo 2 mép = đổi giờ bắt đầu/kết thúc,
        snap 15 phút, tối thiểu 30 phút, kẹp trong khoảng kế hoạch. Mỗi lần thả ghi
        `start_date` + `end_date` + `duration_minutes` (giữ 3 cột luôn nhất quán) qua
@@ -320,7 +348,10 @@ Edge Function):
      - Cột **"Chưa xếp lịch"** bên phải chứa chặng chưa có `start_date` **hoặc** nằm ngoài
        khoảng thời gian kế hoạch; kéo từ đó vào lịch để xếp giờ, kéo thanh ngược ra đó để
        gỡ (`start_date = end_date = null`, giữ `duration_minutes`).
-     - Zoom bằng 2 nút ±, mức px/giờ trong `ZOOM_LEVELS`; lần đầu mở tự chọn mức vừa khung.
+     - Zoom bằng **slider** (2 → 100 px/giờ, bước 2) + 2 nút ± (nhảy 5 nấc); lần đầu mở
+       tự chọn mức vừa khung qua `fitZoom()`. Toolbar thay dòng hướng dẫn kéo-thả cũ bằng
+       các badge số liệu thật của kế hoạch (khoảng ngày, số ngày, chặng đã xếp/tổng, số
+       hoạt động, tổng thời lượng, tổng chi phí).
    - Mọi thao tác ghi đi qua helper `commit()` của trang: **cập nhật state trước** cho UI
      phản hồi tức thì, lỗi thì báo + `loadData()` để state không lệch DB. `moveItem()` là
      chỗ dễ sai nhất — nó ghi lại `order_index` cho **cả lane nguồn lẫn lane đích**, và khi
@@ -330,9 +361,12 @@ Edge Function):
        `ItemDetailModal` (chỉ xem) — phân biệt bấm với vừa-kéo-xong bằng
        `wasDraggedRef` của `useTimelineDrag` (đọc đồng bộ trong `onClick`, vì pointer
        không `setPointerCapture` nên trình duyệt luôn bắn thêm `click` sau mỗi lần kéo).
-       Hoạt động trong cùng 1 chặng có màu xoay vòng qua `itemColorInUnit()` (4 sắc thái/
-       tông màu, xem `colors.ts`) để phân biệt hoạt động cạnh nhau, không còn dùng
-       chung 1 màu như trước. Panel "Chưa xếp lịch" ngoài chặng-trong-kế-hoạch-nhưng-
+       Hoạt động giữ tông màu của chặng cha nhưng **độ đậm quy theo GIÁ** (
+       `priceShadeIndex(price, maxPrice)` + `itemColorInUnit()`, 4 sắc thái — thang theo
+       căn bậc hai vì chi phí du lịch lệch rất mạnh): nhìn gantt là đoán được tiền đổ vào
+       đâu, thay cho cách xoay vòng theo thứ tự trước đây. `maxPrice` lấy trên **toàn kế
+       hoạch** để 2 chặng cạnh nhau so sánh được với nhau.
+       Panel "Chưa xếp lịch" ngoài chặng-trong-kế-hoạch-nhưng-
        chưa-có-giờ còn hiện thêm nhóm **chặng chưa gắn kế hoạch nào** (`freeUnits`,
        chấm màu trung tính) — kéo thẳng vào gantt sẽ vừa gắn vào kế hoạch này (qua
        `onAttachAndScheduleUnit`/`attachAndScheduleUnit()`) vừa xếp giờ trong 1 lần thả.
@@ -365,6 +399,17 @@ Edge Function):
 
 ## Việc cần làm tiếp theo (ngay bây giờ)
 
+- 🔴 **Chạy `supabase/fix-rls-recursion.sql`** (hoặc chạy lại `schema.sql`, đã đồng bộ) —
+  sửa lỗi *"canceling statement due to statement timeout"* khi đăng nhập bằng tài khoản
+  KHÁC tài khoản chủ. 4 hàm helper của tính năng chia sẻ (`is_plan_collaborator`,
+  `unit_is_shared_with_me`, `item_is_shared_with_me`, `owner_shared_with_me`) trước đây là
+  `security invoker`, tạo **đệ quy RLS**: policy `plans` gọi hàm → hàm đọc
+  `plan_collaborators` → policy bảng đó subquery ngược `plans` → … Postgres không bắt được
+  vòng lặp vì nó đi qua 1 hàm, nên chỉ phình theo cấp số nhân tới khi hết `statement_timeout`.
+  Chủ sở hữu không thấy lỗi vì vế `auth.uid() = user_id` của `OR` đúng ngay ở mọi dòng của
+  mình nên hàm gần như không bị gọi; tài khoản khác thì vế đó sai ở **mọi** dòng.
+  Cách chữa: đổi cả 4 hàm sang `security definer set search_path = public` — an toàn vì mỗi
+  hàm tự lọc theo `auth.uid()` người gọi và chỉ trả `boolean`. **Đừng đổi ngược lại.**
 - **Chạy lại `supabase/schema.sql`** trong Supabase SQL Editor — đợt này thêm bảng
   `plan_collaborators`, cột `plans.share_token`, 6 hàm SQL mới (`is_plan_collaborator`,
   `unit_is_shared_with_me`, `item_is_shared_with_me`, `owner_shared_with_me`,
