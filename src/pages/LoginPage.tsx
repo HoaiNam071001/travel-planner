@@ -1,5 +1,5 @@
 import { Navigate } from "react-router-dom";
-import { Compass, Map, Route as RouteIcon, Sparkles, type LucideIcon } from "lucide-react";
+import { Map, Route as RouteIcon, Sparkles, type LucideIcon } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { ROUTES } from "../shared/constants/routes";
 import Button from "../shared/components/Button";
@@ -32,9 +32,7 @@ export default function LoginPage() {
         />
 
         <div className="relative flex items-center gap-2.5 text-white">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 ring-1 ring-inset ring-white/15">
-            <Compass className="h-[18px] w-[18px]" />
-          </span>
+          <img src="/logo.svg" alt="" className="h-9 w-9 shrink-0" />
           <span className="font-display text-[15px] font-bold tracking-tight">Travel Planner</span>
         </div>
 
@@ -64,9 +62,7 @@ export default function LoginPage() {
       {/* Cột phải: form đăng nhập */}
       <div className="flex items-center justify-center bg-slate-50 px-6 py-16">
         <div className="w-full max-w-sm animate-fade-up">
-          <div className="mb-7 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-[0_8px_24px_-6px_rgb(6_182_212_/_0.7)] lg:hidden">
-            <Compass className="h-6 w-6" />
-          </div>
+          <img src="/logo.svg" alt="" className="mb-7 h-12 w-12 lg:hidden" />
 
           <h1 className="text-2xl font-bold">Chào mừng trở lại</h1>
           <p className="mt-1.5 text-sm text-slate-500">

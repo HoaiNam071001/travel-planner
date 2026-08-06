@@ -1,17 +1,18 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { Dropdown, type MenuProps } from "antd";
 import {
+  Home,
   MapPin,
   Sparkles,
   Route as RouteIcon,
   Map,
-  Compass,
   LogOut,
   User,
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { ROUTES } from "../shared/constants/routes";
+import IconButton from "../shared/components/IconButton";
 
 interface NavItem {
   to: string;
@@ -27,6 +28,7 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 export default function Header() {
+  const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const metadata = user?.user_metadata as { full_name?: string; avatar_url?: string } | undefined;
   const name = metadata?.full_name ?? user?.email ?? "Bạn";
@@ -57,13 +59,18 @@ export default function Header() {
     <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/80 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4 sm:px-6">
         <NavLink to={ROUTES.PLANS} className="flex shrink-0 items-center gap-2.5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-[0_4px_12px_-2px_rgb(6_182_212_/_0.5)]">
-            <Compass className="h-[18px] w-[18px]" />
-          </span>
+          <img src="/logo.svg" alt="" className="h-9 w-9 shrink-0" />
           <span className="hidden font-display text-[15px] font-bold tracking-tight text-slate-900 lg:block">
             Travel Planner
           </span>
         </NavLink>
+
+        <IconButton
+          icon={Home}
+          aria-label="Về trang chủ"
+          onClick={() => navigate(ROUTES.HOME)}
+          className="border border-slate-200/80"
+        />
 
         {/* Nav dạng segmented pill — nền slate-100 để tách khỏi header trắng. */}
         <nav className="mx-auto flex items-center gap-0.5 rounded-xl bg-slate-100/80 p-1">
