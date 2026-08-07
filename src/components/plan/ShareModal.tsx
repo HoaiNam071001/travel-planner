@@ -104,7 +104,7 @@ export default function ShareModal({ open, plan, onClose, onToggleShare }: Share
               {collaborators.map((collaborator) => (
                 <li
                   key={collaborator.id}
-                  className="flex items-center justify-between gap-2 rounded-xl bg-surface-elevated/58 px-3 py-2 text-sm"
+                  className="flex items-center justify-between gap-2 rounded-xl border border-border/60 bg-surface-elevated px-3 py-2 text-sm"
                 >
                   <span className="truncate text-text-primary">{collaborator.invited_email}</span>
                   <Popconfirm

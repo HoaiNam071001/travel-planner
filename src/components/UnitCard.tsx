@@ -1,10 +1,9 @@
 import { Popconfirm } from "antd";
 import { CalendarClock, Clock, Copy, Map, Pencil, Sparkles, Trash2, Wallet } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
-import type { ReactNode } from "react";
 import { useTranslation } from "../i18n/useAppTranslation";
 import Badge from "../shared/components/Badge";
 import IconButton from "../shared/components/IconButton";
+import StatTile from "../shared/components/StatTile";
 import { formatDateTimeRange, formatDuration, formatPrice } from "../shared/utils/format";
 import { unitRange } from "../shared/utils/schedule";
 import type { Id, Unit, UnitStats } from "../shared/types/models";
@@ -84,23 +83,11 @@ export default function UnitCard({
 
       {unit.description && <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-text-secondary">{unit.description}</p>}
 
-      <div className="mt-auto grid grid-cols-3 gap-2 border-t border-border/8 pt-3.5 [&>div]:min-w-0">
-        <Stat icon={Sparkles} label={t("card.items")} value={stats.itemCount} />
-        <Stat icon={Clock} label={t("card.duration")} value={formatDuration(stats.minutes) ?? "-"} />
-        <Stat icon={Wallet} label={t("card.cost")} value={stats.cost > 0 ? formatPrice(stats.cost) : "-"} />
+      <div className="mt-auto grid grid-cols-3 gap-2 pt-1 [&>div]:min-w-0">
+        <StatTile icon={Sparkles} label={t("card.items")} value={stats.itemCount} />
+        <StatTile icon={Clock} label={t("card.duration")} value={formatDuration(stats.minutes) ?? "-"} />
+        <StatTile icon={Wallet} label={t("card.cost")} value={stats.cost > 0 ? formatPrice(stats.cost) : "-"} />
       </div>
-    </div>
-  );
-}
-
-function Stat({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: ReactNode }) {
-  return (
-    <div>
-      <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-text-muted">
-        <Icon className="h-3 w-3" />
-        {label}
-      </p>
-      <p className="mt-0.5 truncate text-[13px] font-semibold text-text-primary tnum">{value}</p>
     </div>
   );
 }

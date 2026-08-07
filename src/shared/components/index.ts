@@ -10,5 +10,6 @@ export { default as PageHeader } from "./PageHeader";
 export { default as EmptyState } from "./EmptyState";
 export { default as Field } from "./Field";
 export { default as IconButton } from "./IconButton";
+export { default as DurationInput } from "./DurationInput";
 export { default as ThemeSwitcher } from "./ThemeSwitcher";
 export { default as LanguageSwitcher } from "./LanguageSwitcher";

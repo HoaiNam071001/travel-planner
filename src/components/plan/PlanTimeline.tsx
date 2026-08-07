@@ -744,7 +744,7 @@ export default function PlanTimeline({
                     ))}
                     {showNow && (
                       <span
-                        className="absolute top-0 h-full w-0.5 bg-rose-400/80"
+                        className="absolute top-0 h-full w-0.5 bg-danger/80"
                         style={{ left: scale.xOf(now) }}
                       />
                     )}
@@ -1528,7 +1528,7 @@ function UnscheduledPanel({
           <div
             ref={unitParkingRef}
             className={`rounded-xl p-3 transition sm:rounded-none sm:p-3.5 ${
-              isUnitDropTarget ? "bg-rose-50/60 ring-2 ring-inset ring-rose-300" : ""
+              isUnitDropTarget ? "bg-danger/10 ring-2 ring-inset ring-danger/30" : ""
             }`}
           >
             <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-text-secondary">
@@ -1594,7 +1594,7 @@ function UnscheduledPanel({
           <div
             ref={itemParkingRef}
             className={`rounded-xl p-3 transition sm:rounded-none sm:p-3.5 ${
-              isItemDropTarget ? "bg-rose-50/60 ring-2 ring-inset ring-rose-300" : ""
+              isItemDropTarget ? "bg-danger/10 ring-2 ring-inset ring-danger/30" : ""
             }`}
           >
             <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-text-secondary">
@@ -1628,7 +1628,7 @@ function UnscheduledPanel({
           <div
             ref={expenseParkingRef}
             className={`rounded-xl p-3 transition sm:rounded-none sm:p-3.5 ${
-              isExpenseDropTarget ? "bg-rose-50/60 ring-2 ring-inset ring-rose-300" : ""
+              isExpenseDropTarget ? "bg-danger/10 ring-2 ring-inset ring-danger/30" : ""
             }`}
           >
             <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-text-secondary">
@@ -1724,7 +1724,7 @@ function ScrollRevealList<T>({ items, keyOf, resetKey, renderItem, emptyHint }: 
 function InlineCost({ value }: { value: number | string | null | undefined }) {
   if (value == null || Number(value) <= 0) return null;
   return (
-    <span className="shrink-0 text-[11px] font-semibold text-emerald-600 tnum">
+    <span className="shrink-0 text-[11px] font-semibold text-success tnum">
       {formatPriceShort(value)}
     </span>
   );

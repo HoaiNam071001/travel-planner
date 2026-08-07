@@ -113,7 +113,7 @@ export default function PlanFormModal({ open, mode, plan, onClose, onSubmit }: P
         </Field>
 
         {error && (
-          <p className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs text-rose-700">
+          <p className="rounded-xl border border-danger/20 bg-danger/8 px-3.5 py-2.5 text-xs text-danger">
             {error}
           </p>
         )}

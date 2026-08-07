@@ -270,29 +270,19 @@ function SummaryCard({
   };
 
   return (
-    <Card className={`relative overflow-hidden p-4 ${emphasized ? "surface-highlight text-white" : "surface-soft"}`} elevated>
-      {emphasized && (
-        <div
-          aria-hidden
-          className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.18),transparent_38%),linear-gradient(180deg,rgba(255,255,255,0.03),transparent)]"
-        />
-      )}
+    <Card className={`relative overflow-hidden p-4 ${emphasized ? "surface-highlight" : "surface-soft"}`} elevated>
       {!emphasized && <div aria-hidden className={`absolute inset-0 ${toneStyles[tone].panel}`} />}
       <div className="relative">
         <span
-          className={`flex h-11 w-11 items-center justify-center rounded-[18px] ${
-            emphasized ? "bg-white/12 text-white" : toneStyles[tone].icon
+          className={`flex h-11 w-11 items-center justify-center rounded-2xl ${
+            emphasized ? "bg-primary/10 text-primary" : toneStyles[tone].icon
           }`}
         >
           <Icon className="h-5 w-5" />
         </span>
-        <p className={`mt-4 text-[11px] font-semibold uppercase tracking-[0.16em] ${emphasized ? "text-white/72" : "text-text-muted"}`}>
-          {label}
-        </p>
-        <p className={`mt-2 font-display text-[28px] font-bold leading-none tnum ${emphasized ? "text-white" : "text-text-primary"}`}>
-          {value}
-        </p>
-        <p className={`mt-3 text-sm leading-6 ${emphasized ? "text-white/75" : "text-text-secondary"}`}>{detail}</p>
+        <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted">{label}</p>
+        <p className="mt-2 font-display text-[28px] font-bold leading-none text-text-primary tnum">{value}</p>
+        <p className="mt-3 text-sm leading-6 text-text-secondary">{detail}</p>
       </div>
     </Card>
   );

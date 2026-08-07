@@ -45,13 +45,12 @@ export default function Header({
   return (
     <header className="sticky top-0 z-40">
       <div className="relative px-4 pt-4 sm:px-6 xl:px-8">
-        <div className="absolute inset-x-4 bottom-0 h-px bg-[linear-gradient(90deg,transparent,rgba(71,85,105,0.22),transparent)] sm:inset-x-6 xl:inset-x-8" />
-        <div className="flex h-[72px] items-center justify-between gap-4 rounded-[26px] bg-surface/42 px-4 backdrop-blur-2xl shadow-[0_24px_60px_-46px_rgba(2,6,23,0.9)] sm:px-5">
+        <div className="flex h-[72px] items-center justify-between gap-4 rounded-2xl border border-border/60 bg-surface-elevated/92 px-4 shadow-xs backdrop-blur-md sm:px-5">
           <div className="flex min-w-0 items-center gap-3">
             <button
               type="button"
               onClick={onToggleSidebar}
-              className="hidden rounded-[18px] bg-surface-elevated/68 p-2.5 text-text-muted transition hover:bg-surface-elevated hover:text-text-primary xl:inline-flex"
+              className="hidden rounded-xl p-2.5 text-text-muted transition hover:bg-surface-secondary hover:text-text-primary xl:inline-flex"
               aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
               title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
@@ -60,7 +59,7 @@ export default function Header({
             <button
               type="button"
               onClick={() => navigate(ROUTES.HOME)}
-              className="inline-flex items-center gap-2 rounded-[18px] bg-surface-elevated/68 px-3.5 py-2.5 text-sm font-medium text-text-secondary backdrop-blur transition hover:bg-surface-elevated hover:text-text-primary"
+              className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-medium text-text-secondary transition hover:bg-surface-secondary hover:text-text-primary"
             >
               <Home className="h-4 w-4 text-primary" />
               <span className="hidden sm:block">{t("common:actions.goHome")}</span>
@@ -74,13 +73,13 @@ export default function Header({
             <Dropdown trigger={["click"]} placement="bottomRight" menu={{ items: menuItems }}>
               <button
                 type="button"
-                className="group inline-flex items-center gap-3 rounded-[22px] bg-surface-elevated/72 px-2.5 py-2.5 backdrop-blur-2xl transition hover:bg-surface-elevated"
+                className="group inline-flex items-center gap-3 rounded-xl px-2.5 py-2.5 transition hover:bg-surface-secondary"
                 aria-label={t("navigation:account")}
               >
                 {avatar ? (
-                  <img src={avatar} alt={name} className="h-10 w-10 rounded-[18px] object-cover" />
+                  <img src={avatar} alt={name} className="h-10 w-10 rounded-xl object-cover" />
                 ) : (
-                  <span className="flex h-10 w-10 items-center justify-center rounded-[18px] bg-[linear-gradient(135deg,rgba(236,72,153,0.92),rgba(190,24,93,0.86))] text-white shadow-[0_18px_36px_-24px_rgba(236,72,153,0.65)]">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[linear-gradient(135deg,rgba(236,72,153,0.92),rgba(190,24,93,0.86))] text-white shadow-xs">
                     <User className="h-4 w-4" />
                   </span>
                 )}

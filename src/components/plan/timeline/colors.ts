@@ -29,7 +29,7 @@ const PALETTE: UnitColor[] = [
     dot: "bg-brand-500",
     solidChip: "bg-brand-600",
     accentBorder: "border-brand-400",
-    tintBg: "bg-cyan-500/10",
+    tintBg: "bg-brand-500/10",
     itemVariants: [
       "bg-brand-100 text-brand-800 ring-brand-300/70",
       "bg-brand-200 text-brand-900 ring-brand-400/60",

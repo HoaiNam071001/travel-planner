@@ -285,8 +285,8 @@ function FilterChip({
     <button
       type="button"
       onClick={onClick}
-      className={`max-w-[190px] truncate rounded-full px-3 py-1.5 text-xs font-medium transition ${
-        active ? "bg-primary text-white shadow-[0_14px_32px_-18px_rgba(14,165,233,0.55)]" : "bg-surface-elevated/62 text-text-secondary hover:bg-surface-elevated/84 hover:text-text-primary"
+      className={`max-w-[190px] truncate rounded-xl px-3 py-1.5 text-xs font-medium transition ${
+        active ? "gradient-brand text-white shadow-xs" : "bg-surface-elevated text-text-secondary hover:bg-surface-secondary hover:text-text-primary"
       }`}
     >
       {children}

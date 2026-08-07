@@ -258,7 +258,7 @@ export default function LocationsPage() {
           {loading ? (
             <div className="flex flex-col gap-3">
               {[0, 1, 2, 3].map((i) => (
-                <div key={i} className="h-24 animate-pulse rounded-2xl bg-surface-elevated/54" />
+                <div key={i} className="surface h-24 animate-pulse" />
               ))}
             </div>
           ) : isEmpty ? (

@@ -144,7 +144,7 @@ export default function LocationFormModal({
               Convert
             </Button>
           </div>
-          {mapsLinkError && <p className="mt-1.5 text-xs text-rose-600">{mapsLinkError}</p>}
+          {mapsLinkError && <p className="mt-1.5 text-xs text-danger">{mapsLinkError}</p>}
         </Field>
 
         <Field label={t("forms:location.fields.name")}>
@@ -189,7 +189,7 @@ export default function LocationFormModal({
         </Field>
 
         {error && (
-          <p className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs text-rose-700">
+          <p className="rounded-xl border border-danger/20 bg-danger/8 px-3.5 py-2.5 text-xs text-danger">
             {error}
           </p>
         )}

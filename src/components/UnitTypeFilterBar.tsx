@@ -68,10 +68,10 @@ function Chip({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full px-3 py-1.5 text-xs font-medium ring-1 ring-inset transition ${
+      className={`rounded-xl px-3 py-1.5 text-xs font-medium ring-1 ring-inset transition ${
         active
-          ? "bg-[linear-gradient(135deg,rgba(34,211,238,0.94),rgba(37,99,235,0.9),rgba(79,70,229,0.82))] text-white ring-transparent shadow-[0_14px_30px_-20px_rgba(14,165,233,0.55)]"
-          : "bg-surface-elevated/84 text-text-secondary ring-border/12 hover:bg-surface-elevated hover:text-text-primary"
+          ? "gradient-brand text-white ring-transparent shadow-xs"
+          : "bg-surface-elevated text-text-secondary ring-border/60 hover:bg-surface-secondary hover:text-text-primary"
       }`}
     >
       {children}

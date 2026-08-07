@@ -199,7 +199,7 @@ export function BoardItemRow({
         {item.name}
       </span>
       {item.price != null && Number(item.price) > 0 && (
-        <span className="shrink-0 text-[10px] font-semibold text-emerald-600 tnum group-hover:hidden">
+        <span className="shrink-0 text-[10px] font-semibold text-success tnum group-hover:hidden">
           {formatPriceShort(item.price)}
         </span>
       )}

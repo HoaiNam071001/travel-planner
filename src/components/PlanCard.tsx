@@ -43,11 +43,7 @@ export default function PlanCard({
 
   return (
     <Link to={planPath(plan.id)} className="group block">
-      <Card className="relative h-full overflow-hidden p-5 transition-all duration-300 hover:-translate-y-1 hover:bg-surface-elevated/82 hover:shadow-[0_32px_72px_-44px_rgba(37,99,235,0.28)]">
-        <div
-          aria-hidden
-          className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.1),transparent_28%),linear-gradient(180deg,transparent,rgba(59,130,246,0.04))] opacity-90"
-        />
+      <Card className="relative h-full overflow-hidden p-5 transition-all duration-300 hover:-translate-y-1 hover:border-primary/20 hover:shadow-card-hover">
         <div className="relative flex h-full flex-col">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
@@ -105,14 +101,14 @@ export default function PlanCard({
           )}
 
           <div className="mt-5 grid grid-cols-2 gap-3">
-            <div className="rounded-[22px] bg-surface-elevated/52 p-3 backdrop-blur-sm">
+            <div className="rounded-xl bg-surface-secondary/70 p-3">
               <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-text-muted">
                 <RouteIcon className="h-3.5 w-3.5 text-primary" />
                 {t("card.units")}
               </p>
               <p className="mt-2 text-xl font-bold text-text-primary tnum">{unitCount}</p>
             </div>
-            <div className="rounded-[22px] bg-surface-elevated/52 p-3 backdrop-blur-sm">
+            <div className="rounded-xl bg-surface-secondary/70 p-3">
               <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-text-muted">
                 <Sparkles className="h-3.5 w-3.5 text-primary" />
                 {t("card.items")}
@@ -121,7 +117,7 @@ export default function PlanCard({
             </div>
           </div>
 
-          <div className="mt-5 flex items-end justify-between border-t border-border/8 pt-4">
+          <div className="mt-5 flex items-end justify-between border-t border-border/60 pt-4">
             <div>
               <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-text-muted">
                 <Wallet className="h-3.5 w-3.5 text-primary" />

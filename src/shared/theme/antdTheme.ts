@@ -27,8 +27,8 @@ export function createAntdTheme(resolvedTheme: ResolvedTheme): ThemeConfig {
       colorBgContainer: colors.surface,
       colorBgElevated: colors.surfaceElevated,
       colorFillQuaternary: colors.surfaceSecondary,
-      borderRadius: 10,
-      borderRadiusLG: 14,
+      borderRadius: 12,
+      borderRadiusLG: 16,
       borderRadiusSM: 8,
       controlHeight: 38,
       fontSize: 14,
@@ -55,7 +55,7 @@ export function createAntdTheme(resolvedTheme: ResolvedTheme): ThemeConfig {
         defaultColor: colors.textSecondary,
       },
       Modal: {
-        borderRadiusLG: 18,
+        borderRadiusLG: 20,
         titleFontSize: 17,
       },
       Input: {

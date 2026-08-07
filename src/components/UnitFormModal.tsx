@@ -84,10 +84,10 @@ function UnitTypePicker({ types, selectedId, onSelect, onCreate, onDelete }: Uni
           <span
             key={type.id}
             onClick={() => onSelect(selected ? null : type.id)}
-            className={`group inline-flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ring-1 ring-inset transition ${
+            className={`group inline-flex cursor-pointer items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium ring-1 ring-inset transition ${
               selected
-                ? "bg-[linear-gradient(135deg,rgba(34,211,238,0.94),rgba(37,99,235,0.9),rgba(79,70,229,0.82))] text-white ring-transparent shadow-[0_14px_30px_-20px_rgba(14,165,233,0.55)]"
-                : "bg-surface-elevated/84 text-text-secondary ring-border/12 hover:bg-surface-elevated"
+                ? "gradient-brand text-white ring-transparent shadow-xs"
+                : "bg-surface-elevated text-text-secondary ring-border/60 hover:bg-surface-secondary"
             }`}
           >
             {type.name}
@@ -331,7 +331,7 @@ export default function UnitFormModal({
         )}
 
         {error && (
-          <p className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs text-rose-700">
+          <p className="rounded-xl border border-danger/20 bg-danger/8 px-3.5 py-2.5 text-xs text-danger">
             {error}
           </p>
         )}

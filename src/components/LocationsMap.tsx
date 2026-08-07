@@ -91,12 +91,12 @@ function MapOverlay({ basemap, onBasemapChange, onSearchArea, searching }: MapOv
             const center = map.getCenter();
             onSearchArea({ lat: center.lat, lng: center.lng }, AREA_SEARCH_RADIUS_M);
           }}
-          className="group flex items-center gap-1.5 rounded-full bg-slate-900/95 px-3.5 py-2 text-xs font-semibold text-white shadow-pop ring-1 ring-white/10 backdrop-blur transition hover:-translate-y-px hover:bg-slate-900 hover:shadow-[0_10px_24px_-6px_rgb(6_182_212_/_0.45)] disabled:translate-y-0 disabled:opacity-70"
+          className="group flex items-center gap-1.5 rounded-full border border-border/60 bg-surface-elevated/92 px-3.5 py-2 text-xs font-semibold text-text-primary shadow-pop backdrop-blur transition hover:-translate-y-px hover:bg-surface-elevated disabled:translate-y-0 disabled:opacity-70"
         >
           {searching ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin text-brand-300" />
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
           ) : (
-            <Crosshair className="h-3.5 w-3.5 text-brand-300 transition group-hover:scale-110" />
+            <Crosshair className="h-3.5 w-3.5 text-primary transition group-hover:scale-110" />
           )}
           {searching ? "Đang tìm..." : `Tìm địa điểm ở đây (${AREA_SEARCH_RADIUS_M}m)`}
         </button>
@@ -173,7 +173,7 @@ export default function LocationsMap({
           <Tooltip direction="top" offset={[0, -22]} opacity={1}>
             <span className="font-medium">{loc.name}</span>
             {area && (
-              <span className="ml-1 text-slate-400 tnum">
+              <span className="ml-1 text-text-muted tnum">
                 · {formatDistance(distanceFromArea(loc, area.center))}
               </span>
             )}

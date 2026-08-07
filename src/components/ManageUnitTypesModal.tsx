@@ -41,7 +41,7 @@ export default function ManageUnitTypesModal({
       types.map((type) => (
         <div
           key={type.id}
-          className="flex items-center justify-between rounded-xl border border-border/10 bg-surface-elevated/66 px-3 py-2"
+          className="flex items-center justify-between rounded-xl border border-border/60 bg-surface-elevated px-3 py-2"
         >
           <span className="text-sm text-text-primary">{type.name}</span>
           <Popconfirm

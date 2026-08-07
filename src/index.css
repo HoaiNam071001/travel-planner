@@ -4,7 +4,7 @@
 
 :root {
   color-scheme: light;
-  --color-bg: 242 246 251;
+  --color-bg: 247 250 253;
   --color-surface: 250 252 255;
   --color-surface-secondary: 233 240 248;
   --color-surface-elevated: 255 255 255;
@@ -20,9 +20,12 @@
   --color-danger: 239 68 68;
   --color-info: 14 165 233;
   --ring-offset: 255 255 255;
-  --shadow-card: 0 10px 24px -20px rgb(59 130 246 / 0.18), 0 8px 18px -16px rgb(15 23 42 / 0.08);
-  --shadow-card-hover: 0 18px 42px -28px rgb(59 130 246 / 0.2), 0 18px 34px -22px rgb(15 23 42 / 0.12);
-  --shadow-pop: 0 22px 44px -28px rgb(59 130 246 / 0.18), 0 18px 38px -20px rgb(15 23 42 / 0.16);
+  --shadow-xs: 0 1px 2px 0 rgb(15 23 42 / 0.04);
+  --shadow-card: 0 1px 2px 0 rgb(15 23 42 / 0.03), 0 6px 16px -10px rgb(15 23 42 / 0.1);
+  --shadow-card-hover: 0 2px 4px -1px rgb(15 23 42 / 0.04), 0 14px 32px -12px rgb(15 23 42 / 0.14);
+  --shadow-pop: 0 8px 16px -4px rgb(15 23 42 / 0.06), 0 28px 56px -20px rgb(15 23 42 / 0.18);
+  --gradient-brand: linear-gradient(135deg, rgb(34 211 238 / 0.95), rgb(6 182 212 / 0.95), rgb(37 99 235 / 0.9));
+  --gradient-brand-soft: linear-gradient(135deg, rgb(var(--color-primary) / 0.12), rgb(var(--color-info) / 0.08));
 }
 
 [data-theme="dark"] {
@@ -43,9 +46,10 @@
   --color-danger: 248 113 113;
   --color-info: 56 189 248;
   --ring-offset: 2 6 23;
-  --shadow-card: 0 12px 28px -20px rgb(2 6 23 / 0.62);
-  --shadow-card-hover: 0 18px 40px -22px rgb(2 6 23 / 0.88), 0 28px 72px -36px rgb(8 47 73 / 0.22);
-  --shadow-pop: 0 22px 48px -24px rgb(2 6 23 / 0.78);
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.3), 0 8px 20px -12px rgb(0 0 0 / 0.55);
+  --shadow-card-hover: 0 2px 4px -1px rgb(0 0 0 / 0.32), 0 16px 36px -14px rgb(0 0 0 / 0.6);
+  --shadow-pop: 0 10px 20px -6px rgb(0 0 0 / 0.4), 0 30px 60px -20px rgb(0 0 0 / 0.65);
 }
 
 @layer base {
@@ -104,19 +108,27 @@
   }
 
   .surface-soft {
-    @apply rounded-[28px] border backdrop-blur-2xl;
-    border-color: rgb(var(--color-border) / 0.04);
+    @apply rounded-3xl border backdrop-blur-2xl;
+    border-color: rgb(var(--color-border) / 0.06);
     background:
-      linear-gradient(180deg, rgb(var(--color-surface-elevated) / 0.84), rgb(var(--color-surface) / 0.96));
+      linear-gradient(180deg, rgb(var(--color-surface-elevated) / 0.9), rgb(var(--color-surface) / 0.98));
     box-shadow: var(--shadow-card-hover);
   }
 
   .surface-highlight {
-    @apply rounded-[28px] border backdrop-blur-2xl;
-    border-color: rgb(var(--color-primary) / 0.06);
+    @apply rounded-3xl border;
+    border-color: rgb(var(--color-border) / 0.6);
     background:
-      linear-gradient(135deg, rgb(99 102 241 / 0.72), rgb(37 99 235 / 0.88), rgb(14 165 233 / 0.78));
-    box-shadow: 0 26px 72px -44px rgb(37 99 235 / 0.68);
+      linear-gradient(135deg, rgb(var(--color-primary) / 0.07), rgb(var(--color-info) / 0.05) 55%, rgb(var(--color-surface-elevated) / 0.98));
+    box-shadow: var(--shadow-card);
+  }
+
+  .gradient-brand {
+    background-image: var(--gradient-brand);
+  }
+
+  .gradient-brand-soft {
+    background-image: var(--gradient-brand-soft);
   }
 
   .scroll-thin {
@@ -145,7 +157,7 @@
   }
 
   .hero-grid {
-    background-image: radial-gradient(rgb(255 255 255 / 0.09) 1px, transparent 1px);
+    background-image: radial-gradient(rgb(var(--color-text-primary) / 0.05) 1px, transparent 1px);
     background-size: 22px 22px;
   }
 }
@@ -203,9 +215,36 @@
 }
 
 .ant-modal-content {
+  border-radius: 20px !important;
   box-shadow: var(--shadow-pop);
 }
 
 .ant-modal-title {
   @apply font-display tracking-tight;
+}
+
+.ant-select-selector,
+.ant-picker,
+.ant-input-number,
+.ant-input-number-affix-wrapper,
+.ant-input-affix-wrapper,
+.ant-input {
+  border-radius: 12px !important;
+}
+
+.ant-select-dropdown,
+.ant-picker-dropdown .ant-picker-panel-container,
+.ant-dropdown-menu,
+.ant-popover-inner {
+  border-radius: 12px !important;
+  border: 1px solid rgb(var(--color-border) / 0.5);
+  box-shadow: var(--shadow-card-hover) !important;
+}
+
+.ant-dropdown-menu {
+  padding: 4px;
+}
+
+.ant-dropdown-menu-item {
+  border-radius: 8px !important;
 }

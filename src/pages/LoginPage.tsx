@@ -22,28 +22,28 @@ export default function LoginPage() {
 
   return (
     <div className="grid min-h-screen bg-bg lg:grid-cols-2">
-      <div className="relative hidden overflow-hidden p-12 lg:flex lg:flex-col lg:justify-between">
+      <div className="relative hidden overflow-hidden bg-surface-secondary/40 p-12 lg:flex lg:flex-col lg:justify-between">
         <div
           aria-hidden
-          className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(79,70,229,0.24),transparent_26%),radial-gradient(circle_at_bottom_left,rgba(14,165,233,0.14),transparent_22%),linear-gradient(180deg,rgba(2,6,23,0.96),rgba(2,6,23,1))]"
+          className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgb(var(--color-primary)/0.1),transparent_28%),radial-gradient(circle_at_bottom_left,rgb(var(--color-info)/0.08),transparent_24%)]"
         />
-        <div aria-hidden className="hero-grid absolute inset-0 opacity-70" />
+        <div aria-hidden className="hero-grid absolute inset-0 opacity-60" />
 
-        <div className="relative flex items-center gap-2.5 text-white">
+        <div className="relative flex items-center gap-2.5 text-text-primary">
           <img src="/logo.svg" alt="" className="h-9 w-9 shrink-0" />
           <span className="font-display text-[15px] font-bold tracking-tight">Travel Planner</span>
         </div>
 
         <div className="relative">
-          <h2 className="max-w-md font-display text-4xl font-extrabold leading-[1.15] text-white">
+          <h2 className="max-w-md font-display text-4xl font-extrabold leading-[1.15] text-text-primary">
             {t("login.headline")}
           </h2>
           <ul className="mt-8 space-y-3.5">
             {HIGHLIGHT_KEYS.map((key) => {
               const Icon = HIGHLIGHT_ICONS[key];
               return (
-                <li key={key} className="flex items-start gap-3 text-sm text-white/72">
-                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-white/10 text-primary">
+                <li key={key} className="flex items-start gap-3 text-sm text-text-secondary">
+                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                     <Icon className="h-3.5 w-3.5" />
                   </span>
                   {t(`login.highlights.${key}`)}
@@ -53,7 +53,7 @@ export default function LoginPage() {
           </ul>
         </div>
 
-        <p className="relative text-xs text-white/40">{t("login.security")}</p>
+        <p className="relative text-xs text-text-muted">{t("login.security")}</p>
       </div>
 
       <div className="flex items-center justify-center px-6 py-16">

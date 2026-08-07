@@ -25,7 +25,7 @@ export interface SemanticThemeColors {
 
 export const semanticThemeColors: Record<ResolvedTheme, SemanticThemeColors> = {
   light: {
-    background: "#F8FAFC",
+    background: "#F7FAFD",
     surface: "#FFFFFF",
     surfaceSecondary: "#F8FAFC",
     surfaceElevated: "#FFFFFF",
