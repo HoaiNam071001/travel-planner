@@ -553,7 +553,7 @@ export default function PlanTimeline({
 
       <section className="surface overflow-hidden">
         {/* ------------------------------------------------------------ toolbar */}
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-slate-100 px-4 py-2.5">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-border/10 px-4 py-2.5">
           <Badge tone="brand" icon={CalendarClock} numeric>
             {formatDateTimeRange(scale.origin, scale.end.subtract(1, "minute"))}
           </Badge>
@@ -599,14 +599,14 @@ export default function PlanTimeline({
               aria-label="Phóng to"
               disabled={(zoom ?? ZOOM_DEFAULT) >= ZOOM_MAX}
             />
-            <span className="w-16 shrink-0 text-right text-[11px] text-slate-400 tnum">
+            <span className="w-16 shrink-0 text-right text-[11px] text-text-muted tnum">
               {scale.pxPerHour}px/giờ
             </span>
           </div>
         </div>
 
         {rows.length === 0 && scheduledExpenses.length === 0 ? (
-          <p className="px-5 py-10 text-center text-sm text-slate-400">
+          <p className="px-5 py-10 text-center text-sm text-text-muted">
             {planUnits.length === 0
               ? "Kế hoạch chưa có chặng nào — thêm ở tab Xây dựng."
               : "Chưa có chặng nào lên lịch — kéo 1 chặng từ panel phía trên vào."}
@@ -618,11 +618,11 @@ export default function PlanTimeline({
             <div className="flex" style={{ width: LABEL_WIDTH + scale.width }}>
               {/* --------------------------------------------------- cột nhãn */}
               <div
-                className="sticky left-0 z-30 shrink-0 border-r border-slate-200 bg-white"
+                className="sticky left-0 z-30 shrink-0 border-r border-border/10 bg-surface/94 backdrop-blur"
                 style={{ width: LABEL_WIDTH }}
               >
                 <div
-                  className="sticky top-0 z-10 flex items-end border-b border-slate-200 bg-white px-3 pb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400"
+                  className="sticky top-0 z-10 flex items-end border-b border-border/10 bg-surface/94 px-3 pb-2 text-[11px] font-semibold uppercase tracking-wide text-text-muted backdrop-blur"
                   style={{ height: HEADER_HEIGHT }}
                 >
                   Chặng
@@ -673,7 +673,7 @@ export default function PlanTimeline({
 
                 {schedulingUnit && (
                   <div
-                    className="flex items-center gap-1.5 border-b border-dashed border-brand-300 bg-brand-50/60 px-3 text-[11px] font-semibold text-brand-700"
+                    className="flex items-center gap-1.5 border-b border-dashed border-primary/20 bg-primary/10 px-3 text-[11px] font-semibold text-primary"
                     style={{ height: UNIT_ROW_HEIGHT }}
                   >
                     <span className={`h-2 w-2 shrink-0 rounded-full ${colorOf(schedulingUnit.id).dot}`} />
@@ -738,7 +738,7 @@ export default function PlanTimeline({
                     {scale.days.map((day) => (
                       <span
                         key={day.toISOString()}
-                        className="absolute top-0 h-full w-px bg-slate-300"
+                        className="absolute top-0 h-full w-px bg-border/14"
                         style={{ left: scale.xOf(day) }}
                       />
                     ))}
@@ -766,8 +766,8 @@ export default function PlanTimeline({
                       <div key={unit.id}>
                         <div
                           data-unit-row-id={unit.id}
-                          className={`relative border-b border-slate-100 transition-colors ${
-                            isItemDropRow ? "bg-brand-50/70" : ""
+                          className={`relative border-b border-border/10 transition-colors ${
+                            isItemDropRow ? "bg-primary/8" : ""
                           }`}
                           style={{ height: UNIT_ROW_HEIGHT }}
                         >
@@ -830,14 +830,14 @@ export default function PlanTimeline({
                               <div
                                 key={item.id}
                                 data-unit-row-id={unit.id}
-                                className="relative border-b border-slate-100 bg-slate-50/40"
+                                className="relative border-b border-border/10 bg-surface-secondary/38"
                                 style={{ height: ITEM_ROW_HEIGHT }}
                               >
                                 <HoverPopover
                                   content={
                                     isUndated ? (
-                                      <p className="text-xs text-slate-500">
-                                        <span className="font-bold text-slate-800">{item.name}</span> chưa có giờ —
+                                      <p className="text-xs text-text-secondary">
+                                        <span className="font-bold text-text-primary">{item.name}</span> chưa có giờ —
                                         kéo thanh này để đặt giờ.
                                       </p>
                                     ) : (
@@ -850,7 +850,7 @@ export default function PlanTimeline({
                                     width={itemClamped.width}
                                     colorClass={
                                       isUndated
-                                        ? "border border-dashed border-slate-300 bg-slate-100/80"
+                                        ? "border border-dashed border-border/18 bg-surface-elevated/82"
                                         : // Sắc thái theo GIÁ chứ không theo thứ tự trong chặng:
                                           // hoạt động càng đắt thanh càng đậm.
                                           itemColorInUnit(
@@ -915,7 +915,7 @@ export default function PlanTimeline({
                         {/* Ghost preview khi kéo 1 hoạt động chưa gắn chặng thả đúng vào chặng này. */}
                         {isItemDropRow && draft && (
                           <div
-                            className="relative border-b border-dashed border-brand-300 bg-brand-50/40"
+                            className="relative border-b border-dashed border-primary/18 bg-primary/8"
                             style={{ height: ITEM_ROW_HEIGHT }}
                           >
                             <TimelineBar
@@ -934,7 +934,7 @@ export default function PlanTimeline({
                   {/* Hàng "thả vào đây" khi đang kéo 1 chặng từ panel vào. */}
                   {schedulingUnit && draft && (
                     <div
-                      className="relative border-b border-dashed border-brand-300 bg-brand-50/60"
+                      className="relative border-b border-dashed border-primary/20 bg-primary/10"
                       style={{ height: UNIT_ROW_HEIGHT }}
                     >
                       {!draft.overParking && (
@@ -953,7 +953,7 @@ export default function PlanTimeline({
                       được, xem ExpenseGroupLabel), các khoản con bên dưới mới kéo được. */}
                   {expenses.length > 0 && (
                     <div>
-                      <div className="relative border-b border-slate-100" style={{ height: UNIT_ROW_HEIGHT }}>
+                      <div className="relative border-b border-border/10" style={{ height: UNIT_ROW_HEIGHT }}>
                         {expensesSummaryRange &&
                           (() => {
                             const clamped = clampBarToCanvas(
@@ -966,7 +966,7 @@ export default function PlanTimeline({
                                 title={`Chi phí khác · ${
                                   formatDateTimeRange(expensesSummaryRange.start, expensesSummaryRange.end) ?? ""
                                 }`}
-                                className="absolute inset-y-2 rounded-lg bg-slate-300/60 ring-1 ring-slate-400/40"
+                                className="absolute inset-y-2 rounded-lg bg-surface-elevated/78 ring-1 ring-border/20"
                                 style={{ left: clamped.left, width: clamped.width }}
                               />
                             );
@@ -987,7 +987,7 @@ export default function PlanTimeline({
                           return (
                             <div
                               key={expense.id}
-                              className="relative border-b border-slate-100 bg-slate-50/40"
+                              className="relative border-b border-border/10 bg-surface-secondary/36"
                               style={{ height: ITEM_ROW_HEIGHT }}
                             >
                               <TimelineBar
@@ -1032,7 +1032,7 @@ export default function PlanTimeline({
                       {/* Hàng "thả vào đây" khi đang kéo 1 khoản chi phí từ panel vào. */}
                       {draft?.kind === "expense" && draft.mode === "schedule" && (
                         <div
-                          className="relative border-b border-dashed border-brand-300 bg-brand-50/60"
+                          className="relative border-b border-dashed border-primary/20 bg-primary/10"
                           style={{ height: ITEM_ROW_HEIGHT }}
                         >
                           {!draft.overParking && (
@@ -1076,13 +1076,13 @@ interface TimelineHeaderProps {
 function TimelineHeader({ days, hourStep, pxPerHour, width, xOf }: TimelineHeaderProps) {
   return (
     <div
-      className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 backdrop-blur"
+      className="sticky top-0 z-10 border-b border-border/10 bg-surface/92 backdrop-blur"
       style={{ height: HEADER_HEIGHT, width }}
     >
       {days.map((day) => (
         <div
           key={day.toISOString()}
-          className="absolute top-0 flex h-7 items-center border-l border-slate-200 px-2 text-[11px] font-semibold text-slate-600"
+          className="absolute top-0 flex h-7 items-center border-l border-border/10 px-2 text-[11px] font-semibold text-text-secondary"
           style={{ left: xOf(day), width: 24 * pxPerHour }}
         >
           <span className="truncate tnum">{day.format("ddd DD/MM")}</span>
@@ -1095,7 +1095,7 @@ function TimelineHeader({ days, hourStep, pxPerHour, width, xOf }: TimelineHeade
           return (
             <span
               key={tick.toISOString()}
-              className="absolute bottom-1 text-[10px] text-slate-400 tnum"
+              className="absolute bottom-1 text-[10px] text-text-muted tnum"
               style={{ left: xOf(tick) + 2 }}
             >
               {tick.format("HH:mm")}
@@ -1123,7 +1123,7 @@ function TimeBands({ scale }: { scale: TimeScale }) {
         .map((i) => (
           <span
             key={i}
-            className="absolute inset-y-0 bg-brand-500/[0.07]"
+            className="absolute inset-y-0 bg-surface-secondary/40"
             style={{ left: i * bandWidth, width: bandWidth }}
           />
         ))}
@@ -1137,10 +1137,10 @@ function HoverGuide({ x, scale }: { x: number; scale: TimeScale }) {
 
   return (
     <div aria-hidden className="pointer-events-none absolute inset-y-0 z-20" style={{ left: x }}>
-      <span className="absolute inset-y-0 left-0 border-l border-dashed border-slate-500/60" />
+      <span className="absolute inset-y-0 left-0 border-l border-dashed border-border/30" />
       {/* `sticky` để nhãn giờ luôn dính ở mép trên khung cuộn, không trôi mất khi
           cuộn xuống các chặng phía dưới. */}
-      <span className="sticky top-1 block whitespace-nowrap rounded-full bg-slate-700/90 px-1.5 py-0.5 text-[10px] font-semibold text-white tnum">
+      <span className="sticky top-1 block whitespace-nowrap rounded-full bg-surface-elevated/94 px-1.5 py-0.5 text-[10px] font-semibold text-text-primary shadow-xs tnum">
         {scale.timeAt(x).format("HH:mm")}
       </span>
     </div>
@@ -1172,9 +1172,9 @@ function GuideLine({ x, label, align = "left" }: { x: number; label: string; ali
       className="pointer-events-none absolute z-20"
       style={{ left: x, top: HEADER_HEIGHT, bottom: 0 }}
     >
-      <span className="absolute inset-y-0 left-0 w-px bg-brand-500/70" />
+      <span className="absolute inset-y-0 left-0 w-px bg-primary/60" />
       <span
-        className={`absolute top-1.5 whitespace-nowrap rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-semibold text-white shadow-pop tnum ${
+        className={`absolute top-1.5 whitespace-nowrap rounded-full bg-surface-elevated/96 px-2 py-0.5 text-[10px] font-semibold text-text-primary shadow-pop tnum ${
           align === "right" ? "right-1.5" : "left-1.5"
         }`}
       >
@@ -1199,7 +1199,7 @@ function ReorderGrip({
       tabIndex={-1}
       aria-label={label}
       title={label}
-      className="shrink-0 cursor-grab touch-none rounded text-slate-300 opacity-0 transition hover:text-slate-600 active:cursor-grabbing group-hover:opacity-100"
+      className="shrink-0 cursor-grab touch-none rounded text-text-muted opacity-0 transition hover:text-text-primary active:cursor-grabbing group-hover:opacity-100"
     >
       <GripVertical className="h-3.5 w-3.5" />
     </span>
@@ -1240,8 +1240,8 @@ function UnitLabel({
 }: UnitLabelProps) {
   return (
     <div
-      className={`group flex items-center gap-0.5 border-b border-slate-100 pl-1 pr-1 transition-colors ${
-        dragging ? "bg-brand-50 ring-1 ring-inset ring-brand-300" : ""
+      className={`group flex items-center gap-0.5 border-b border-border/10 pl-1 pr-1 transition-colors ${
+        dragging ? "bg-primary/10 ring-1 ring-inset ring-primary/20" : ""
       }`}
       style={{ height: UNIT_ROW_HEIGHT }}
     >
@@ -1249,7 +1249,7 @@ function UnitLabel({
       <button
         type="button"
         onClick={onToggle}
-        className="shrink-0 rounded p-0.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+        className="shrink-0 rounded p-0.5 text-text-muted transition hover:bg-surface-elevated/60 hover:text-text-primary"
         aria-label={expanded ? "Thu gọn hoạt động" : "Xem hoạt động"}
       >
         {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
@@ -1257,10 +1257,10 @@ function UnitLabel({
       <span className={`h-2 w-2 shrink-0 rounded-full ${color.dot}`} />
 
       <button type="button" onClick={onView} className="min-w-0 flex-1 pl-1 text-left leading-tight">
-        <p className="truncate text-[12px] font-semibold text-slate-800">
-          <span className="text-slate-400 tnum">{order}.</span> {unit.name}
+        <p className="truncate text-[12px] font-semibold text-text-primary">
+          <span className="text-text-muted tnum">{order}.</span> {unit.name}
         </p>
-        <p className="truncate text-[10px] text-slate-400 tnum">
+        <p className="truncate text-[10px] text-text-muted tnum">
           {itemCount} hoạt động
           {unit.unit_type ? ` · ${unit.unit_type.name}` : ""}
         </p>
@@ -1336,8 +1336,8 @@ function ItemLabel({
     <div
       data-reorder-group={group}
       data-reorder-id={item.id}
-      className={`group flex items-center gap-1 border-b border-slate-100 bg-slate-50/40 pl-4 pr-1 transition-colors ${
-        dragging ? "bg-brand-50 ring-1 ring-inset ring-brand-300" : ""
+      className={`group flex items-center gap-1 border-b border-border/10 bg-surface-secondary/38 pl-4 pr-1 transition-colors ${
+        dragging ? "bg-primary/10 ring-1 ring-inset ring-primary/20" : ""
       }`}
       style={{ height: ITEM_ROW_HEIGHT }}
     >
@@ -1349,9 +1349,9 @@ function ItemLabel({
       <button
         type="button"
         onClick={onView}
-        className="min-w-0 flex-1 truncate text-left text-[11px] text-slate-600"
+        className="min-w-0 flex-1 truncate text-left text-[11px] text-text-secondary"
       >
-        <span className="text-slate-400 tnum">{order}.</span> {item.name}
+        <span className="text-text-muted tnum">{order}.</span> {item.name}
       </button>
       <span className="flex shrink-0 gap-0.5 opacity-0 transition group-hover:opacity-100 focus-within:opacity-100">
         <IconButton size="sm" tone="brand" icon={Pencil} onClick={onEdit} aria-label="Sửa hoạt động" />
@@ -1379,22 +1379,22 @@ function ExpenseGroupLabel({
 }) {
   return (
     <div
-      className="flex items-center gap-1 border-b border-t-2 border-slate-100 border-t-slate-200 bg-slate-50/60 px-2 pr-1"
+      className="flex items-center gap-1 border-b border-t-2 border-border/10 border-t-border/16 bg-surface-secondary/42 px-2 pr-1"
       style={{ height: UNIT_ROW_HEIGHT }}
     >
       <button
         type="button"
         onClick={onToggle}
-        className="shrink-0 rounded p-0.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+        className="shrink-0 rounded p-0.5 text-text-muted transition hover:bg-surface-elevated/60 hover:text-text-primary"
         aria-label={expanded ? "Thu gọn chi phí khác" : "Xem chi phí khác"}
       >
         {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
       </button>
-      <Receipt className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+      <Receipt className="h-3.5 w-3.5 shrink-0 text-text-muted" />
 
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[13px] font-semibold text-slate-700">Chi phí khác</p>
-        <p className="truncate text-[11px] text-slate-400 tnum">
+        <p className="truncate text-[13px] font-semibold text-text-primary">Chi phí khác</p>
+        <p className="truncate text-[11px] text-text-muted tnum">
           {scheduledCount}/{count} đã lên lịch
         </p>
       </div>
@@ -1415,14 +1415,14 @@ function ExpenseLabel({
 }) {
   return (
     <div
-      className="group flex items-center gap-1.5 border-b border-slate-100 bg-slate-50/40 pl-8 pr-1"
+      className="group flex items-center gap-1.5 border-b border-border/10 bg-surface-secondary/38 pl-8 pr-1"
       style={{ height: ITEM_ROW_HEIGHT }}
     >
       <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${color.dot}`} />
       <button
         type="button"
         onClick={onEdit}
-        className="min-w-0 flex-1 truncate text-left text-[12px] text-slate-600"
+        className="min-w-0 flex-1 truncate text-left text-[12px] text-text-secondary"
       >
         {expense.name}
       </button>
@@ -1508,30 +1508,30 @@ function UnscheduledPanel({
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-center gap-2 px-4 py-3 text-left transition hover:bg-slate-50/70"
+        className="flex w-full items-center gap-2 px-4 py-3 text-left transition hover:bg-surface-elevated/48"
       >
-        <Inbox className="h-4 w-4 text-slate-400" />
-        <span className="text-[13px] font-bold text-slate-700">Chưa xếp lịch</span>
-        <span className="text-xs text-slate-400 tnum">
+        <Inbox className="h-4 w-4 text-text-muted" />
+        <span className="text-[13px] font-bold text-text-primary">Chưa xếp lịch</span>
+        <span className="text-xs text-text-muted tnum">
           {totalUnscheduledUnits + totalFreeUnits} chặng · {totalLibraryItems} hoạt động ·{" "}
           {totalExpenses} chi phí
         </span>
         {open ? (
-          <ChevronUp className="ml-auto h-4 w-4 text-slate-400" />
+          <ChevronUp className="ml-auto h-4 w-4 text-text-muted" />
         ) : (
-          <ChevronDown className="ml-auto h-4 w-4 text-slate-400" />
+          <ChevronDown className="ml-auto h-4 w-4 text-text-muted" />
         )}
       </button>
 
       {open && (
-        <div className="grid gap-3 border-t border-slate-100 p-3.5 sm:grid-cols-3 sm:gap-0 sm:divide-x sm:divide-slate-100 sm:p-0">
+        <div className="grid gap-3 border-t border-border/10 p-3.5 sm:grid-cols-3 sm:gap-0 sm:divide-x sm:divide-border/10 sm:p-0">
           <div
             ref={unitParkingRef}
             className={`rounded-xl p-3 transition sm:rounded-none sm:p-3.5 ${
               isUnitDropTarget ? "bg-rose-50/60 ring-2 ring-inset ring-rose-300" : ""
             }`}
           >
-            <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+            <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-text-secondary">
               <RouteIcon className="h-3.5 w-3.5" />
               Chặng chưa xếp
             </div>
@@ -1540,7 +1540,7 @@ function UnscheduledPanel({
               value={unitSearch}
               onChange={(e) => onUnitSearchChange(e.target.value)}
               placeholder="Tìm chặng..."
-              prefix={<Search className="h-3.5 w-3.5 text-slate-400" />}
+              prefix={<Search className="h-3.5 w-3.5 text-text-muted" />}
               allowClear
               className="mb-2.5"
             />
@@ -1566,7 +1566,7 @@ function UnscheduledPanel({
 
             {freeUnits.length > 0 && (
               <>
-                <p className="mb-2 mt-4 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                <p className="mb-2 mt-4 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
                   Chặng chưa gắn kế hoạch nào ({freeUnits.length})
                 </p>
                 <ScrollRevealList
@@ -1597,7 +1597,7 @@ function UnscheduledPanel({
               isItemDropTarget ? "bg-rose-50/60 ring-2 ring-inset ring-rose-300" : ""
             }`}
           >
-            <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+            <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-text-secondary">
               <Sparkles className="h-3.5 w-3.5" />
               Hoạt động chưa gắn chặng
             </div>
@@ -1606,7 +1606,7 @@ function UnscheduledPanel({
               value={itemSearch}
               onChange={(e) => onItemSearchChange(e.target.value)}
               placeholder="Tìm hoạt động..."
-              prefix={<Search className="h-3.5 w-3.5 text-slate-400" />}
+              prefix={<Search className="h-3.5 w-3.5 text-text-muted" />}
               allowClear
               className="mb-2.5"
             />
@@ -1631,7 +1631,7 @@ function UnscheduledPanel({
               isExpenseDropTarget ? "bg-rose-50/60 ring-2 ring-inset ring-rose-300" : ""
             }`}
           >
-            <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+            <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-text-secondary">
               <Receipt className="h-3.5 w-3.5" />
               Chi phí chưa xếp lịch
             </div>
@@ -1640,7 +1640,7 @@ function UnscheduledPanel({
               value={expenseSearch}
               onChange={(e) => onExpenseSearchChange(e.target.value)}
               placeholder="Tìm chi phí..."
-              prefix={<Search className="h-3.5 w-3.5 text-slate-400" />}
+              prefix={<Search className="h-3.5 w-3.5 text-text-muted" />}
               allowClear
               className="mb-2.5"
             />
@@ -1699,7 +1699,7 @@ function ScrollRevealList<T>({ items, keyOf, resetKey, renderItem, emptyHint }: 
 
   if (items.length === 0) {
     return (
-      <p className="rounded-xl border border-dashed border-slate-300 py-6 text-center text-[11px] text-slate-400">
+      <p className="rounded-xl border border-dashed border-border/18 bg-surface-secondary/46 py-6 text-center text-[11px] text-text-muted">
         {emptyHint}
       </p>
     );
@@ -1712,7 +1712,7 @@ function ScrollRevealList<T>({ items, keyOf, resetKey, renderItem, emptyHint }: 
         <div key={keyOf(item)}>{renderItem(item)}</div>
       ))}
       {count < items.length && (
-        <div ref={sentinelRef} className="py-1 text-center text-[10px] text-slate-400">
+        <div ref={sentinelRef} className="py-1 text-center text-[10px] text-text-muted">
           Cuộn để xem thêm…
         </div>
       )}
@@ -1744,13 +1744,13 @@ function UnscheduledUnitCard({ unit, color, itemCount, cost, onPointerDown, onEd
   return (
     <div
       onPointerDown={onPointerDown}
-      className="group cursor-grab touch-none rounded-xl border border-slate-200 bg-white p-2.5 shadow-xs transition hover:border-brand-300 active:cursor-grabbing"
+      className="group cursor-grab touch-none rounded-xl border border-border/12 bg-surface-elevated/84 p-2.5 shadow-xs transition hover:bg-surface-elevated active:cursor-grabbing"
     >
       <div className="flex items-start gap-1.5">
-        <GripVertical className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-300" />
-        <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${color?.dot ?? "bg-slate-300"}`} />
+        <GripVertical className="mt-0.5 h-3.5 w-3.5 shrink-0 text-text-muted" />
+        <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${color?.dot ?? "bg-surface-elevated"}`} />
         <div className="flex min-w-0 flex-1 items-baseline justify-between gap-1.5">
-          <p className="min-w-0 truncate text-[12px] font-semibold leading-snug text-slate-800">{unit.name}</p>
+          <p className="min-w-0 truncate text-[12px] font-semibold leading-snug text-text-primary">{unit.name}</p>
           <InlineCost value={cost} />
         </div>
         <IconButton
@@ -1789,12 +1789,12 @@ function LibraryItemCard({ item, onPointerDown, onEdit }: LibraryItemCardProps) 
   return (
     <div
       onPointerDown={onPointerDown}
-      className="group cursor-grab touch-none rounded-xl border border-slate-200 bg-white p-2.5 shadow-xs transition hover:border-brand-300 active:cursor-grabbing"
+      className="group cursor-grab touch-none rounded-xl border border-border/12 bg-surface-elevated/84 p-2.5 shadow-xs transition hover:bg-surface-elevated active:cursor-grabbing"
     >
       <div className="flex items-start gap-1.5">
-        <GripVertical className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-300" />
+        <GripVertical className="mt-0.5 h-3.5 w-3.5 shrink-0 text-text-muted" />
         <div className="flex min-w-0 flex-1 items-baseline justify-between gap-1.5">
-          <p className="min-w-0 truncate text-[12px] font-semibold leading-snug text-slate-800">{item.name}</p>
+          <p className="min-w-0 truncate text-[12px] font-semibold leading-snug text-text-primary">{item.name}</p>
           <InlineCost value={item.price} />
         </div>
         <IconButton
@@ -1835,13 +1835,13 @@ function UnscheduledExpenseCard({ expense, color, onPointerDown, onEdit }: Unsch
   return (
     <div
       onPointerDown={onPointerDown}
-      className="group cursor-grab touch-none rounded-xl border border-slate-200 bg-white p-2.5 shadow-xs transition hover:border-brand-300 active:cursor-grabbing"
+      className="group cursor-grab touch-none rounded-xl border border-border/12 bg-surface-elevated/84 p-2.5 shadow-xs transition hover:bg-surface-elevated active:cursor-grabbing"
     >
       <div className="flex items-start gap-1.5">
-        <GripVertical className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-300" />
+        <GripVertical className="mt-0.5 h-3.5 w-3.5 shrink-0 text-text-muted" />
         <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${color.dot}`} />
         <div className="flex min-w-0 flex-1 items-baseline justify-between gap-1.5">
-          <p className="min-w-0 truncate text-[12px] font-semibold leading-snug text-slate-800">{expense.name}</p>
+          <p className="min-w-0 truncate text-[12px] font-semibold leading-snug text-text-primary">{expense.name}</p>
           <InlineCost value={expense.price} />
         </div>
         <IconButton

@@ -9,6 +9,10 @@ import {
   updateLocation,
   type LocationInput,
 } from "../services/locations.service";
+import { useTranslation } from "../i18n/useAppTranslation";
+import { formatDistance } from "../shared/utils/format";
+import type { LatLng } from "../shared/utils/geo";
+import type { Id, LocationRow } from "../shared/types/models";
 import Button from "../shared/components/Button";
 import EmptyState from "../shared/components/EmptyState";
 import Input from "../shared/components/Input";
@@ -17,11 +21,7 @@ import LocationCard from "../components/LocationCard";
 import LocationsMap from "../components/LocationsMap";
 import LocationFormModal from "../components/LocationFormModal";
 import LocationDetailModal from "../components/LocationDetailModal";
-import { formatDistance } from "../shared/utils/format";
-import type { LatLng } from "../shared/utils/geo";
-import type { Id, LocationRow } from "../shared/types/models";
 
-/** Kết quả của nút "tìm địa điểm quanh đây" — thay thế danh sách phân trang. */
 interface AreaFilter {
   center: LatLng;
   radiusMeters: number;
@@ -35,6 +35,7 @@ interface FormModalState {
 }
 
 export default function LocationsPage() {
+  const { t } = useTranslation(["locations", "common"]);
   const [search, setSearch] = useState("");
   const [keyword, setKeyword] = useState("");
   const [rows, setRows] = useState<LocationRow[]>([]);
@@ -43,11 +44,9 @@ export default function LocationsPage() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
-
   const [area, setArea] = useState<AreaFilter | null>(null);
   const [searchingArea, setSearchingArea] = useState(false);
   const [focusId, setFocusId] = useState<Id | null>(null);
-
   const [formModal, setFormModal] = useState<FormModalState>({
     open: false,
     mode: "create",
@@ -55,13 +54,11 @@ export default function LocationsPage() {
   });
   const [detailLocation, setDetailLocation] = useState<LocationRow | null>(null);
 
-  // Gõ tới đâu tìm tới đó, nhưng đợi 300ms cho đỡ gọi API mỗi ký tự.
   useEffect(() => {
     const timer = setTimeout(() => setKeyword(search.trim()), 300);
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Mỗi lần đổi từ khoá là một "phiên" mới — phản hồi của phiên cũ về sau bị bỏ qua.
   const requestRef = useRef(0);
 
   const loadFirstPage = useCallback(async () => {
@@ -71,7 +68,7 @@ export default function LocationsPage() {
     if (requestId !== requestRef.current) return;
 
     if (fetchError) {
-      setError("Không tải được danh sách địa điểm: " + fetchError.message);
+      setError(t("locations:errors.load", { message: fetchError.message }));
     } else if (data) {
       setError("");
       setRows(data.rows);
@@ -79,7 +76,7 @@ export default function LocationsPage() {
       setHasMore(data.hasMore);
     }
     setLoading(false);
-  }, [keyword]);
+  }, [keyword, t]);
 
   useEffect(() => {
     void loadFirstPage();
@@ -96,9 +93,8 @@ export default function LocationsPage() {
     if (requestId !== requestRef.current) return;
 
     if (fetchError) {
-      setError("Không tải thêm được địa điểm: " + fetchError.message);
+      setError(t("locations:errors.loadMore", { message: fetchError.message }));
     } else if (data) {
-      // Lọc trùng phòng khi có bản ghi mới chèn vào giữa 2 lần tải.
       setRows((prev) => {
         const seen = new Set(prev.map((r) => r.id));
         return [...prev, ...data.rows.filter((r) => !seen.has(r.id))];
@@ -107,9 +103,8 @@ export default function LocationsPage() {
       setHasMore(data.hasMore);
     }
     setLoadingMore(false);
-  }, [hasMore, keyword, loadingMore, rows.length]);
+  }, [hasMore, keyword, loadingMore, rows.length, t]);
 
-  // Infinite scroll: quan sát 1 ô "mồi" ở cuối danh sách.
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     const node = sentinelRef.current;
@@ -131,7 +126,7 @@ export default function LocationsPage() {
     setSearchingArea(false);
 
     if (fetchError) {
-      setError("Không tìm được địa điểm quanh đây: " + fetchError.message);
+      setError(t("locations:errors.searchArea", { message: fetchError.message }));
       return;
     }
     setError("");
@@ -166,7 +161,7 @@ export default function LocationsPage() {
   async function handleDelete(id: Id) {
     const { error: deleteError } = await deleteLocation(id);
     if (deleteError) {
-      setError("Không xoá được địa điểm: " + deleteError.message);
+      setError(t("locations:errors.delete", { message: deleteError.message }));
       return;
     }
     setRows((prev) => prev.filter((l) => l.id !== id));
@@ -180,15 +175,14 @@ export default function LocationsPage() {
     if (formModal.mode === "edit" && formModal.location) {
       const { data, error: updateError } = await updateLocation(formModal.location.id, values);
       if (updateError || !data) {
-        return { error: "Không lưu được thay đổi: " + (updateError?.message ?? "") };
+        return { error: t("locations:errors.save", { message: updateError?.message ?? "" }) };
       }
       replaceEverywhere(data);
     } else {
       const { data, error: insertError } = await createLocation(values);
       if (insertError || !data) {
-        return { error: "Không thêm được địa điểm: " + (insertError?.message ?? "") };
+        return { error: t("locations:errors.create", { message: insertError?.message ?? "" }) };
       }
-      // Danh sách sắp theo created_at giảm dần nên bản ghi mới nằm đầu.
       setRows((prev) => [data, ...prev]);
       setTotal((prev) => prev + 1);
     }
@@ -204,11 +198,11 @@ export default function LocationsPage() {
     <div className="mx-auto max-w-6xl px-4 pb-16 pt-8 sm:px-6">
       <PageHeader
         icon={Compass}
-        title="Sổ tay địa điểm"
-        subtitle="Lưu lại những nơi bạn muốn ghé qua — tìm theo tên hoặc quét quanh một điểm trên bản đồ"
+        title={t("locations:title")}
+        subtitle={t("locations:subtitle")}
         actions={
           <Button variant="primary" icon={<Plus className="h-4 w-4" />} onClick={openCreateModal}>
-            Thêm địa điểm
+            {t("locations:create")}
           </Button>
         }
       >
@@ -216,30 +210,37 @@ export default function LocationsPage() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Tìm địa điểm theo tên..."
-            prefix={<Search className="h-3.5 w-3.5 text-slate-400" />}
+            placeholder={t("locations:searchPlaceholder")}
+            prefix={<Search className="h-3.5 w-3.5 text-text-muted" />}
             allowClear
             style={{ maxWidth: 320 }}
           />
-          <span className="text-xs text-slate-400 tnum">
+          <span className="text-xs text-text-muted tnum">
             {area
-              ? `${area.rows.length} địa điểm trong bán kính ${formatDistance(area.radiusMeters)}`
-              : `${visible.length}/${total} địa điểm`}
+              ? t("locations:counts.area", {
+                  count: area.rows.length,
+                  radius: formatDistance(area.radiusMeters),
+                })
+              : t("locations:counts.list", { visible: visible.length, total })}
           </span>
         </div>
       </PageHeader>
 
       {error && (
-        <p className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs text-rose-700">
+        <p className="mb-4 rounded-xl bg-danger/10 px-3.5 py-2.5 text-xs text-danger">
           {error}
         </p>
       )}
 
       {area && (
-        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-brand-200 bg-brand-50/70 px-3.5 py-2.5 text-xs text-brand-800">
+        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-2xl bg-primary/8 px-3.5 py-2.5 text-xs text-primary">
           <span className="tnum">
-            Đang lọc {area.rows.length} địa điểm quanh {area.center.lat.toFixed(4)},{" "}
-            {area.center.lng.toFixed(4)} (bán kính {formatDistance(area.radiusMeters)}).
+            {t("locations:areaFilter.label", {
+              count: area.rows.length,
+              lat: area.center.lat.toFixed(4),
+              lng: area.center.lng.toFixed(4),
+              radius: formatDistance(area.radiusMeters),
+            })}
           </span>
           <button
             type="button"
@@ -247,18 +248,17 @@ export default function LocationsPage() {
             className="ml-auto inline-flex items-center gap-1 font-semibold hover:underline"
           >
             <X className="h-3 w-3" />
-            Bỏ lọc vùng
+            {t("locations:areaFilter.clear")}
           </button>
         </div>
       )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_440px]">
-        {/* ------------------------------------------------------------ list */}
-        <div className="surface order-2 p-4 lg:order-1">
+        <div className="surface-soft order-2 p-4 lg:order-1">
           {loading ? (
             <div className="flex flex-col gap-3">
               {[0, 1, 2, 3].map((i) => (
-                <div key={i} className="h-24 animate-pulse rounded-2xl bg-slate-200/50" />
+                <div key={i} className="h-24 animate-pulse rounded-2xl bg-surface-elevated/54" />
               ))}
             </div>
           ) : isEmpty ? (
@@ -266,23 +266,23 @@ export default function LocationsPage() {
               icon={MapPin}
               title={
                 area
-                  ? "Không có địa điểm nào quanh đây"
+                  ? t("locations:empty.areaTitle")
                   : keyword
-                    ? "Không tìm thấy địa điểm nào khớp"
-                    : "Chưa có địa điểm nào"
+                    ? t("locations:empty.searchTitle")
+                    : t("locations:empty.defaultTitle")
               }
               hint={
                 area
-                  ? `Thử kéo bản đồ tới khu vực khác rồi bấm "Tìm địa điểm ở đây" lần nữa.`
+                  ? t("locations:empty.areaHint")
                   : keyword
-                    ? "Thử từ khoá ngắn hơn, hoặc xoá ô tìm kiếm."
-                    : "Dán link Google Maps vào modal thêm địa điểm để tự điền tên và toạ độ."
+                    ? t("locations:empty.searchHint")
+                    : t("locations:empty.defaultHint")
               }
               action={
                 !area &&
                 !keyword && (
                   <Button variant="primary" icon={<Plus className="h-4 w-4" />} onClick={openCreateModal}>
-                    Thêm địa điểm
+                    {t("locations:create")}
                   </Button>
                 )
               }
@@ -303,20 +303,19 @@ export default function LocationsPage() {
               ))}
 
               {!area && (
-                <div ref={sentinelRef} className="py-2 text-center text-xs text-slate-400">
+                <div ref={sentinelRef} className="py-2 text-center text-xs text-text-muted">
                   {loadingMore
-                    ? "Đang tải thêm..."
+                    ? t("locations:loadMore.loading")
                     : hasMore
-                      ? `Cuộn tiếp để xem thêm (mỗi lần ${LOCATIONS_PAGE_SIZE})`
-                      : "Đã hết danh sách."}
+                      ? t("locations:loadMore.more", { size: LOCATIONS_PAGE_SIZE })
+                      : t("locations:loadMore.done")}
                 </div>
               )}
             </div>
           )}
         </div>
 
-        {/* ------------------------------------------------------------- map */}
-        <div className="order-1 h-[46vh] overflow-hidden rounded-2xl border border-slate-200 shadow-card lg:order-2 lg:sticky lg:top-24 lg:h-[calc(100vh-9rem)]">
+        <div className="surface-soft order-1 h-[46vh] overflow-hidden lg:order-2 lg:sticky lg:top-24 lg:h-[calc(100vh-9rem)]">
           <LocationsMap
             locations={visible}
             focusId={focusId}

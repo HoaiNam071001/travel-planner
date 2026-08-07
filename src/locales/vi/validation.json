@@ -1,0 +1,10 @@
+{
+  "planNameRequired": "Cần nhập tên kế hoạch.",
+  "locationNameRequired": "Cần nhập tên địa điểm.",
+  "itemNameRequired": "Cần nhập tên hoạt động.",
+  "unitNameRequired": "Cần nhập tên chặng.",
+  "endAfterStart": "Thời gian kết thúc phải sau thời gian bắt đầu.",
+  "latitudeRange": "Vĩ độ (lat) phải là số từ -90 đến 90.",
+  "longitudeRange": "Kinh độ (lng) phải là số từ -180 đến 180.",
+  "unitDurationPositive": "Chặng cần có khoảng thời gian lớn hơn 0 (hoặc nhập thời gian kết thúc)."
+}

@@ -1,0 +1,36 @@
+{
+  "appName": "Travel Planner",
+  "userFallback": "Bạn",
+  "theme": {
+    "label": "Giao diện",
+    "light": "Sáng",
+    "dark": "Tối",
+    "system": "Theo hệ thống"
+  },
+  "language": {
+    "label": "Ngôn ngữ",
+    "vi": "Tiếng Việt",
+    "en": "English"
+  },
+  "actions": {
+    "close": "Đóng",
+    "cancel": "Huỷ",
+    "saveChanges": "Lưu thay đổi",
+    "create": "Tạo",
+    "search": "Tìm kiếm",
+    "add": "Thêm",
+    "edit": "Sửa",
+    "delete": "Xoá",
+    "signOut": "Đăng xuất",
+    "goHome": "Về trang chủ"
+  },
+  "shell": {
+    "workspace": "Workspace",
+    "workspaceTagline": "Modern travel workspace",
+    "designSystem": "Design System",
+    "designSystemHint": "Semantic surfaces, subtle gradients, and low-contrast borders are now driving the shell."
+  },
+  "modal": {
+    "closeAriaLabel": "Đóng modal"
+  }
+}

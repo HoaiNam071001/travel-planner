@@ -60,7 +60,7 @@ export default function LocationDetailModal({
               href={`https://www.google.com/maps/search/?api=1&query=${location.lat},${location.lng}`}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1 text-xs font-medium text-brand-700 hover:underline"
+              className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
             >
               Mở trên Google Maps
               <ExternalLink className="h-3 w-3" />
@@ -68,7 +68,7 @@ export default function LocationDetailModal({
           </div>
 
           {location.description && (
-            <p className="mt-3.5 text-sm leading-relaxed text-slate-600">{location.description}</p>
+            <p className="mt-3.5 text-sm leading-relaxed text-text-secondary">{location.description}</p>
           )}
 
           {location.images?.length > 0 ? (
@@ -76,7 +76,7 @@ export default function LocationDetailModal({
               {location.images.map((src, index) => (
                 <div
                   key={`${src}-${index}`}
-                  className="aspect-square overflow-hidden rounded-xl border border-slate-200 bg-slate-100"
+                  className="aspect-square overflow-hidden rounded-xl border border-border/10 bg-surface-secondary/76"
                 >
                   <img src={src} alt="" className="h-full w-full object-cover" />
                 </div>

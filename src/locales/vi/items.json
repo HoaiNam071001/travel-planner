@@ -1,0 +1,35 @@
+{
+  "title": "Hoạt động",
+  "subtitle": "Việc cần làm, gắn với địa điểm, chi phí và khung giờ.",
+  "create": "Thêm hoạt động",
+  "searchPlaceholder": "Tìm hoạt động...",
+  "filters": {
+    "all": "Tất cả ({{count}})",
+    "unassigned": "Chưa gắn chặng ({{count}})"
+  },
+  "warnings": {
+    "missingLocations": "Chưa có địa điểm nào. Thêm địa điểm ở trang Địa điểm để gắn vào hoạt động."
+  },
+  "empty": {
+    "defaultTitle": "Chưa có hoạt động nào",
+    "filteredTitle": "Không có hoạt động nào khớp",
+    "defaultHint": "Hoạt động là một việc cụ thể trong chuyến đi — ăn trưa, tham quan, di chuyển...",
+    "filteredHint": "Thử bỏ bộ lọc hoặc xoá từ khoá tìm kiếm."
+  },
+  "errors": {
+    "load": "Không tải được danh sách hoạt động: {{message}}",
+    "delete": "Không xoá được hoạt động: {{message}}",
+    "save": "Không lưu được thay đổi: {{message}}",
+    "create": "Không thêm được hoạt động: {{message}}",
+    "reorder": "Không lưu được thứ tự: {{message}}"
+  },
+  "card": {
+    "drag": "Kéo để sắp xếp",
+    "edit": "Sửa",
+    "clone": "Nhân bản",
+    "delete": "Xoá",
+    "deleteTitle": "Xoá hoạt động này?",
+    "moreLocations": "+{{count}} địa điểm",
+    "noUnit": "Chưa gắn chặng nào"
+  }
+}

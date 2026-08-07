@@ -68,7 +68,7 @@ export default function UnitDetailModal({
           </div>
 
           {unit.description && (
-            <p className="mt-4 text-sm leading-relaxed text-slate-600">{unit.description}</p>
+            <p className="mt-4 text-sm leading-relaxed text-text-secondary">{unit.description}</p>
           )}
 
           {/* Tổng của chặng = tổng hợp từ các hoạt động bên trong (tính động). */}
@@ -82,12 +82,12 @@ export default function UnitDetailModal({
             />
           </div>
 
-          <p className="mb-2 mt-5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <p className="mb-2 mt-5 text-xs font-semibold uppercase tracking-wide text-text-muted">
             Hoạt động ({items.length})
           </p>
 
           {items.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-slate-300 py-6 text-center text-xs text-slate-400">
+            <p className="rounded-xl border border-dashed border-border/16 bg-surface-secondary/40 py-6 text-center text-xs text-text-muted">
               Chặng này chưa có hoạt động nào.
             </p>
           ) : (
@@ -95,24 +95,24 @@ export default function UnitDetailModal({
               {items.map((item, index) => {
                 const slot = schedule.find((entry) => entry.item.id === item.id);
                 return (
-                  <li key={item.id} className="rounded-xl border border-slate-200 p-3">
+                  <li key={item.id} className="rounded-xl border border-border/10 bg-surface-elevated/64 p-3">
                     <div className="flex items-start gap-2.5">
-                      <span className="mt-px flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-[11px] font-semibold text-white tnum">
+                      <span className="mt-px flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-surface-secondary text-[11px] font-semibold text-text-primary tnum">
                         {index + 1}
                       </span>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-2">
-                          <p className="text-sm font-semibold text-slate-800">{item.name}</p>
+                          <p className="text-sm font-semibold text-text-primary">{item.name}</p>
                           {item.price != null && Number(item.price) > 0 && (
-                            <span className="shrink-0 text-sm font-semibold text-slate-700 tnum">
+                            <span className="shrink-0 text-sm font-semibold text-text-secondary tnum">
                               {formatPrice(item.price)}
                             </span>
                           )}
                         </div>
 
                         {item.locations?.length > 0 && (
-                          <p className="mt-1 flex items-start gap-1.5 text-xs text-slate-500">
-                            <MapPin className="mt-px h-3.5 w-3.5 shrink-0 text-slate-400" />
+                          <p className="mt-1 flex items-start gap-1.5 text-xs text-text-secondary">
+                            <MapPin className="mt-px h-3.5 w-3.5 shrink-0 text-text-muted" />
                             <span>{item.locations.map((l) => l.name).join(" → ")}</span>
                           </p>
                         )}
@@ -120,7 +120,7 @@ export default function UnitDetailModal({
                         {slot && (
                           <span
                             className={`mt-1.5 inline-flex items-center gap-1 font-mono text-[11px] tnum ${
-                              slot.inferred ? "text-slate-400" : "text-brand-700"
+                              slot.inferred ? "text-text-muted" : "text-primary"
                             }`}
                           >
                             <Clock className="h-3 w-3" />

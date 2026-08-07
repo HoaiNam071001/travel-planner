@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useTranslation } from "../i18n/useAppTranslation";
 import Badge from "../shared/components/Badge";
 import IconButton from "../shared/components/IconButton";
 import { formatDateTimeRange, formatDuration, formatPrice } from "../shared/utils/format";
@@ -36,6 +37,7 @@ export default function ItemCard({
   onClone,
   onDelete,
 }: ItemCardProps) {
+  const { t } = useTranslation("items");
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
   });
@@ -52,7 +54,7 @@ export default function ItemCard({
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       onClick={() => onOpenDetail(item)}
-      className={`group surface flex cursor-pointer flex-col overflow-hidden transition duration-200 hover:border-brand-200 hover:shadow-card-hover ${
+      className={`group surface flex cursor-pointer flex-col overflow-hidden transition duration-200 hover:bg-surface-elevated/84 hover:shadow-card-hover ${
         isDragging ? "opacity-40" : ""
       }`}
     >
@@ -65,38 +67,32 @@ export default function ItemCard({
               {...attributes}
               {...listeners}
               onClick={(e) => e.stopPropagation()}
-              className="-ml-1 mt-0.5 cursor-grab touch-none rounded p-0.5 text-slate-300 transition hover:text-slate-500 active:cursor-grabbing"
-              aria-label="Kéo để sắp xếp"
+              className="-ml-1 mt-0.5 cursor-grab touch-none rounded p-0.5 text-text-muted transition hover:text-text-secondary active:cursor-grabbing"
+              aria-label={t("card.drag")}
             >
               <GripVertical className="h-4 w-4" />
             </button>
-            <h3 className="min-w-0 text-[15px] font-bold leading-snug">{item.name}</h3>
+            <h3 className="min-w-0 text-[15px] font-bold leading-snug text-text-primary">{item.name}</h3>
           </div>
 
           <div className="flex shrink-0 gap-0.5 opacity-0 transition group-hover:opacity-100 focus-within:opacity-100">
-            <IconButton
-              size="sm"
-              tone="brand"
-              icon={Pencil}
-              onClick={() => onEdit(item)}
-              aria-label="Sửa"
-            />
-            <IconButton size="sm" icon={Copy} onClick={() => onClone(item)} aria-label="Nhân bản" />
+            <IconButton size="sm" tone="brand" icon={Pencil} onClick={() => onEdit(item)} aria-label={t("card.edit")} />
+            <IconButton size="sm" icon={Copy} onClick={() => onClone(item)} aria-label={t("card.clone")} />
             <Popconfirm
-              title="Xoá hoạt động này?"
-              okText="Xoá"
-              cancelText="Huỷ"
+              title={t("card.deleteTitle")}
+              okText={t("common:actions.delete")}
+              cancelText={t("common:actions.cancel")}
               okButtonProps={{ danger: true }}
               onConfirm={() => onDelete(item.id)}
             >
-              <IconButton size="sm" tone="danger" icon={Trash2} aria-label="Xoá" />
+              <IconButton size="sm" tone="danger" icon={Trash2} aria-label={t("card.delete")} />
             </Popconfirm>
           </div>
         </div>
 
         {rangeLabel && (
-          <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500 tnum">
-            <CalendarClock className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+          <p className="mt-2 flex items-center gap-1.5 text-xs text-text-secondary tnum">
+            <CalendarClock className="h-3.5 w-3.5 shrink-0 text-text-muted" />
             {rangeLabel}
           </p>
         )}
@@ -108,32 +104,27 @@ export default function ItemCard({
                 {loc.name}
               </Badge>
             ))}
-            {extraCount > 0 && <Badge size="sm">+{extraCount} địa điểm</Badge>}
+            {extraCount > 0 && <Badge size="sm">{t("card.moreLocations", { count: extraCount })}</Badge>}
           </div>
         )}
 
-        {item.note && (
-          <p className="mt-2.5 line-clamp-2 text-sm leading-relaxed text-slate-500">{item.note}</p>
-        )}
+        {item.note && <p className="mt-2.5 line-clamp-2 text-sm leading-relaxed text-text-secondary">{item.note}</p>}
 
-        <div className="mt-auto flex items-center gap-2 pt-3.5 text-xs text-slate-500">
+        <div className="mt-auto flex items-center gap-2 pt-3.5 text-xs text-text-secondary">
           {duration && (
             <span className="inline-flex items-center gap-1 font-mono tnum">
-              <Clock className="h-3.5 w-3.5 text-slate-400" />
+              <Clock className="h-3.5 w-3.5 text-text-muted" />
               {duration}
             </span>
           )}
           {item.price != null && Number(item.price) > 0 && (
-            <span className="ml-auto font-semibold text-slate-800 tnum">
-              {formatPrice(item.price)}
-            </span>
+            <span className="ml-auto font-semibold text-text-primary tnum">{formatPrice(item.price)}</span>
           )}
         </div>
 
-        {/* Cho biết hoạt động đang thuộc chặng nào — trước đây phải sang trang Chặng mới biết. */}
-        <p className="mt-2.5 flex items-center gap-1.5 border-t border-slate-100 pt-2.5 text-[11px] text-slate-400">
+        <p className="mt-2.5 flex items-center gap-1.5 border-t border-border/8 pt-2.5 text-[11px] text-text-muted">
           <RouteIcon className="h-3 w-3 shrink-0" />
-          {unitName ? <span className="truncate text-slate-500">{unitName}</span> : "Chưa gắn chặng nào"}
+          {unitName ? <span className="truncate text-text-secondary">{unitName}</span> : t("card.noUnit")}
         </p>
       </div>
     </div>

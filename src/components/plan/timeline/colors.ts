@@ -29,7 +29,7 @@ const PALETTE: UnitColor[] = [
     dot: "bg-brand-500",
     solidChip: "bg-brand-600",
     accentBorder: "border-brand-400",
-    tintBg: "bg-brand-50/60",
+    tintBg: "bg-cyan-500/10",
     itemVariants: [
       "bg-brand-100 text-brand-800 ring-brand-300/70",
       "bg-brand-200 text-brand-900 ring-brand-400/60",
@@ -48,7 +48,7 @@ const PALETTE: UnitColor[] = [
     dot: "bg-violet-500",
     solidChip: "bg-violet-600",
     accentBorder: "border-violet-400",
-    tintBg: "bg-violet-50/60",
+    tintBg: "bg-violet-500/10",
     itemVariants: [
       "bg-violet-100 text-violet-800 ring-violet-300/70",
       "bg-violet-200 text-violet-900 ring-violet-400/60",
@@ -67,7 +67,7 @@ const PALETTE: UnitColor[] = [
     dot: "bg-amber-500",
     solidChip: "bg-amber-600",
     accentBorder: "border-amber-400",
-    tintBg: "bg-amber-50/60",
+    tintBg: "bg-amber-500/10",
     itemVariants: [
       "bg-amber-100 text-amber-800 ring-amber-300/70",
       "bg-amber-200 text-amber-900 ring-amber-400/60",
@@ -86,7 +86,7 @@ const PALETTE: UnitColor[] = [
     dot: "bg-emerald-500",
     solidChip: "bg-emerald-600",
     accentBorder: "border-emerald-400",
-    tintBg: "bg-emerald-50/60",
+    tintBg: "bg-emerald-500/10",
     itemVariants: [
       "bg-emerald-100 text-emerald-800 ring-emerald-300/70",
       "bg-emerald-200 text-emerald-900 ring-emerald-400/60",
@@ -105,7 +105,7 @@ const PALETTE: UnitColor[] = [
     dot: "bg-rose-500",
     solidChip: "bg-rose-600",
     accentBorder: "border-rose-400",
-    tintBg: "bg-rose-50/60",
+    tintBg: "bg-rose-500/10",
     itemVariants: [
       "bg-rose-100 text-rose-800 ring-rose-300/70",
       "bg-rose-200 text-rose-900 ring-rose-400/60",
@@ -124,7 +124,7 @@ const PALETTE: UnitColor[] = [
     dot: "bg-indigo-500",
     solidChip: "bg-indigo-600",
     accentBorder: "border-indigo-400",
-    tintBg: "bg-indigo-50/60",
+    tintBg: "bg-indigo-500/10",
     itemVariants: [
       "bg-indigo-100 text-indigo-800 ring-indigo-300/70",
       "bg-indigo-200 text-indigo-900 ring-indigo-400/60",
@@ -143,7 +143,7 @@ const PALETTE: UnitColor[] = [
     dot: "bg-orange-500",
     solidChip: "bg-orange-600",
     accentBorder: "border-orange-400",
-    tintBg: "bg-orange-50/60",
+    tintBg: "bg-orange-500/10",
     itemVariants: [
       "bg-orange-100 text-orange-800 ring-orange-300/70",
       "bg-orange-200 text-orange-900 ring-orange-400/60",
@@ -162,7 +162,7 @@ const PALETTE: UnitColor[] = [
     dot: "bg-teal-500",
     solidChip: "bg-teal-600",
     accentBorder: "border-teal-400",
-    tintBg: "bg-teal-50/60",
+    tintBg: "bg-teal-500/10",
     itemVariants: [
       "bg-teal-100 text-teal-800 ring-teal-300/70",
       "bg-teal-200 text-teal-900 ring-teal-400/60",

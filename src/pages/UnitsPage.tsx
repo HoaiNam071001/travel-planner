@@ -10,7 +10,9 @@ import {
 import { listItems } from "../services/items.service";
 import { listPlans } from "../services/plans.service";
 import { listUnitTypes, createUnitType, deleteUnitType } from "../services/unitTypes.service";
+import { useTranslation } from "../i18n/useAppTranslation";
 import { groupItemsByUnit, unitStats } from "../shared/utils/planStats";
+import type { Id, Item, Plan, Unit, UnitType } from "../shared/types/models";
 import Button from "../shared/components/Button";
 import EmptyState from "../shared/components/EmptyState";
 import PageHeader from "../shared/components/PageHeader";
@@ -18,7 +20,6 @@ import UnitCard from "../components/UnitCard";
 import UnitFormModal from "../components/UnitFormModal";
 import UnitDetailModal from "../components/UnitDetailModal";
 import UnitTypeFilterBar from "../components/UnitTypeFilterBar";
-import type { Id, Item, Plan, Unit, UnitType } from "../shared/types/models";
 
 interface FormModalState {
   open: boolean;
@@ -30,6 +31,7 @@ interface FormModalState {
 }
 
 export default function UnitsPage() {
+  const { t } = useTranslation(["units", "common"]);
   const [units, setUnits] = useState<Unit[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -61,9 +63,10 @@ export default function UnitsPage() {
     ]);
 
     if (unitsRes.error) {
-      setError("Không tải được danh sách chặng: " + unitsRes.error.message);
+      setError(t("units:errors.load", { message: unitsRes.error.message }));
     } else {
       setUnits(unitsRes.data ?? []);
+      setError("");
     }
     setItems(itemsRes.data ?? []);
     setUnitTypes(typesRes.data ?? []);
@@ -98,8 +101,6 @@ export default function UnitsPage() {
     });
   }
 
-  // Nhân bản: mở modal TẠO MỚI với field mồi từ chặng gốc — không mang theo hoạt động
-  // đã gắn (items chỉ thuộc 1 chặng, mang theo sẽ vô tình "cướp" chúng khỏi chặng gốc).
   function openCloneModal(unit: Unit) {
     setDetailUnit(null);
     setFormModal({
@@ -119,7 +120,7 @@ export default function UnitsPage() {
   async function handleDelete(id: Id) {
     const { error: deleteError } = await deleteUnit(id);
     if (deleteError) {
-      setError("Không xoá được chặng: " + deleteError.message);
+      setError(t("units:errors.delete", { message: deleteError.message }));
       return;
     }
     if (detailUnit?.id === id) setDetailUnit(null);
@@ -134,9 +135,9 @@ export default function UnitsPage() {
 
     if (result.error) {
       return {
-        error:
-          (formModal.mode === "edit" ? "Không lưu được thay đổi: " : "Không thêm được chặng: ") +
-          result.error.message,
+        error: t(formModal.mode === "edit" ? "units:errors.save" : "units:errors.create", {
+          message: result.error.message,
+        }),
       };
     }
 
@@ -148,7 +149,7 @@ export default function UnitsPage() {
   async function handleCreateType(name: string): Promise<UnitType | null> {
     const { data, error: createError } = await createUnitType(name);
     if (createError || !data) {
-      setError("Không thêm được loại: " + (createError?.message ?? ""));
+      setError(t("units:errors.createType", { message: createError?.message ?? "" }));
       return null;
     }
     setUnitTypes((prev) => [...prev, data]);
@@ -158,27 +159,27 @@ export default function UnitsPage() {
   async function handleDeleteType(id: Id) {
     const { error: deleteError } = await deleteUnitType(id);
     if (deleteError) {
-      setError("Không xoá được loại: " + deleteError.message);
+      setError(t("units:errors.deleteType", { message: deleteError.message }));
       return;
     }
-    setUnitTypes((prev) => prev.filter((t) => t.id !== id));
+    setUnitTypes((prev) => prev.filter((type) => type.id !== id));
     setUnits((prev) =>
-      prev.map((u) => (u.unit_type_id === id ? { ...u, unit_type_id: null, unit_type: null } : u))
+      prev.map((unit) => (unit.unit_type_id === id ? { ...unit, unit_type_id: null, unit_type: null } : unit))
     );
     setTypeFilter((prev) => (prev === id ? null : prev));
   }
 
-  const filteredUnits = typeFilter ? units.filter((u) => u.unit_type_id === typeFilter) : units;
+  const filteredUnits = typeFilter ? units.filter((unit) => unit.unit_type_id === typeFilter) : units;
 
   return (
     <div className="mx-auto max-w-6xl px-4 pb-16 pt-8 sm:px-6">
       <PageHeader
         icon={RouteIcon}
-        title="Chặng"
-        subtitle="Gom hoạt động theo ngày/tuần — mỗi chặng có khoảng thời gian riêng (mặc định 6 giờ)"
+        title={t("units:title")}
+        subtitle={t("units:subtitle")}
         actions={
           <Button variant="primary" icon={<Plus className="h-4 w-4" />} onClick={openCreateModal}>
-            Thêm chặng
+            {t("units:create")}
           </Button>
         }
       >
@@ -190,35 +191,27 @@ export default function UnitsPage() {
             onCreate={handleCreateType}
             onDelete={handleDeleteType}
           />
-          <span className="text-xs text-slate-400 tnum">{filteredUnits.length} chặng</span>
+          <span className="text-xs text-text-muted tnum">{t("units:count", { count: filteredUnits.length })}</span>
         </div>
       </PageHeader>
 
-      {error && (
-        <p className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs text-rose-700">
-          {error}
-        </p>
-      )}
+      {error && <p className="mb-4 rounded-xl bg-danger/10 px-3.5 py-2.5 text-xs text-danger">{error}</p>}
 
       {loading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="h-52 animate-pulse rounded-2xl bg-slate-200/50" />
+            <div key={i} className="surface-soft h-52 animate-pulse" />
           ))}
         </div>
       ) : filteredUnits.length === 0 ? (
         <EmptyState
           icon={RouteIcon}
-          title={units.length === 0 ? "Chưa có chặng nào" : "Không có chặng nào thuộc loại này"}
-          hint={
-            units.length === 0
-              ? "Chặng là một ngày/tuần trong chuyến đi. Bạn cũng có thể tạo chặng ngay trong màn hình xây dựng kế hoạch."
-              : "Bỏ bộ lọc loại để xem tất cả các chặng."
-          }
+          title={units.length === 0 ? t("units:empty.defaultTitle") : t("units:empty.filteredTitle")}
+          hint={units.length === 0 ? t("units:empty.defaultHint") : t("units:empty.filteredHint")}
           action={
             units.length === 0 && (
               <Button variant="primary" icon={<Plus className="h-4 w-4" />} onClick={openCreateModal}>
-                Thêm chặng
+                {t("units:create")}
               </Button>
             )
           }

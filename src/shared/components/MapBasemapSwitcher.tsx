@@ -9,11 +9,6 @@ export interface MapBasemapSwitcherProps {
   className?: string;
 }
 
-/**
- * Pill đổi lớp nền bản đồ (Sáng/Vệ tinh), dùng chung cho mọi `MapContainer`. Render
- * bên trong `MapContainer` nên phải tự chặn sự kiện chuột lan xuống Leaflet, nếu không
- * bấm nút sẽ kéo cả bản đồ.
- */
 export default function MapBasemapSwitcher({ value, onChange, className }: MapBasemapSwitcherProps) {
   const ref = useRef<HTMLDivElement | null>(null);
 
@@ -27,9 +22,9 @@ export default function MapBasemapSwitcher({ value, onChange, className }: MapBa
   return (
     <div
       ref={ref}
-      className={`pointer-events-auto flex items-center gap-0.5 rounded-full bg-white/95 p-1 shadow-pop ring-1 ring-slate-200/80 backdrop-blur ${className ?? ""}`}
+      className={`pointer-events-auto flex items-center gap-0.5 rounded-full bg-surface-elevated/88 p-1 shadow-pop backdrop-blur ${className ?? ""}`}
     >
-      <span className="pl-2 pr-1 text-slate-400">
+      <span className="pl-2 pr-1 text-text-muted">
         <Layers className="h-3.5 w-3.5" />
       </span>
       {(Object.keys(BASEMAPS) as BasemapKey[]).map((key) => (
@@ -39,8 +34,8 @@ export default function MapBasemapSwitcher({ value, onChange, className }: MapBa
           onClick={() => onChange(key)}
           className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition ${
             value === key
-              ? "bg-brand-600 text-white shadow-sm"
-              : "text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+              ? "bg-primary text-white shadow-sm"
+              : "text-text-secondary hover:bg-surface-secondary hover:text-text-primary"
           }`}
         >
           {BASEMAPS[key].label}

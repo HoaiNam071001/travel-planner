@@ -17,7 +17,7 @@ import EmptyState from "../../shared/components/EmptyState";
 import IconButton from "../../shared/components/IconButton";
 import StatTile from "../../shared/components/StatTile";
 import { formatDateTimeRange, formatPrice } from "../../shared/utils/format";
-import { expenseColorIndex, expenseColor } from "../../shared/utils/planStats";
+import { expenseColor, expenseColorIndex } from "../../shared/utils/planStats";
 import { itemRange } from "../../shared/utils/schedule";
 import type { Id, PlanExpense } from "../../shared/types/models";
 import type { UnitColor } from "./timeline/colors";
@@ -31,11 +31,8 @@ export interface PlanExpensesProps {
 
 export default function PlanExpenses({ expenses, onCreate, onEdit, onDelete }: PlanExpensesProps) {
   const colorIndexById = useMemo(() => expenseColorIndex(expenses), [expenses]);
-  const total = useMemo(
-    () => expenses.reduce((sum, e) => sum + (Number(e.price) || 0), 0),
-    [expenses]
-  );
-  const scheduledCount = expenses.filter((e) => e.start_time).length;
+  const total = useMemo(() => expenses.reduce((sum, expense) => sum + (Number(expense.price) || 0), 0), [expenses]);
+  const scheduledCount = expenses.filter((expense) => expense.start_time).length;
 
   return (
     <div className="animate-fade-up space-y-5">
@@ -51,8 +48,8 @@ export default function PlanExpenses({ expenses, onCreate, onEdit, onDelete }: P
       </div>
 
       <div className="flex items-center justify-between gap-2">
-        <p className="text-sm text-slate-500">
-          Chi phí không gắn với 1 hoạt động cụ thể — vé xe/máy bay, thuê xe, khách sạn, mua sắm...
+        <p className="text-sm text-text-secondary">
+          Chi phí không gắn với một hoạt động cụ thể như vé xe, máy bay, khách sạn hoặc mua sắm.
         </p>
         <Button variant="primary" icon={<Plus className="h-4 w-4" />} onClick={onCreate}>
           Thêm chi phí
@@ -63,7 +60,7 @@ export default function PlanExpenses({ expenses, onCreate, onEdit, onDelete }: P
         <EmptyState
           icon={Receipt}
           title="Chưa có khoản chi phí khác nào"
-          hint="Thêm vé xe, thuê khách sạn, mua sắm... để tính đúng tổng chi phí của kế hoạch."
+          hint="Thêm vé xe, khách sạn, mua sắm hoặc các khoản phát sinh để tính đúng tổng chi phí của kế hoạch."
           action={
             <Button variant="primary" icon={<Plus className="h-4 w-4" />} onClick={onCreate}>
               Thêm chi phí
@@ -90,9 +87,7 @@ export default function PlanExpenses({ expenses, onCreate, onEdit, onDelete }: P
 export interface ExpenseCardProps {
   expense: PlanExpense;
   color: UnitColor;
-  /** Không truyền = ẩn nút sửa (trang chỉ-xem). */
   onEdit?: () => void;
-  /** Không truyền = ẩn nút xoá — dùng ở tab Tổng quan, nơi không có thao tác phá huỷ. */
   onDelete?: () => void;
 }
 
@@ -101,22 +96,12 @@ export function ExpenseCard({ expense, color, onEdit, onDelete }: ExpenseCardPro
   const rangeLabel = range ? formatDateTimeRange(range.start, range.end) : null;
 
   return (
-    <article className={`surface border-l-4 p-4 ${color.accentBorder}`}>
+    <article className={`surface-soft border-l-4 p-4 ${color.accentBorder}`}>
       <div className="flex items-start justify-between gap-2">
-        <h3 className="min-w-0 flex-1 truncate text-[14px] font-bold text-slate-800">
-          {expense.name}
-        </h3>
+        <h3 className="min-w-0 flex-1 truncate text-[14px] font-bold text-text-primary">{expense.name}</h3>
         {(onEdit || onDelete) && (
           <div className="flex shrink-0 gap-0.5">
-            {onEdit && (
-              <IconButton
-                size="sm"
-                tone="brand"
-                icon={Pencil}
-                onClick={onEdit}
-                aria-label="Sửa chi phí"
-              />
-            )}
+            {onEdit && <IconButton size="sm" tone="brand" icon={Pencil} onClick={onEdit} aria-label="Sửa chi phí" />}
             {onDelete && (
               <Popconfirm
                 title="Xoá khoản chi phí này?"
@@ -150,14 +135,14 @@ export function ExpenseCard({ expense, color, onEdit, onDelete }: ExpenseCardPro
       </div>
 
       {expense.location && (
-        <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
-          <MapPin className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+        <p className="mt-2 flex items-center gap-1.5 text-xs text-text-secondary">
+          <MapPin className="h-3.5 w-3.5 shrink-0 text-text-muted" />
           <span className="truncate">{expense.location.name}</span>
         </p>
       )}
 
       {expense.note && (
-        <p className="mt-1.5 flex items-start gap-1.5 text-xs leading-relaxed text-slate-400">
+        <p className="mt-1.5 flex items-start gap-1.5 text-xs leading-relaxed text-text-muted">
           <StickyNote className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           <span className="line-clamp-2">{expense.note}</span>
         </p>
@@ -168,7 +153,7 @@ export function ExpenseCard({ expense, color, onEdit, onDelete }: ExpenseCardPro
           href={expense.link}
           target="_blank"
           rel="noreferrer"
-          className="mt-2.5 flex items-center gap-1.5 text-xs font-medium text-brand-700 hover:underline"
+          className="mt-2.5 flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
         >
           <LinkIcon className="h-3.5 w-3.5 shrink-0" />
           <span className="truncate">{expense.link}</span>

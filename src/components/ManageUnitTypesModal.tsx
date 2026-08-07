@@ -36,34 +36,34 @@ export default function ManageUnitTypesModal({
 
   const body: ReactNode =
     types.length === 0 ? (
-      <p className="py-6 text-center text-xs text-slate-400">Chưa có loại nào.</p>
+      <p className="py-6 text-center text-xs text-text-muted">Chua co loai nao.</p>
     ) : (
       types.map((type) => (
         <div
           key={type.id}
-          className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-2"
+          className="flex items-center justify-between rounded-xl border border-border/10 bg-surface-elevated/66 px-3 py-2"
         >
-          <span className="text-sm text-slate-700">{type.name}</span>
+          <span className="text-sm text-text-primary">{type.name}</span>
           <Popconfirm
-            title="Xoá loại này?"
-            okText="Xoá"
-            cancelText="Huỷ"
+            title="Xoa loai nay?"
+            okText="Xoa"
+            cancelText="Huy"
             okButtonProps={{ danger: true }}
             onConfirm={() => onDelete(type.id)}
           >
-            <IconButton size="sm" tone="danger" icon={Trash2} aria-label="Xoá" />
+            <IconButton size="sm" tone="danger" icon={Trash2} aria-label="Xoa" />
           </Popconfirm>
         </div>
       ))
     );
 
   return (
-    <Modal open={open} onClose={onClose} title="Quản lý loại chặng" footer={null} width={420}>
+    <Modal open={open} onClose={onClose} title="Quan ly loai chang" footer={null} width={420}>
       <div className="flex gap-2">
         <Input
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
-          placeholder="Thêm loại mới (VD: Ngày, Tuần...)"
+          placeholder="Them loai moi (VD: Ngay, Tuan...)"
           onPressEnter={handleCreate}
         />
         <Button
@@ -72,14 +72,14 @@ export default function ManageUnitTypesModal({
           onClick={handleCreate}
           loading={creating}
         >
-          Thêm
+          Them
         </Button>
       </div>
 
       <div className="mt-4 max-h-72 space-y-1.5 overflow-y-auto pr-1">{body}</div>
 
       <div className="flex justify-end pt-4">
-        <Button onClick={onClose}>Đóng</Button>
+        <Button onClick={onClose}>Dong</Button>
       </div>
     </Modal>
   );

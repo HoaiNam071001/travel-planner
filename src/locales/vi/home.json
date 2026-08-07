@@ -1,0 +1,61 @@
+{
+  "nav": {
+    "ctaAuthed": "Vào ứng dụng",
+    "ctaGuest": "Đăng nhập"
+  },
+  "hero": {
+    "badge": "Miễn phí · Dùng cho lên kế hoạch cá nhân",
+    "title": "Mọi chuyến đi, gọn trong một kế hoạch.",
+    "description": "Lưu địa điểm, tạo hoạt động kèm giá và khung giờ, gom thành từng chặng rồi kéo-thả xếp lịch trên một trục thời gian duy nhất.",
+    "ctaAuthed": "Vào ứng dụng",
+    "ctaGuest": "Tiếp tục với Google",
+    "secondary": "Xem cách hoạt động"
+  },
+  "tour": {
+    "overview": {
+      "tag": "Tổng quan kế hoạch",
+      "title": "Nhìn cả chuyến đi trong một trang",
+      "description": "Mỗi kế hoạch có một trang tổng quan gộp lịch trình từng chặng, phân bổ chi phí theo ngày và danh sách địa điểm sẽ ghé qua.",
+      "alt": "Trang tổng quan kế hoạch với hero số liệu, lịch trình theo ngày và phân bổ chi phí"
+    },
+    "timeline": {
+      "tag": "Lịch trình dạng gantt",
+      "title": "Kéo-thả để xếp giờ, không cần đoán",
+      "description": "Chặng và hoạt động hiển thị đúng tỉ lệ thời gian trên cùng một trục ngang. Kéo để đổi giờ hoặc thời lượng, rồi thả vào đúng khung bạn muốn.",
+      "alt": "Lịch trình dạng gantt với các chặng và hoạt động xếp theo khung giờ"
+    },
+    "locations": {
+      "tag": "Sổ tay địa điểm",
+      "title": "Lưu địa điểm, tìm quanh đây trên bản đồ",
+      "description": "Dán link Google Maps để tự điền tên và toạ độ. Bản đồ luôn hiện cạnh danh sách để bạn tìm nhanh những nơi đã lưu quanh khu vực đang xem.",
+      "alt": "Sổ tay địa điểm với danh sách bên trái và bản đồ tìm quanh đây bên phải"
+    }
+  },
+  "steps": {
+    "badge": "Cách hoạt động",
+    "title": "Bốn khối, xếp chồng lên nhau",
+    "location": {
+      "label": "Địa điểm",
+      "text": "Lưu nơi muốn ghé, kèm ảnh và toạ độ."
+    },
+    "item": {
+      "label": "Hoạt động",
+      "text": "Gắn giá, khung giờ, một hoặc nhiều địa điểm."
+    },
+    "unit": {
+      "label": "Chặng",
+      "text": "Gom hoạt động lại theo một khoảng thời gian."
+    },
+    "plan": {
+      "label": "Kế hoạch",
+      "text": "Nhiều chặng gộp thành chuyến đi hoàn chỉnh."
+    }
+  },
+  "cta": {
+    "title": "Kế hoạch tiếp theo, bắt đầu ngay",
+    "description": "Đăng nhập bằng Google, dữ liệu của bạn được bảo vệ bằng Row Level Security trên Supabase.",
+    "buttonAuthed": "Vào ứng dụng",
+    "buttonGuest": "Tiếp tục với Google"
+  },
+  "footer": "Travel Planner — dự án cá nhân để lên kế hoạch đi chơi."
+}

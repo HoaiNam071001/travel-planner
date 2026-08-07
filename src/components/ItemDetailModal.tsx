@@ -71,37 +71,37 @@ export default function ItemDetailModal({
             </Badge>
           </div>
 
-          {item.note && <p className="mt-4 text-sm leading-relaxed text-slate-600">{item.note}</p>}
+          {item.note && <p className="mt-4 text-sm leading-relaxed text-text-secondary">{item.note}</p>}
 
-          <p className="mb-2 mt-5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <p className="mb-2 mt-5 text-xs font-semibold uppercase tracking-wide text-text-muted">
             Địa điểm ({item.locations?.length ?? 0})
           </p>
 
           {(item.locations?.length ?? 0) === 0 ? (
-            <p className="rounded-xl border border-dashed border-slate-300 py-6 text-center text-xs text-slate-400">
+            <p className="rounded-xl border border-dashed border-border/16 bg-surface-secondary/40 py-6 text-center text-xs text-text-muted">
               Hoạt động này chưa gắn địa điểm nào.
             </p>
           ) : (
             <ol className="space-y-2">
               {item.locations.map((loc, index) => (
-                <li key={loc.id} className="flex items-center gap-3 rounded-xl border border-slate-200 p-2">
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-[11px] font-semibold text-white tnum">
+                <li key={loc.id} className="flex items-center gap-3 rounded-xl border border-border/10 bg-surface-elevated/64 p-2">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-surface-secondary text-[11px] font-semibold text-text-primary tnum">
                     {index + 1}
                   </span>
                   {loc.images?.[0] ? (
                     <img
                       src={loc.images[0]}
                       alt=""
-                      className="h-14 w-14 shrink-0 rounded-lg border border-slate-200 object-cover"
+                      className="h-14 w-14 shrink-0 rounded-lg border border-border/10 object-cover"
                     />
                   ) : (
-                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-100 text-slate-400">
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-border/10 bg-surface-secondary/80 text-text-muted">
                       <MapPin className="h-5 w-5" />
                     </div>
                   )}
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-slate-800">{loc.name}</p>
-                    <p className="font-mono text-xs text-slate-400 tnum">
+                    <p className="truncate text-sm font-medium text-text-primary">{loc.name}</p>
+                    <p className="font-mono text-xs text-text-muted tnum">
                       {loc.lat.toFixed(4)}, {loc.lng.toFixed(4)}
                     </p>
                   </div>

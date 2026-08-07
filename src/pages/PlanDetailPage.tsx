@@ -510,10 +510,10 @@ export default function PlanDetailPage() {
   if (loading) {
     return (
       <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-        <div className="h-44 animate-pulse rounded-3xl bg-slate-200/60" />
+        <div className="h-44 animate-pulse rounded-3xl bg-surface-elevated/70" />
         <div className="mt-6 grid gap-4 sm:grid-cols-3">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="h-28 animate-pulse rounded-2xl bg-slate-200/50" />
+            <div key={i} className="h-28 animate-pulse rounded-2xl bg-surface-elevated/60" />
           ))}
         </div>
       </div>
@@ -541,7 +541,7 @@ export default function PlanDetailPage() {
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <Link
           to={ROUTES.PLANS}
-          className="flex items-center gap-1.5 text-sm font-medium text-slate-500 transition hover:text-slate-800"
+          className="flex items-center gap-1.5 text-sm font-medium text-text-secondary transition hover:text-text-primary"
         >
           <ArrowLeft className="h-4 w-4" />
           Kế hoạch
@@ -740,8 +740,8 @@ export default function PlanDetailPage() {
           </div>
         }
       >
-        <p className="text-sm leading-relaxed text-slate-600">
-          Chặng <span className="font-semibold text-slate-900">{deletingUnit?.name}</span> sẽ bị xoá
+        <p className="text-sm leading-relaxed text-text-secondary">
+          Chặng <span className="font-semibold text-text-primary">{deletingUnit?.name}</span> sẽ bị xoá
           vĩnh viễn. Các hoạt động bên trong <span className="font-medium">không</span> bị xoá —
           chúng sẽ được trả về kho hoạt động chưa gắn chặng.
         </p>

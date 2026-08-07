@@ -1,0 +1,61 @@
+{
+  "nav": {
+    "ctaAuthed": "Open app",
+    "ctaGuest": "Sign in"
+  },
+  "hero": {
+    "badge": "Free · Built for personal trip planning",
+    "title": "Every trip, organized in one plan.",
+    "description": "Save places, build activities with cost and time windows, group them into trip segments, then arrange the schedule on a single timeline.",
+    "ctaAuthed": "Open app",
+    "ctaGuest": "Continue with Google",
+    "secondary": "See how it works"
+  },
+  "tour": {
+    "overview": {
+      "tag": "Plan overview",
+      "title": "See the whole trip on one page",
+      "description": "Each plan has a consolidated overview with trip segments, daily spend breakdowns, and the places you will visit.",
+      "alt": "Plan overview page with metrics, timeline, and cost distribution"
+    },
+    "timeline": {
+      "tag": "Gantt-like scheduling",
+      "title": "Drag to arrange time with confidence",
+      "description": "Trip segments and activities are displayed on a proportional horizontal timeline so you can adjust timing and duration directly.",
+      "alt": "Timeline view with trip segments and activities arranged across time"
+    },
+    "locations": {
+      "tag": "Location notebook",
+      "title": "Save places and browse nearby on the map",
+      "description": "Paste a Google Maps link to autofill names and coordinates. The map stays next to the list so nearby saved places are easy to review.",
+      "alt": "Location notebook with a list on the left and a nearby map on the right"
+    }
+  },
+  "steps": {
+    "badge": "How it works",
+    "title": "Four layers that build on each other",
+    "location": {
+      "label": "Locations",
+      "text": "Save places you want to visit with photos and coordinates."
+    },
+    "item": {
+      "label": "Activities",
+      "text": "Attach cost, time ranges, and one or more places."
+    },
+    "unit": {
+      "label": "Trip segments",
+      "text": "Group activities into a time window."
+    },
+    "plan": {
+      "label": "Plans",
+      "text": "Combine multiple segments into a complete trip."
+    }
+  },
+  "cta": {
+    "title": "Start the next plan now",
+    "description": "Sign in with Google. Your data is protected with Supabase Row Level Security.",
+    "buttonAuthed": "Open app",
+    "buttonGuest": "Continue with Google"
+  },
+  "footer": "Travel Planner — a personal project for trip planning."
+}

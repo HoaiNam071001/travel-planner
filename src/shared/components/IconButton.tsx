@@ -1,14 +1,11 @@
 import { forwardRef, type ButtonHTMLAttributes, type MouseEvent } from "react";
 import type { LucideIcon } from "lucide-react";
 
-// Nút icon vuông nhỏ trên card (sửa/xoá/gỡ...). Không dùng antd Button vì cần gọn
-// hơn controlHeight 38px, và cần stopPropagation mặc định vì phần lớn card bọc
-// ngoài đều clickable. forwardRef để dùng được làm trigger của Popconfirm/Dropdown.
 const TONES = {
-  neutral: "text-slate-400 hover:bg-slate-100 hover:text-slate-700",
-  brand: "text-slate-400 hover:bg-brand-50 hover:text-brand-700",
-  danger: "text-slate-400 hover:bg-rose-50 hover:text-rose-600",
-  active: "bg-brand-50 text-brand-700 hover:bg-brand-100",
+  neutral: "text-text-muted hover:bg-surface-secondary hover:text-text-primary",
+  brand: "text-text-muted hover:bg-primary/12 hover:text-primary",
+  danger: "text-text-muted hover:bg-danger/12 hover:text-danger",
+  active: "bg-primary/12 text-primary hover:bg-primary/18",
 } as const;
 
 export type IconButtonTone = keyof typeof TONES;

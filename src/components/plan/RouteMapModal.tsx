@@ -15,7 +15,6 @@ export interface RouteMapModalProps {
   points: ItemLocation[];
   route: RouteResult | null;
   loading: boolean;
-  /** Bấm "Tìm đường" với đúng các địa điểm đang được tick, giữ nguyên thứ tự trong `points`. */
   onFindRoute: (points: ItemLocation[]) => void;
 }
 
@@ -28,11 +27,7 @@ export default function RouteMapModal({
   loading,
   onFindRoute,
 }: RouteMapModalProps) {
-  // `Modal` dùng `destroyOnHidden` nên component này mount lại mỗi lần mở — state khởi
-  // tạo từ `points` hiện tại là đủ, không cần effect đồng bộ lại khi đổi.
   const [selectedIds, setSelectedIds] = useState<Set<Id>>(() => new Set(points.map((p) => p.id)));
-  // Id các điểm đã dùng để tính `route` hiện có — lệch với `selectedIds` nghĩa là người
-  // dùng vừa đổi lựa chọn sau khi đã tìm đường, route cũ không còn khớp nên phải ẩn đi.
   const [fetchedIds, setFetchedIds] = useState<Set<Id> | null>(null);
 
   const selectedPoints = points.filter((p) => selectedIds.has(p.id));
@@ -63,7 +58,7 @@ export default function RouteMapModal({
       <div className="space-y-4">
         <div className="relative h-80 w-full overflow-hidden rounded-2xl">
           {loading ? (
-            <div className="flex h-full w-full items-center justify-center bg-slate-50 text-slate-400">
+            <div className="flex h-full w-full items-center justify-center bg-surface-secondary/72 text-text-muted">
               <Loader2 className="h-5 w-5 animate-spin" />
             </div>
           ) : (
@@ -74,27 +69,27 @@ export default function RouteMapModal({
         {points.length > 1 && (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-slate-500">
+              <span className="text-xs font-medium text-text-secondary">
                 Chọn địa điểm muốn tính tuyến ({selectedIds.size}/{points.length})
               </span>
-              <button type="button" onClick={toggleAll} className="text-xs font-medium text-brand-600 hover:underline">
+              <button type="button" onClick={toggleAll} className="text-xs font-medium text-primary hover:underline">
                 {selectedIds.size === points.length ? "Bỏ chọn tất cả" : "Chọn tất cả"}
               </button>
             </div>
-            <ul className="scroll-thin max-h-48 divide-y divide-slate-100 overflow-y-auto rounded-2xl border border-slate-100">
+            <ul className="scroll-thin max-h-48 divide-y divide-border/8 overflow-y-auto rounded-2xl bg-surface-elevated/54">
               {points.map((point, index) => (
                 <li key={point.id}>
-                  <label className="flex cursor-pointer items-center gap-2.5 px-3 py-2 text-sm hover:bg-slate-50">
+                  <label className="flex cursor-pointer items-center gap-2.5 px-3 py-2 text-sm hover:bg-surface-secondary/72">
                     <input
                       type="checkbox"
                       checked={selectedIds.has(point.id)}
                       onChange={() => toggle(point.id)}
-                      className="h-4 w-4 shrink-0 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                      className="h-4 w-4 shrink-0 rounded border-border/16 text-primary focus:ring-primary/30"
                     />
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10px] font-semibold text-slate-500">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-surface-secondary text-[10px] font-semibold text-text-secondary">
                       {index + 1}
                     </span>
-                    <span className="min-w-0 flex-1 truncate text-slate-700">{point.name}</span>
+                    <span className="min-w-0 flex-1 truncate text-text-primary">{point.name}</span>
                   </label>
                 </li>
               ))}
@@ -120,28 +115,28 @@ export default function RouteMapModal({
             </Badge>
             {shownRoute.durationMin != null && <Badge numeric>{formatDuration(shownRoute.durationMin)}</Badge>}
             {shownRoute.mode === "fallback" && (
-              <span className="text-xs text-slate-400">
-                Ước tính theo đường chim bay — thêm ORS API key để có tuyến đường thật.
+              <span className="text-xs text-text-muted">
+                Ước tính theo đường chim bay - thêm ORS API key để có tuyến đường thật.
               </span>
             )}
           </div>
         )}
 
         {!loading && shownRoute && shownRoute.legs.length === selectedPoints.length - 1 && (
-          <ol className="divide-y divide-slate-100 rounded-2xl border border-slate-100">
+          <ol className="divide-y divide-border/8 rounded-2xl bg-surface-elevated/54">
             {shownRoute.legs.map((leg, index) => {
               const from = selectedPoints[index];
               const to = selectedPoints[index + 1];
               if (!from || !to) return null;
               return (
                 <li key={`${from.id}-${to.id}-${index}`} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
-                  <span className="flex min-w-0 items-center gap-1.5 truncate text-slate-600">
-                    <MapPin className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                  <span className="flex min-w-0 items-center gap-1.5 truncate text-text-secondary">
+                    <MapPin className="h-3.5 w-3.5 shrink-0 text-text-muted" />
                     <span className="truncate">{from.name}</span>
-                    <span className="text-slate-300">→</span>
+                    <span className="text-text-muted">→</span>
                     <span className="truncate">{to.name}</span>
                   </span>
-                  <span className="shrink-0 text-xs text-slate-500 tnum">
+                  <span className="shrink-0 text-xs text-text-secondary tnum">
                     {formatDistance(leg.distanceKm * 1000)}
                     {leg.durationMin != null && ` · ${formatDuration(leg.durationMin)}`}
                   </span>

@@ -4,6 +4,7 @@ import Button from "../shared/components/Button";
 import Field from "../shared/components/Field";
 import Input, { TextArea } from "../shared/components/Input";
 import ImageUrlInput from "../shared/components/ImageUrlInput";
+import { useTranslation } from "../i18n/useAppTranslation";
 import { isShortGoogleMapsLink, parseGoogleMapsUrl } from "../shared/utils/googleMapsLink";
 import { resolveShortMapsLink } from "../services/mapsLink.service";
 import type { LocationRow } from "../shared/types/models";
@@ -46,6 +47,7 @@ export default function LocationFormModal({
   onClose,
   onSubmit,
 }: LocationFormModalProps) {
+  const { t } = useTranslation(["common", "forms", "validation"]);
   const [form, setForm] = useState<LocationFormState>(() => toFormState(location));
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -72,21 +74,21 @@ export default function LocationFormModal({
       let fullUrl = raw;
       if (isShortGoogleMapsLink(raw)) {
         const { finalUrl, error: resolveError } = await resolveShortMapsLink(raw);
-        if (resolveError || !finalUrl) throw new Error(resolveError ?? "Không giải mã được link.");
+        if (resolveError || !finalUrl) throw new Error(resolveError ?? "Could not resolve link.");
         fullUrl = finalUrl;
       }
 
       const parsed = parseGoogleMapsUrl(fullUrl);
-      if (!parsed) throw new Error("Không tìm thấy toạ độ trong link này.");
+      if (!parsed) throw new Error("Could not find coordinates in this link.");
 
-      setForm((f) => ({
-        ...f,
+      setForm((current) => ({
+        ...current,
         lat: String(parsed.lat),
         lng: String(parsed.lng),
-        name: f.name.trim() ? f.name : parsed.name || f.name,
+        name: current.name.trim() ? current.name : parsed.name || current.name,
       }));
     } catch (err) {
-      setMapsLinkError(err instanceof Error ? err.message : "Không xử lý được link này.");
+      setMapsLinkError(err instanceof Error ? err.message : "Could not process this link.");
     } finally {
       setConvertingLink(false);
     }
@@ -98,15 +100,15 @@ export default function LocationFormModal({
     const lng = parseFloat(form.lng);
 
     if (!form.name.trim()) {
-      setError("Cần nhập tên địa điểm.");
+      setError(t("validation:locationNameRequired"));
       return;
     }
     if (Number.isNaN(lat) || lat < -90 || lat > 90) {
-      setError("Vĩ độ (lat) phải là số từ -90 đến 90.");
+      setError(t("validation:latitudeRange"));
       return;
     }
     if (Number.isNaN(lng) || lng < -180 || lng > 180) {
-      setError("Kinh độ (lng) phải là số từ -180 đến 180.");
+      setError(t("validation:longitudeRange"));
       return;
     }
 
@@ -127,50 +129,53 @@ export default function LocationFormModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={mode === "edit" ? "Sửa địa điểm" : "Thêm địa điểm mới"}
+      title={mode === "edit" ? t("forms:location.editTitle") : t("forms:location.createTitle")}
       footer={null}
     >
       <form onSubmit={handleSubmit} className="space-y-4 pt-1">
-        <Field label="Link Google Maps" hint="tự điền tên + toạ độ">
+        <Field label={t("forms:location.fields.mapsLink")} hint={t("forms:location.hints.mapsLink")}>
           <div className="flex gap-2">
             <Input
               value={mapsLink}
               onChange={(e) => setMapsLink(e.target.value)}
-              placeholder="https://maps.app.goo.gl/... hoặc https://www.google.com/maps/place/..."
+              placeholder="https://maps.app.goo.gl/..."
             />
             <Button onClick={handleConvertMapsLink} loading={convertingLink}>
-              Chuyển đổi
+              Convert
             </Button>
           </div>
           {mapsLinkError && <p className="mt-1.5 text-xs text-rose-600">{mapsLinkError}</p>}
         </Field>
 
-        <Field label="Tên địa điểm">
+        <Field label={t("forms:location.fields.name")}>
           <Input
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            placeholder="VD: Bảo tàng Chứng tích Chiến tranh"
+            placeholder="..."
           />
         </Field>
 
-        <Field label="Mô tả" hint="không bắt buộc">
+        <Field
+          label={t("forms:location.fields.description")}
+          hint={t("forms:location.hints.description")}
+        >
           <TextArea
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
-            placeholder="Ghi chú ngắn về địa điểm này"
+            placeholder="..."
             rows={2}
           />
         </Field>
 
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Vĩ độ (lat)">
+          <Field label={t("forms:location.fields.lat")}>
             <Input
               value={form.lat}
               onChange={(e) => setForm({ ...form, lat: e.target.value })}
               placeholder="10.7724"
             />
           </Field>
-          <Field label="Kinh độ (lng)">
+          <Field label={t("forms:location.fields.lng")}>
             <Input
               value={form.lng}
               onChange={(e) => setForm({ ...form, lng: e.target.value })}
@@ -179,7 +184,7 @@ export default function LocationFormModal({
           </Field>
         </div>
 
-        <Field label="Ảnh" hint="thêm từ URL">
+        <Field label={t("forms:location.fields.images")} hint={t("forms:location.hints.images")}>
           <ImageUrlInput value={form.images} onChange={(images) => setForm({ ...form, images })} />
         </Field>
 
@@ -190,9 +195,9 @@ export default function LocationFormModal({
         )}
 
         <div className="flex justify-end gap-2 pt-1">
-          <Button onClick={onClose}>Huỷ</Button>
+          <Button onClick={onClose}>{t("common:actions.cancel")}</Button>
           <Button variant="primary" htmlType="submit" loading={submitting}>
-            {mode === "edit" ? "Lưu thay đổi" : "Thêm địa điểm"}
+            {mode === "edit" ? t("common:actions.saveChanges") : t("common:actions.add")}
           </Button>
         </div>
       </form>

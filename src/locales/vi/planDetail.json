@@ -1,0 +1,30 @@
+{
+  "tabs": {
+    "overview": "Tổng quan",
+    "build": "Xây dựng",
+    "schedule": "Lịch trình",
+    "expenses": "Chi phí khác"
+  },
+  "actions": {
+    "share": "Chia sẻ",
+    "edit": "Sửa thông tin",
+    "delete": "Xoá kế hoạch",
+    "back": "Kế hoạch"
+  },
+  "states": {
+    "loading": "Đang tải...",
+    "notFoundTitle": "Không tìm thấy kế hoạch này",
+    "notFoundHint": "Kế hoạch có thể đã bị xoá, hoặc đường dẫn không đúng.",
+    "backToPlans": "Về danh sách kế hoạch"
+  },
+  "deleteUnit": {
+    "title": "Xoá chặng này?",
+    "confirm": "Xoá chặng",
+    "description": "Chặng {{name}} sẽ bị xoá vĩnh viễn. Các hoạt động bên trong không bị xoá và sẽ được trả về kho hoạt động chưa gắn chặng."
+  },
+  "errors": {
+    "write": "{{message}}: {{detail}}",
+    "deletePlan": "Không xoá được kế hoạch: {{message}}",
+    "share": "Không cập nhật được liên kết chia sẻ: {{message}}"
+  }
+}

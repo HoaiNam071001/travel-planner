@@ -1,0 +1,30 @@
+{
+  "tabs": {
+    "overview": "Overview",
+    "build": "Build",
+    "schedule": "Schedule",
+    "expenses": "Other expenses"
+  },
+  "actions": {
+    "share": "Share",
+    "edit": "Edit details",
+    "delete": "Delete plan",
+    "back": "Plans"
+  },
+  "states": {
+    "loading": "Loading...",
+    "notFoundTitle": "This plan could not be found",
+    "notFoundHint": "The plan may have been deleted, or the route is invalid.",
+    "backToPlans": "Back to plans"
+  },
+  "deleteUnit": {
+    "title": "Delete this segment?",
+    "confirm": "Delete segment",
+    "description": "Segment {{name}} will be deleted permanently. Activities inside it will not be deleted and will return to the unassigned activity library."
+  },
+  "errors": {
+    "write": "{{message}}: {{detail}}",
+    "deletePlan": "Could not delete the plan: {{message}}",
+    "share": "Could not update the share link: {{message}}"
+  }
+}

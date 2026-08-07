@@ -19,6 +19,8 @@ import {
 } from "../services/items.service";
 import { listLocations } from "../services/locations.service";
 import { listUnits } from "../services/units.service";
+import { useTranslation } from "../i18n/useAppTranslation";
+import type { Id, Item, LocationRow, Unit } from "../shared/types/models";
 import Button from "../shared/components/Button";
 import EmptyState from "../shared/components/EmptyState";
 import Input from "../shared/components/Input";
@@ -26,9 +28,7 @@ import PageHeader from "../shared/components/PageHeader";
 import ItemCard from "../components/ItemCard";
 import ItemFormModal from "../components/ItemFormModal";
 import ItemDetailModal from "../components/ItemDetailModal";
-import type { Id, Item, LocationRow, Unit } from "../shared/types/models";
 
-// Bộ lọc theo trạng thái gắn chặng — trả lời nhanh câu "hoạt động nào còn chưa xếp?".
 const UNASSIGNED = "unassigned";
 const ALL = "all";
 
@@ -40,6 +40,7 @@ interface FormModalState {
 }
 
 export default function ItemsPage() {
+  const { t } = useTranslation(["items", "common"]);
   const [items, setItems] = useState<Item[]>([]);
   const [locations, setLocations] = useState<LocationRow[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
@@ -69,34 +70,28 @@ export default function ItemsPage() {
     ]);
 
     if (itemsRes.error) {
-      setError("Không tải được danh sách hoạt động: " + itemsRes.error.message);
+      setError(t("items:errors.load", { message: itemsRes.error.message }));
     } else {
       setItems(itemsRes.data ?? []);
+      setError("");
     }
     setLocations(locationsRes.data ?? []);
     setUnits(unitsRes.data ?? []);
     setLoading(false);
   }
 
-  const unitNameById = useMemo(
-    () => new Map(units.map((u) => [u.id, u.name] as const)),
-    [units]
-  );
+  const unitNameById = useMemo(() => new Map(units.map((u) => [u.id, u.name] as const)), [units]);
   const unassignedCount = useMemo(() => items.filter((i) => !i.unit_id).length, [items]);
 
   const visibleItems = useMemo(() => {
     const keyword = search.trim().toLowerCase();
     return items.filter((item) => {
       if (unitFilter === UNASSIGNED && item.unit_id) return false;
-      if (unitFilter !== ALL && unitFilter !== UNASSIGNED && item.unit_id !== unitFilter) {
-        return false;
-      }
+      if (unitFilter !== ALL && unitFilter !== UNASSIGNED && item.unit_id !== unitFilter) return false;
       return !keyword || item.name.toLowerCase().includes(keyword);
     });
   }, [items, search, unitFilter]);
 
-  // Kéo-thả chỉ sắp xếp được khi đang xem toàn bộ danh sách: khi lọc/tìm kiếm thì
-  // thứ tự hiển thị không phải thứ tự thật nên lưu lại sẽ sai.
   const canReorder = unitFilter === ALL && !search.trim();
 
   function openCreateModal() {
@@ -108,8 +103,6 @@ export default function ItemsPage() {
     setFormModal({ open: true, mode: "edit", item, cloneFrom: null });
   }
 
-  // Nhân bản: mở modal TẠO MỚI với field mồi từ hoạt động gốc (kể cả địa điểm — không
-  // độc quyền như chặng, mang theo không "cướp" của hoạt động gốc).
   function openCloneModal(item: Item) {
     setDetailItem(null);
     setFormModal({ open: true, mode: "create", item: null, cloneFrom: item });
@@ -122,7 +115,7 @@ export default function ItemsPage() {
   async function handleDelete(id: Id) {
     const { error: deleteError } = await deleteItem(id);
     if (deleteError) {
-      setError("Không xoá được hoạt động: " + deleteError.message);
+      setError(t("items:errors.delete", { message: deleteError.message }));
       return;
     }
     setItems((prev) => prev.filter((i) => i.id !== id));
@@ -133,13 +126,13 @@ export default function ItemsPage() {
     if (formModal.mode === "edit" && formModal.item) {
       const { data, error: updateError } = await updateItem(formModal.item.id, values);
       if (updateError || !data) {
-        return { error: "Không lưu được thay đổi: " + (updateError?.message ?? "") };
+        return { error: t("items:errors.save", { message: updateError?.message ?? "" }) };
       }
       setItems((prev) => prev.map((i) => (i.id === data.id ? { ...i, ...data } : i)));
     } else {
       const { data, error: insertError } = await createItem(values);
       if (insertError || !data) {
-        return { error: "Không thêm được hoạt động: " + (insertError?.message ?? "") };
+        return { error: t("items:errors.create", { message: insertError?.message ?? "" }) };
       }
       setItems((prev) => [...prev, data]);
     }
@@ -157,7 +150,7 @@ export default function ItemsPage() {
 
       const next = arrayMove(prev, oldIndex, newIndex);
       void reorderItems(next.map((i) => i.id)).then(({ error: reorderError }) => {
-        if (reorderError) setError("Không lưu được thứ tự: " + reorderError.message);
+        if (reorderError) setError(t("items:errors.reorder", { message: reorderError.message }));
       });
       return next;
     });
@@ -183,20 +176,20 @@ export default function ItemsPage() {
     <div className="mx-auto max-w-6xl px-4 pb-16 pt-8 sm:px-6">
       <PageHeader
         icon={Sparkles}
-        title="Hoạt động"
-        subtitle="Việc cần làm, gắn với địa điểm + giá + khung giờ bắt đầu/kết thúc"
+        title={t("items:title")}
+        subtitle={t("items:subtitle")}
         actions={
           <Button variant="primary" icon={<Plus className="h-4 w-4" />} onClick={openCreateModal}>
-            Thêm hoạt động
+            {t("items:create")}
           </Button>
         }
       >
         <div className="flex flex-wrap items-center gap-2">
           <FilterChip active={unitFilter === ALL} onClick={() => setUnitFilter(ALL)}>
-            Tất cả ({items.length})
+            {t("items:filters.all", { count: items.length })}
           </FilterChip>
           <FilterChip active={unitFilter === UNASSIGNED} onClick={() => setUnitFilter(UNASSIGNED)}>
-            Chưa gắn chặng ({unassignedCount})
+            {t("items:filters.unassigned", { count: unassignedCount })}
           </FilterChip>
           {units.map((unit) => (
             <FilterChip
@@ -211,8 +204,8 @@ export default function ItemsPage() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Tìm hoạt động..."
-            prefix={<Search className="h-3.5 w-3.5 text-slate-400" />}
+            placeholder={t("items:searchPlaceholder")}
+            prefix={<Search className="h-3.5 w-3.5 text-text-muted" />}
             allowClear
             className="ml-auto"
             style={{ width: 210 }}
@@ -220,37 +213,29 @@ export default function ItemsPage() {
         </div>
       </PageHeader>
 
-      {error && (
-        <p className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs text-rose-700">
-          {error}
-        </p>
-      )}
+      {error && <p className="mb-4 rounded-xl bg-danger/10 px-3.5 py-2.5 text-xs text-danger">{error}</p>}
 
       {!loading && locations.length === 0 && (
-        <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-800">
-          Chưa có địa điểm nào. Thêm địa điểm ở trang Địa điểm để gắn vào hoạt động.
+        <p className="mb-4 rounded-xl bg-warning/10 px-3.5 py-2.5 text-xs text-warning">
+          {t("items:warnings.missingLocations")}
         </p>
       )}
 
       {loading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="h-48 animate-pulse rounded-2xl bg-slate-200/50" />
+            <div key={i} className="surface-soft h-48 animate-pulse" />
           ))}
         </div>
       ) : visibleItems.length === 0 ? (
         <EmptyState
           icon={Sparkles}
-          title={items.length === 0 ? "Chưa có hoạt động nào" : "Không có hoạt động nào khớp"}
-          hint={
-            items.length === 0
-              ? "Hoạt động là một việc cụ thể trong chuyến đi — ăn trưa, tham quan, di chuyển..."
-              : "Thử bỏ bộ lọc hoặc xoá từ khoá tìm kiếm."
-          }
+          title={items.length === 0 ? t("items:empty.defaultTitle") : t("items:empty.filteredTitle")}
+          hint={items.length === 0 ? t("items:empty.defaultHint") : t("items:empty.filteredHint")}
           action={
             items.length === 0 && (
               <Button variant="primary" icon={<Plus className="h-4 w-4" />} onClick={openCreateModal}>
-                Thêm hoạt động
+                {t("items:create")}
               </Button>
             )
           }
@@ -300,10 +285,8 @@ function FilterChip({
     <button
       type="button"
       onClick={onClick}
-      className={`max-w-[190px] truncate rounded-full px-3 py-1.5 text-xs font-medium ring-1 ring-inset transition ${
-        active
-          ? "bg-brand-600 text-white ring-brand-600"
-          : "bg-white text-slate-600 ring-slate-200 hover:ring-brand-300"
+      className={`max-w-[190px] truncate rounded-full px-3 py-1.5 text-xs font-medium transition ${
+        active ? "bg-primary text-white shadow-[0_14px_32px_-18px_rgba(14,165,233,0.55)]" : "bg-surface-elevated/62 text-text-secondary hover:bg-surface-elevated/84 hover:text-text-primary"
       }`}
     >
       {children}

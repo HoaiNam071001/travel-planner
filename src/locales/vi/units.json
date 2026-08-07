@@ -1,0 +1,32 @@
+{
+  "title": "Chặng",
+  "subtitle": "Gom hoạt động theo ngày hoặc giai đoạn, mỗi chặng có khoảng thời gian riêng.",
+  "create": "Thêm chặng",
+  "count": "{{count}} chặng",
+  "empty": {
+    "defaultTitle": "Chưa có chặng nào",
+    "filteredTitle": "Không có chặng nào thuộc loại này",
+    "defaultHint": "Chặng là một ngày hoặc một giai đoạn trong chuyến đi. Bạn cũng có thể tạo chặng ngay trong màn hình xây dựng kế hoạch.",
+    "filteredHint": "Bỏ bộ lọc loại để xem tất cả các chặng."
+  },
+  "errors": {
+    "load": "Không tải được danh sách chặng: {{message}}",
+    "delete": "Không xoá được chặng: {{message}}",
+    "save": "Không lưu được thay đổi: {{message}}",
+    "create": "Không thêm được chặng: {{message}}",
+    "createType": "Không thêm được loại: {{message}}",
+    "deleteType": "Không xoá được loại: {{message}}"
+  },
+  "card": {
+    "edit": "Sửa",
+    "clone": "Nhân bản",
+    "delete": "Xoá",
+    "deleteTitle": "Xoá chặng này?",
+    "deleteDescription": "Hoạt động bên trong sẽ được gỡ ra, không bị xoá.",
+    "unassignedPlan": "Chưa gắn kế hoạch",
+    "unscheduled": "Chưa xếp lịch",
+    "items": "Hoạt động",
+    "duration": "Thời lượng",
+    "cost": "Chi phí"
+  }
+}

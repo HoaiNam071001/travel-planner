@@ -1,0 +1,73 @@
+{
+  "plan": {
+    "createTitle": "New plan",
+    "editTitle": "Edit plan",
+    "fields": {
+      "name": "Plan name",
+      "dateRange": "Date range",
+      "description": "Description"
+    },
+    "hints": {
+      "dateRange": "by day",
+      "description": "optional"
+    }
+  },
+  "location": {
+    "createTitle": "New location",
+    "editTitle": "Edit location",
+    "fields": {
+      "name": "Location name",
+      "description": "Description",
+      "mapsLink": "Google Maps link",
+      "lat": "Latitude (lat)",
+      "lng": "Longitude (lng)",
+      "images": "Images"
+    },
+    "hints": {
+      "mapsLink": "auto-fill name and coordinates",
+      "description": "optional",
+      "images": "add from URL"
+    }
+  },
+  "item": {
+    "createTitle": "New activity",
+    "editTitle": "Edit activity",
+    "fields": {
+      "name": "Activity name",
+      "timeRange": "Start - end",
+      "duration": "Duration",
+      "price": "Price",
+      "locations": "Locations",
+      "note": "Notes"
+    },
+    "hints": {
+      "timeRange": "optional - start time only is allowed",
+      "duration": {
+        "derived": "derived from time range",
+        "optional": "optional"
+      },
+      "price": "optional",
+      "note": "optional"
+    }
+  },
+  "unit": {
+    "createTitle": "New unit",
+    "editTitle": "Edit unit",
+    "fields": {
+      "name": "Unit name",
+      "type": "Type",
+      "start": "Start",
+      "end": "End",
+      "duration": "Duration",
+      "breakMinutes": "Break between activities (minutes)",
+      "description": "Description",
+      "items": "Activities"
+    },
+    "hints": {
+      "type": "custom, for example Day / Week",
+      "duration": "defaults to 6 hours",
+      "description": "optional",
+      "items": "right column order is the in-unit order"
+    }
+  }
+}

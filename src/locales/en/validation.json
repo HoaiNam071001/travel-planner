@@ -1,0 +1,10 @@
+{
+  "planNameRequired": "Plan name is required.",
+  "locationNameRequired": "Location name is required.",
+  "itemNameRequired": "Activity name is required.",
+  "unitNameRequired": "Unit name is required.",
+  "endAfterStart": "End time must be after start time.",
+  "latitudeRange": "Latitude (lat) must be a number between -90 and 90.",
+  "longitudeRange": "Longitude (lng) must be a number between -180 and 180.",
+  "unitDurationPositive": "Unit duration must be greater than 0, or you need to set an end time."
+}

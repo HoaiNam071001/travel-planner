@@ -1,0 +1,42 @@
+{
+  "title": "Sổ tay địa điểm",
+  "subtitle": "Lưu lại những nơi bạn muốn ghé qua, tìm theo tên hoặc quét quanh một điểm trên bản đồ.",
+  "create": "Thêm địa điểm",
+  "searchPlaceholder": "Tìm địa điểm theo tên...",
+  "counts": {
+    "area": "{{count}} địa điểm trong bán kính {{radius}}",
+    "list": "{{visible}}/{{total}} địa điểm"
+  },
+  "areaFilter": {
+    "label": "Đang lọc {{count}} địa điểm quanh {{lat}}, {{lng}} (bán kính {{radius}}).",
+    "clear": "Bỏ lọc vùng"
+  },
+  "empty": {
+    "areaTitle": "Không có địa điểm nào quanh đây",
+    "searchTitle": "Không tìm thấy địa điểm nào khớp",
+    "defaultTitle": "Chưa có địa điểm nào",
+    "areaHint": "Thử kéo bản đồ tới khu vực khác rồi bấm “Tìm địa điểm ở đây” lần nữa.",
+    "searchHint": "Thử từ khoá ngắn hơn, hoặc xoá ô tìm kiếm.",
+    "defaultHint": "Dán link Google Maps vào modal thêm địa điểm để tự điền tên và toạ độ."
+  },
+  "loadMore": {
+    "loading": "Đang tải thêm...",
+    "more": "Cuộn tiếp để xem thêm (mỗi lần {{size}})",
+    "done": "Đã hết danh sách."
+  },
+  "errors": {
+    "load": "Không tải được danh sách địa điểm: {{message}}",
+    "loadMore": "Không tải thêm được địa điểm: {{message}}",
+    "searchArea": "Không tìm được địa điểm quanh đây: {{message}}",
+    "delete": "Không xoá được địa điểm: {{message}}",
+    "save": "Không lưu được thay đổi: {{message}}",
+    "create": "Không thêm được địa điểm: {{message}}"
+  },
+  "card": {
+    "focus": "Soi trên bản đồ",
+    "edit": "Sửa",
+    "delete": "Xoá",
+    "deleteTitle": "Xoá địa điểm này?",
+    "noDescription": "Chưa có mô tả"
+  }
+}

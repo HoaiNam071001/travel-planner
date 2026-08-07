@@ -5,6 +5,7 @@ import Button from "../shared/components/Button";
 import Field from "../shared/components/Field";
 import Input, { TextArea } from "../shared/components/Input";
 import DatePicker from "../shared/components/DatePicker";
+import { useTranslation } from "../i18n/useAppTranslation";
 import type { Plan } from "../shared/types/models";
 import type { PlanInput } from "../services/plans.service";
 
@@ -37,9 +38,8 @@ export interface PlanFormModalProps {
   onSubmit: (values: PlanInput) => Promise<PlanFormResult | void>;
 }
 
-// Chỉ nhập thông tin kế hoạch (tên/thời gian/mô tả). Việc gắn & sắp xếp chặng làm
-// ở tab "Xây dựng"/"Lịch trình" của trang chi tiết kế hoạch bằng kéo-thả.
 export default function PlanFormModal({ open, mode, plan, onClose, onSubmit }: PlanFormModalProps) {
+  const { t } = useTranslation(["common", "forms", "validation"]);
   const [form, setForm] = useState<PlanFormState>(() => toFormState(plan));
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -55,7 +55,7 @@ export default function PlanFormModal({ open, mode, plan, onClose, onSubmit }: P
     event.preventDefault();
 
     if (!form.name.trim()) {
-      setError("Cần nhập tên kế hoạch.");
+      setError(t("validation:planNameRequired"));
       return;
     }
 
@@ -75,49 +75,42 @@ export default function PlanFormModal({ open, mode, plan, onClose, onSubmit }: P
     <Modal
       open={open}
       onClose={onClose}
-      title={mode === "edit" ? "Sửa kế hoạch" : "Kế hoạch mới"}
+      title={mode === "edit" ? t("forms:plan.editTitle") : t("forms:plan.createTitle")}
       footer={null}
       width={520}
     >
       <form onSubmit={handleSubmit} className="space-y-4 pt-1">
-        <Field label="Tên kế hoạch">
+        <Field label={t("forms:plan.fields.name")}>
           <Input
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            placeholder="VD: Tết 2026 - Đà Lạt"
+            placeholder="VD: Tet 2026 - Da Lat"
             autoFocus
           />
         </Field>
 
-        <Field label="Khoảng thời gian" hint="theo ngày">
+        <Field label={t("forms:plan.fields.dateRange")} hint={t("forms:plan.hints.dateRange")}>
           <RangePicker
             className="w-full"
             format="DD/MM/YYYY"
             value={form.dateRange}
             onChange={(range) =>
-              setForm((f) => ({
-                ...f,
+              setForm((current) => ({
+                ...current,
                 dateRange: range?.[0] && range[1] ? [range[0], range[1]] : null,
               }))
             }
           />
         </Field>
 
-        <Field label="Mô tả" hint="không bắt buộc">
+        <Field label={t("forms:plan.fields.description")} hint={t("forms:plan.hints.description")}>
           <TextArea
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
-            placeholder="Ghi chú ngắn về kế hoạch này"
+            placeholder="..."
             rows={3}
           />
         </Field>
-
-        {mode !== "edit" && (
-          <p className="rounded-xl border border-brand-100 bg-brand-50/70 px-3.5 py-2.5 text-xs leading-relaxed text-brand-800">
-            Tạo xong bạn sẽ vào ngay màn hình xây dựng kế hoạch để thêm chặng và kéo-thả hoạt động
-            vào từng chặng.
-          </p>
-        )}
 
         {error && (
           <p className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs text-rose-700">
@@ -126,9 +119,9 @@ export default function PlanFormModal({ open, mode, plan, onClose, onSubmit }: P
         )}
 
         <div className="flex justify-end gap-2 pt-1">
-          <Button onClick={onClose}>Huỷ</Button>
+          <Button onClick={onClose}>{t("common:actions.cancel")}</Button>
           <Button variant="primary" htmlType="submit" loading={submitting}>
-            {mode === "edit" ? "Lưu thay đổi" : "Tạo kế hoạch"}
+            {mode === "edit" ? t("common:actions.saveChanges") : t("common:actions.create")}
           </Button>
         </div>
       </form>

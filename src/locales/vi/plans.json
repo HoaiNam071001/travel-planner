@@ -1,0 +1,42 @@
+{
+  "workspaceTitle": "Không gian kế hoạch",
+  "workspaceSubtitle": "Một lớp giao diện sáng hơn, nổi khối bằng surface và gradient nhẹ, không cần các border trắng gắt.",
+  "newPlan": "Kế hoạch mới",
+  "summary": {
+    "overview": "Tổng quan",
+    "ownedShared": "{{owned}} sở hữu · {{shared}} được chia sẻ",
+    "units": "Chặng",
+    "unitsDetail": "Các khối hành trình đã cấu trúc",
+    "items": "Hoạt động",
+    "itemsDetail": "Sẵn sàng xếp lịch",
+    "spend": "Chi phí ước tính",
+    "spendDetail": "Trên toàn workspace hiện tại"
+  },
+  "empty": {
+    "title": "Chưa có kế hoạch nào",
+    "hint": "Tạo kế hoạch đầu tiên, rồi thêm chặng và hoạt động từ màn hình xây dựng.",
+    "action": "Kế hoạch mới"
+  },
+  "section": {
+    "activeTitle": "Kế hoạch đang có",
+    "activeSubtitle": "Mọi module còn lại đã được tiếp tục migrate theo visual shell đã duyệt."
+  },
+  "errors": {
+    "load": "Không tải được danh sách kế hoạch: {{message}}",
+    "delete": "Không xoá được kế hoạch: {{message}}",
+    "save": "Không lưu được thay đổi: {{message}}",
+    "create": "Không thêm được kế hoạch: {{message}}"
+  },
+  "card": {
+    "shared": "Được chia sẻ",
+    "days": "{{count}} ngày",
+    "units": "Chặng",
+    "items": "Hoạt động",
+    "cost": "Tổng chi phí",
+    "open": "Mở",
+    "edit": "Sửa kế hoạch",
+    "delete": "Xoá kế hoạch",
+    "deleteTitle": "Xoá kế hoạch này?",
+    "deleteDescription": "Các chặng bên trong sẽ được gỡ ra, không bị xoá."
+  }
+}

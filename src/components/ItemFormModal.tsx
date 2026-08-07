@@ -9,6 +9,7 @@ import Input, { TextArea } from "../shared/components/Input";
 import DatePicker from "../shared/components/DatePicker";
 import DurationInput from "../shared/components/DurationInput";
 import DualListPicker from "./DualListPicker";
+import { useTranslation } from "../i18n/useAppTranslation";
 import { formatDuration } from "../shared/utils/format";
 import { itemDurationMinutes } from "../shared/utils/schedule";
 import type { Id, Item, ItemLocation, LocationRow } from "../shared/types/models";
@@ -24,7 +25,6 @@ interface ItemFormState {
   locationIds: Id[];
   name: string;
   price: number | null;
-  /** [bắt đầu, kết thúc] — kết thúc có thể để trống, khi đó dùng thời lượng. */
   timeRange: [Dayjs | null, Dayjs | null] | null;
   duration: number;
   note: string;
@@ -54,11 +54,11 @@ export function LocationThumb({
     <img
       src={location.images[0]}
       alt=""
-      className={`${size} shrink-0 rounded-lg border border-slate-200 object-cover`}
+      className={`${size} shrink-0 rounded-lg border border-border/10 object-cover`}
     />
   ) : (
     <div
-      className={`${size} flex shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-100 text-slate-400`}
+      className={`${size} flex shrink-0 items-center justify-center rounded-lg border border-border/10 bg-surface-secondary/80 text-text-muted`}
     >
       <MapPin className="h-4 w-4" />
     </div>
@@ -69,7 +69,6 @@ export interface ItemFormModalProps {
   open: boolean;
   mode: "create" | "edit";
   item: Item | null;
-  /** Chỉ dùng để "mồi" giá trị ban đầu khi nhân bản (mode vẫn là "create", `item` vẫn null). */
   cloneFrom?: Item | null;
   locations: LocationRow[];
   onClose: () => void;
@@ -85,6 +84,7 @@ export default function ItemFormModal({
   onClose,
   onSubmit,
 }: ItemFormModalProps) {
+  const { t } = useTranslation(["common", "forms", "validation"]);
   const [form, setForm] = useState<ItemFormState>(() => toFormState(item ?? cloneFrom));
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -98,18 +98,17 @@ export default function ItemFormModal({
 
   const start = form.timeRange?.[0] ?? null;
   const end = form.timeRange?.[1] ?? null;
-  // Có mốc kết thúc thì mốc kết thúc thắng — thời lượng chỉ còn là số hiển thị.
   const derivedMinutes = start && end ? Math.max(end.diff(start, "minute"), 0) : null;
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
 
     if (!form.name.trim()) {
-      setError("Cần nhập tên hoạt động.");
+      setError(t("validation:itemNameRequired"));
       return;
     }
     if (start && end && !end.isAfter(start)) {
-      setError("Thời gian kết thúc phải sau thời gian bắt đầu.");
+      setError(t("validation:endAfterStart"));
       return;
     }
 
@@ -132,21 +131,21 @@ export default function ItemFormModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={mode === "edit" ? "Sửa hoạt động" : "Thêm hoạt động mới"}
+      title={mode === "edit" ? t("forms:item.editTitle") : t("forms:item.createTitle")}
       footer={null}
       width={880}
     >
       <form onSubmit={handleSubmit} className="space-y-4 pt-1">
-        <Field label="Tên hoạt động">
+        <Field label={t("forms:item.fields.name")}>
           <Input
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            placeholder="VD: Ăn trưa, tham quan bảo tàng..."
+            placeholder="..."
             autoFocus
           />
         </Field>
 
-        <Field label="Bắt đầu - kết thúc" hint="không bắt buộc — có thể chỉ nhập giờ bắt đầu">
+        <Field label={t("forms:item.fields.timeRange")} hint={t("forms:item.hints.timeRange")}>
           <RangePicker
             className="w-full"
             showTime={{ format: "HH:mm", minuteStep: 5 }}
@@ -154,8 +153,8 @@ export default function ItemFormModal({
             allowEmpty={[false, true]}
             value={form.timeRange}
             onChange={(range) =>
-              setForm((f) => ({
-                ...f,
+              setForm((current) => ({
+                ...current,
                 timeRange: range ? [range[0] ?? null, range[1] ?? null] : null,
               }))
             }
@@ -164,21 +163,25 @@ export default function ItemFormModal({
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field
-            label="Khoảng thời gian"
-            hint={derivedMinutes != null ? "tính từ khung giờ" : "không bắt buộc"}
+            label={t("forms:item.fields.duration")}
+            hint={
+              derivedMinutes != null
+                ? t("forms:item.hints.duration.derived")
+                : t("forms:item.hints.duration.optional")
+            }
           >
             <DurationInput
               value={derivedMinutes ?? form.duration}
-              onChange={(duration) => setForm((f) => ({ ...f, duration }))}
+              onChange={(duration) => setForm((current) => ({ ...current, duration }))}
               disabled={derivedMinutes != null}
             />
           </Field>
-          <Field label="Giá (đ)" hint="không bắt buộc">
+          <Field label={t("forms:item.fields.price")} hint={t("forms:item.hints.price")}>
             <InputNumber
               className="w-full"
               min={0}
               value={form.price}
-              onChange={(price) => setForm((f) => ({ ...f, price }))}
+              onChange={(price) => setForm((current) => ({ ...current, price }))}
               placeholder="0"
               formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ".")}
               parser={(value) => Number((value ?? "").replace(/\./g, ""))}
@@ -187,42 +190,42 @@ export default function ItemFormModal({
         </div>
 
         {derivedMinutes != null && (
-          <p className="rounded-xl border border-brand-100 bg-brand-50/70 px-3.5 py-2 text-xs text-brand-800">
-            Thời lượng {formatDuration(derivedMinutes) ?? "0 phút"} được tính từ khung giờ đã chọn.
+          <p className="rounded-xl border border-primary/14 bg-primary/10 px-3.5 py-2 text-xs text-primary">
+            {formatDuration(derivedMinutes) ?? "0"}
           </p>
         )}
 
         <Field
-          label="Địa điểm"
+          label={t("forms:item.fields.locations")}
           hint={
             locations.length === 0
-              ? "chưa có địa điểm nào — thêm ở trang Địa điểm"
-              : "thứ tự bên phải là thứ tự ghé qua"
+              ? "No locations yet"
+              : "Right column order is the visit order"
           }
         >
           <DualListPicker
-            poolLabel="Chọn địa điểm"
-            selectedLabel="Đã chọn"
-            searchPlaceholder="Tìm theo tên địa điểm..."
-            emptyPoolText="Không tìm thấy địa điểm nào."
-            emptySelectedText="Chưa chọn địa điểm nào."
+            poolLabel="Pool"
+            selectedLabel="Selected"
+            searchPlaceholder="Search..."
+            emptyPoolText="No matching locations."
+            emptySelectedText="No locations selected."
             items={locations}
             selectedIds={form.locationIds}
-            onChange={(locationIds) => setForm((f) => ({ ...f, locationIds }))}
+            onChange={(locationIds) => setForm((current) => ({ ...current, locationIds }))}
             renderThumb={(location) => <LocationThumb location={location} />}
             renderMeta={(location) => (
-              <p className="truncate font-mono text-[11px] text-slate-400 tnum">
+              <p className="truncate font-mono text-[11px] text-text-muted tnum">
                 {location.lat.toFixed(4)}, {location.lng.toFixed(4)}
               </p>
             )}
           />
         </Field>
 
-        <Field label="Ghi chú" hint="không bắt buộc">
+        <Field label={t("forms:item.fields.note")} hint={t("forms:item.hints.note")}>
           <TextArea
             value={form.note}
             onChange={(e) => setForm({ ...form, note: e.target.value })}
-            placeholder="Ghi chú ngắn về hoạt động này"
+            placeholder="..."
             rows={2}
           />
         </Field>
@@ -234,9 +237,9 @@ export default function ItemFormModal({
         )}
 
         <div className="flex justify-end gap-2 pt-1">
-          <Button onClick={onClose}>Huỷ</Button>
+          <Button onClick={onClose}>{t("common:actions.cancel")}</Button>
           <Button variant="primary" htmlType="submit" loading={submitting}>
-            {mode === "edit" ? "Lưu thay đổi" : "Thêm hoạt động"}
+            {mode === "edit" ? t("common:actions.saveChanges") : t("common:actions.add")}
           </Button>
         </div>
       </form>

@@ -1,0 +1,42 @@
+{
+  "workspaceTitle": "Plans workspace",
+  "workspaceSubtitle": "A brighter shell with layered surfaces and subtle gradients, letting cards stand out without harsh white borders.",
+  "newPlan": "New plan",
+  "summary": {
+    "overview": "Overview",
+    "ownedShared": "{{owned}} owned · {{shared}} shared",
+    "units": "Units",
+    "unitsDetail": "Structured trip segments",
+    "items": "Activities",
+    "itemsDetail": "Ready to schedule",
+    "spend": "Estimated spend",
+    "spendDetail": "Across the current workspace"
+  },
+  "empty": {
+    "title": "No plans yet",
+    "hint": "Create the first plan, then add units and activities from the builder.",
+    "action": "New plan"
+  },
+  "section": {
+    "activeTitle": "Active plans",
+    "activeSubtitle": "Remaining modules now follow the approved visual shell."
+  },
+  "errors": {
+    "load": "Could not load plans: {{message}}",
+    "delete": "Could not delete the plan: {{message}}",
+    "save": "Could not save changes: {{message}}",
+    "create": "Could not create the plan: {{message}}"
+  },
+  "card": {
+    "shared": "Shared",
+    "days": "{{count}} days",
+    "units": "Units",
+    "items": "Activities",
+    "cost": "Total cost",
+    "open": "Open",
+    "edit": "Edit plan",
+    "delete": "Delete plan",
+    "deleteTitle": "Delete this plan?",
+    "deleteDescription": "Units inside it will be detached, not deleted."
+  }
+}

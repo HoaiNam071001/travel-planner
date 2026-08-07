@@ -173,7 +173,7 @@ export default function PlanExpenseFormModal({
         </div>
 
         {derivedMinutes != null && (
-          <p className="rounded-xl border border-brand-100 bg-brand-50/70 px-3.5 py-2 text-xs text-brand-800">
+          <p className="rounded-xl border border-primary/14 bg-primary/10 px-3.5 py-2 text-xs text-primary">
             Thời lượng {formatDuration(derivedMinutes) ?? "0 phút"} được tính từ khung giờ đã chọn.
           </p>
         )}
@@ -197,7 +197,7 @@ export default function PlanExpenseFormModal({
               }
               options={locations.map((loc) => ({ value: loc.id, label: loc.name }))}
               notFoundContent={
-                <span className="flex items-center gap-1.5 px-1 py-1 text-xs text-slate-400">
+                <span className="flex items-center gap-1.5 px-1 py-1 text-xs text-text-muted">
                   <MapPin className="h-3.5 w-3.5" /> Không tìm thấy địa điểm.
                 </span>
               }

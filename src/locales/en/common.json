@@ -1,0 +1,36 @@
+{
+  "appName": "Travel Planner",
+  "userFallback": "You",
+  "theme": {
+    "label": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
+  "language": {
+    "label": "Language",
+    "vi": "Tiếng Việt",
+    "en": "English"
+  },
+  "actions": {
+    "close": "Close",
+    "cancel": "Cancel",
+    "saveChanges": "Save changes",
+    "create": "Create",
+    "search": "Search",
+    "add": "Add",
+    "edit": "Edit",
+    "delete": "Delete",
+    "signOut": "Sign out",
+    "goHome": "Go home"
+  },
+  "shell": {
+    "workspace": "Workspace",
+    "workspaceTagline": "Modern travel workspace",
+    "designSystem": "Design System",
+    "designSystemHint": "Semantic surfaces, subtle gradients, and low-contrast borders are now driving the shell."
+  },
+  "modal": {
+    "closeAriaLabel": "Close modal"
+  }
+}

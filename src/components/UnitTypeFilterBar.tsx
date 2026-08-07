@@ -38,7 +38,7 @@ export default function UnitTypeFilterBar({
       <button
         type="button"
         onClick={() => setManageOpen(true)}
-        className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-medium text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+        className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-medium text-text-muted transition hover:bg-surface-elevated/68 hover:text-text-primary"
       >
         <Settings2 className="h-3.5 w-3.5" />
         Quản lý loại
@@ -70,8 +70,8 @@ function Chip({
       onClick={onClick}
       className={`rounded-full px-3 py-1.5 text-xs font-medium ring-1 ring-inset transition ${
         active
-          ? "bg-brand-600 text-white ring-brand-600"
-          : "bg-white text-slate-600 ring-slate-200 hover:ring-brand-300"
+          ? "bg-[linear-gradient(135deg,rgba(34,211,238,0.94),rgba(37,99,235,0.9),rgba(79,70,229,0.82))] text-white ring-transparent shadow-[0_14px_30px_-20px_rgba(14,165,233,0.55)]"
+          : "bg-surface-elevated/84 text-text-secondary ring-border/12 hover:bg-surface-elevated hover:text-text-primary"
       }`}
     >
       {children}

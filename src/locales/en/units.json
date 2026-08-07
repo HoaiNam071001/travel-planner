@@ -1,0 +1,32 @@
+{
+  "title": "Trip segments",
+  "subtitle": "Group activities by day or phase, each with its own time window.",
+  "create": "Add segment",
+  "count": "{{count}} segments",
+  "empty": {
+    "defaultTitle": "No segments yet",
+    "filteredTitle": "No segments in this type",
+    "defaultHint": "A segment is a day or phase in the trip. You can also create segments directly in the plan builder.",
+    "filteredHint": "Clear the type filter to see all segments."
+  },
+  "errors": {
+    "load": "Could not load segments: {{message}}",
+    "delete": "Could not delete the segment: {{message}}",
+    "save": "Could not save changes: {{message}}",
+    "create": "Could not create the segment: {{message}}",
+    "createType": "Could not create the type: {{message}}",
+    "deleteType": "Could not delete the type: {{message}}"
+  },
+  "card": {
+    "edit": "Edit",
+    "clone": "Clone",
+    "delete": "Delete",
+    "deleteTitle": "Delete this segment?",
+    "deleteDescription": "Activities inside it will be detached, not deleted.",
+    "unassignedPlan": "Not assigned to a plan",
+    "unscheduled": "Not scheduled",
+    "items": "Activities",
+    "duration": "Duration",
+    "cost": "Cost"
+  }
+}

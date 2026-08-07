@@ -35,7 +35,7 @@ export default function ImageUrlInput({ value = [], onChange }: ImageUrlInputPro
           placeholder="https://..."
         />
         <Button onClick={handleAdd} icon={<Plus className="h-4 w-4" />}>
-          Thêm
+          Them
         </Button>
       </div>
 
@@ -44,14 +44,14 @@ export default function ImageUrlInput({ value = [], onChange }: ImageUrlInputPro
           {value.map((src, index) => (
             <div
               key={`${src}-${index}`}
-              className="group relative aspect-square overflow-hidden rounded-lg border border-slate-200 bg-slate-100"
+              className="group relative aspect-square overflow-hidden rounded-lg border border-border/10 bg-surface-secondary/76"
             >
               <img src={src} alt="" className="h-full w-full object-cover" />
               <button
                 type="button"
                 onClick={() => handleRemove(index)}
-                className="absolute right-1 top-1 rounded-full bg-white/90 p-1 text-slate-500 opacity-0 shadow transition group-hover:opacity-100 hover:text-red-600"
-                aria-label="Xoá ảnh"
+                className="absolute right-1 top-1 rounded-full bg-surface-elevated/92 p-1 text-text-muted opacity-0 shadow transition group-hover:opacity-100 hover:text-danger"
+                aria-label="Xoa anh"
               >
                 <X className="h-3 w-3" />
               </button>

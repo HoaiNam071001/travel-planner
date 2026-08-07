@@ -105,9 +105,9 @@ export default function BoardLane({
         mode === "unit" ? "w-[232px] max-h-[calc(100vh-18rem)]" : "w-[268px] max-h-[calc(100vh-15rem)]"
       } ${
         isLibrary
-          ? "border-slate-200 bg-slate-100/70"
-          : `${color?.accentBorder ?? "border-slate-200/80"} ${color?.tintBg ?? "bg-white shadow-card"}`
-      } ${isOver ? "ring-2 ring-brand-300 ring-offset-2 ring-offset-slate-50" : ""} ${
+          ? "border-border/12 bg-surface-secondary/72 shadow-card"
+          : `${color?.accentBorder ?? "border-border/12"} ${color?.tintBg ?? "bg-surface-elevated/78 shadow-card"}`
+      } ${isOver ? "ring-2 ring-primary/25 ring-offset-2 ring-offset-bg" : ""} ${
         isDragging ? "opacity-40" : ""
       }`}
       {...(laneDraggable ? attributes : {})}
@@ -117,7 +117,7 @@ export default function BoardLane({
           {laneDraggable ? (
             <span
               {...listeners}
-              className="shrink-0 cursor-grab touch-none rounded text-slate-400 transition hover:text-slate-700 active:cursor-grabbing"
+              className="shrink-0 cursor-grab touch-none rounded text-text-muted transition hover:text-text-primary active:cursor-grabbing"
               aria-label="Kéo để đổi thứ tự chặng"
               title="Kéo để đổi thứ tự chặng"
             >
@@ -126,11 +126,11 @@ export default function BoardLane({
           ) : null}
 
           {isLibrary ? (
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-slate-200/80 text-slate-500">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-surface-elevated/80 text-text-secondary">
               <Inbox className="h-3.5 w-3.5" />
             </span>
           ) : (
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-slate-900 font-display text-[10px] font-bold text-white tnum">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-surface-elevated/96 font-display text-[10px] font-bold text-text-primary tnum shadow-xs">
               {String(index + 1).padStart(2, "0")}
             </span>
           )}
@@ -139,7 +139,7 @@ export default function BoardLane({
             <h3 className="truncate text-[12px] font-bold leading-tight">
               {isLibrary ? "Kho hoạt động" : unit?.name}
             </h3>
-            <p className="text-[10px] text-slate-400 tnum">
+            <p className="text-[10px] text-text-muted tnum">
               {items.length} hoạt động
               {isLibrary ? " chưa gắn chặng" : ""}
               {!isLibrary && stats.cost > 0 ? ` · ${formatPriceShort(stats.cost)}` : ""}
@@ -255,7 +255,7 @@ export default function BoardLane({
           <div
             className={`flex items-center justify-center rounded-xl border border-dashed px-3 text-center text-[11px] leading-relaxed transition ${
               mode === "unit" ? "h-14" : "h-24"
-            } ${isOver ? "border-brand-400 bg-brand-50/60 text-brand-700" : "border-slate-300 text-slate-400"}`}
+            } ${isOver ? "border-primary/25 bg-primary/12 text-primary" : "border-border/16 bg-surface-elevated/42 text-text-muted"}`}
           >
             {itemsDraggable
               ? isLibrary
@@ -266,11 +266,11 @@ export default function BoardLane({
         )}
       </div>
 
-      <footer className="shrink-0 border-t border-slate-100 p-1.5">
+      <footer className="shrink-0 border-t border-border/10 p-1.5">
         <button
           type="button"
           onClick={() => onCreateItem(isLibrary ? null : (unit?.id ?? null))}
-          className="flex w-full items-center justify-center gap-1.5 rounded-xl py-1.5 text-[11px] font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+          className="flex w-full items-center justify-center gap-1.5 rounded-xl py-1.5 text-[11px] font-medium text-text-secondary transition hover:bg-surface-elevated/60 hover:text-text-primary"
         >
           <Plus className="h-3.5 w-3.5" />
           Thêm hoạt động
@@ -282,6 +282,6 @@ export default function BoardLane({
 
 /** Dùng lại ở `BoardItemCard`/`BoardItemRow` — cùng 1 bảng màu viền trái theo chặng. */
 export function laneItemAccent(color: UnitColor | undefined, itemIndex: number): string {
-  if (!color) return "border-slate-200 bg-white hover:border-brand-300";
-  return `border-l-4 ${color.accentBorder} border-y border-r border-y-slate-200 border-r-slate-200 ${itemColorInUnit(color, itemIndex)}`;
+  if (!color) return "border-border/12 bg-surface-elevated/72 hover:border-border-hover/40";
+  return `border-l-4 ${color.accentBorder} border-y border-r border-y-border/10 border-r-border/10 ${itemColorInUnit(color, itemIndex)}`;
 }

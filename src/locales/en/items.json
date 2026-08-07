@@ -1,0 +1,35 @@
+{
+  "title": "Activities",
+  "subtitle": "Tasks tied to places, cost, and time windows.",
+  "create": "Add activity",
+  "searchPlaceholder": "Search activities...",
+  "filters": {
+    "all": "All ({{count}})",
+    "unassigned": "Unassigned ({{count}})"
+  },
+  "warnings": {
+    "missingLocations": "No locations yet. Add locations from the Locations page before attaching them to activities."
+  },
+  "empty": {
+    "defaultTitle": "No activities yet",
+    "filteredTitle": "No matching activities",
+    "defaultHint": "An activity is a specific thing in the trip — lunch, sightseeing, transport...",
+    "filteredHint": "Try clearing filters or removing the search keyword."
+  },
+  "errors": {
+    "load": "Could not load activities: {{message}}",
+    "delete": "Could not delete the activity: {{message}}",
+    "save": "Could not save changes: {{message}}",
+    "create": "Could not create the activity: {{message}}",
+    "reorder": "Could not save the order: {{message}}"
+  },
+  "card": {
+    "drag": "Drag to reorder",
+    "edit": "Edit",
+    "clone": "Clone",
+    "delete": "Delete",
+    "deleteTitle": "Delete this activity?",
+    "moreLocations": "+{{count}} locations",
+    "noUnit": "Not assigned to a segment"
+  }
+}

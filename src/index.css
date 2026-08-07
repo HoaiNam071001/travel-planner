@@ -2,51 +2,126 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  color-scheme: light;
+  --color-bg: 242 246 251;
+  --color-surface: 250 252 255;
+  --color-surface-secondary: 233 240 248;
+  --color-surface-elevated: 255 255 255;
+  --color-text-primary: 30 41 59;
+  --color-text-secondary: 71 85 105;
+  --color-text-muted: 100 116 139;
+  --color-border: 203 213 225;
+  --color-border-hover: 148 163 184;
+  --color-primary: 6 182 212;
+  --color-primary-hover: 8 145 178;
+  --color-success: 16 185 129;
+  --color-warning: 245 158 11;
+  --color-danger: 239 68 68;
+  --color-info: 14 165 233;
+  --ring-offset: 255 255 255;
+  --shadow-card: 0 10px 24px -20px rgb(59 130 246 / 0.18), 0 8px 18px -16px rgb(15 23 42 / 0.08);
+  --shadow-card-hover: 0 18px 42px -28px rgb(59 130 246 / 0.2), 0 18px 34px -22px rgb(15 23 42 / 0.12);
+  --shadow-pop: 0 22px 44px -28px rgb(59 130 246 / 0.18), 0 18px 38px -20px rgb(15 23 42 / 0.16);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --color-bg: 2 3 11;
+  --color-surface: 12 19 36;
+  --color-surface-secondary: 16 24 43;
+  --color-surface-elevated: 22 32 56;
+  --color-text-primary: 226 232 240;
+  --color-text-secondary: 212 222 238;
+  --color-text-muted: 145 160 184;
+  --color-border: 42 57 82;
+  --color-border-hover: 61 79 106;
+  --color-primary: 34 211 238;
+  --color-primary-hover: 103 232 249;
+  --color-success: 52 211 153;
+  --color-warning: 251 191 36;
+  --color-danger: 248 113 113;
+  --color-info: 56 189 248;
+  --ring-offset: 2 6 23;
+  --shadow-card: 0 12px 28px -20px rgb(2 6 23 / 0.62);
+  --shadow-card-hover: 0 18px 40px -22px rgb(2 6 23 / 0.88), 0 28px 72px -36px rgb(8 47 73 / 0.22);
+  --shadow-pop: 0 22px 48px -24px rgb(2 6 23 / 0.78);
+}
+
 @layer base {
   html {
     -webkit-tap-highlight-color: transparent;
+    background-color: rgb(var(--color-bg));
   }
 
   body {
-    @apply bg-slate-50 font-sans text-slate-800 antialiased;
+    @apply font-sans antialiased;
+    background-color: rgb(var(--color-bg));
+    color: rgb(var(--color-text-primary));
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    transition:
+      background-color 180ms ease,
+      color 180ms ease;
   }
 
   h1,
   h2,
   h3,
   h4 {
-    @apply font-display tracking-tight text-slate-900;
+    @apply font-display tracking-tight;
+    color: rgb(var(--color-text-primary));
   }
 
   ::selection {
-    @apply bg-brand-200 text-brand-950;
+    background-color: rgb(var(--color-primary) / 0.18);
+    color: rgb(var(--color-text-primary));
   }
 
   *:focus-visible {
-    @apply outline-none ring-2 ring-brand-400/70 ring-offset-2 ring-offset-white;
+    outline: none;
+    box-shadow:
+      0 0 0 2px rgb(var(--color-primary) / 0.4),
+      0 0 0 4px rgb(var(--ring-offset));
   }
 }
 
 @layer components {
-  /* Số liệu (giá, giờ, toạ độ) dùng tabular figures để cột không nhảy. */
   .tnum {
     font-variant-numeric: tabular-nums;
   }
 
-  /* Bề mặt dùng chung — thay cho việc lặp lại chuỗi border/shadow dài. */
   .surface {
-    @apply rounded-2xl border border-slate-200/80 bg-white shadow-card;
+    @apply rounded-2xl border;
+    border-color: rgb(var(--color-border) / 0.055);
+    background-color: rgb(var(--color-surface) / 0.9);
+    box-shadow: var(--shadow-card);
   }
 
   .surface-muted {
-    @apply rounded-2xl border border-slate-200/70 bg-slate-50/60;
+    @apply rounded-2xl border;
+    border-color: rgb(var(--color-border) / 0.05);
+    background-color: rgb(var(--color-surface-secondary) / 0.82);
   }
 
-  /* Khung cuộn mảnh, dùng cho các cột danh sách trong Plan Builder. */
+  .surface-soft {
+    @apply rounded-[28px] border backdrop-blur-2xl;
+    border-color: rgb(var(--color-border) / 0.04);
+    background:
+      linear-gradient(180deg, rgb(var(--color-surface-elevated) / 0.84), rgb(var(--color-surface) / 0.96));
+    box-shadow: var(--shadow-card-hover);
+  }
+
+  .surface-highlight {
+    @apply rounded-[28px] border backdrop-blur-2xl;
+    border-color: rgb(var(--color-primary) / 0.06);
+    background:
+      linear-gradient(135deg, rgb(99 102 241 / 0.72), rgb(37 99 235 / 0.88), rgb(14 165 233 / 0.78));
+    box-shadow: 0 26px 72px -44px rgb(37 99 235 / 0.68);
+  }
+
   .scroll-thin {
     scrollbar-width: thin;
-    scrollbar-color: rgb(203 213 225) transparent;
+    scrollbar-color: rgb(var(--color-border)) transparent;
   }
 
   .scroll-thin::-webkit-scrollbar {
@@ -59,32 +134,36 @@
   }
 
   .scroll-thin::-webkit-scrollbar-thumb {
-    @apply rounded-full border-2 border-solid border-transparent bg-slate-300 bg-clip-content;
+    border: 2px solid transparent;
+    border-radius: 9999px;
+    background-clip: content-box;
+    background-color: rgb(var(--color-border));
   }
 
   .scroll-thin:hover::-webkit-scrollbar-thumb {
-    @apply bg-slate-400;
+    background-color: rgb(var(--color-border-hover));
   }
 
-  /* Lưới điểm mờ phủ lên hero tối của trang Tổng quan kế hoạch. */
   .hero-grid {
     background-image: radial-gradient(rgb(255 255 255 / 0.09) 1px, transparent 1px);
     background-size: 22px 22px;
   }
 }
 
-/* Leaflet: bo góc + chữ khớp với các surface khác. */
 .leaflet-container {
   @apply rounded-2xl font-sans;
 }
 
 .leaflet-container .leaflet-control-attribution {
-  @apply rounded-tl-lg bg-white/80 text-[10px] text-slate-400;
+  @apply rounded-tl-lg text-[10px];
+  background-color: rgb(var(--color-surface) / 0.84);
+  color: rgb(var(--color-text-muted));
 }
 
-/* Pin tự vẽ (divIcon) — giọt nước xoay 45°, chấm trắng ở giữa. */
 .tp-pin__shape {
-  @apply block h-6 w-6 rounded-full rounded-bl-none border-2 border-white shadow-[0_2px_6px_rgb(15_23_42_/_0.35)];
+  @apply block h-6 w-6 rounded-full rounded-bl-none border;
+  border-color: rgb(var(--color-surface) / 0.6);
+  box-shadow: 0 2px 6px rgb(15 23 42 / 0.35);
   transform: rotate(-45deg);
 }
 
@@ -97,9 +176,10 @@
   @apply relative;
 }
 
-/* Pin đánh số (RouteMap) — cùng dáng giọt nước nhưng in số thứ tự thay vì chấm tròn. */
 .tp-pin-num__shape {
-  @apply flex h-7 w-7 items-center justify-center rounded-full rounded-bl-none border-2 border-white shadow-[0_2px_6px_rgb(15_23_42_/_0.35)];
+  @apply flex h-7 w-7 items-center justify-center rounded-full rounded-bl-none border;
+  border-color: rgb(var(--color-surface) / 0.6);
+  box-shadow: 0 2px 6px rgb(15 23 42 / 0.35);
   transform: rotate(-45deg);
 }
 
@@ -112,18 +192,18 @@
   @apply relative;
 }
 
-/* Tooltip của Leaflet cho khớp design system (nền tối, bo tròn). */
 .leaflet-tooltip {
-  @apply rounded-lg border-none bg-slate-900 px-2 py-1 text-[11px] font-medium text-white shadow-pop;
+  @apply rounded-lg border-none px-2 py-1 text-[11px] font-medium text-white;
+  background-color: rgb(15 23 42);
+  box-shadow: var(--shadow-pop);
 }
 
 .leaflet-tooltip-top::before {
   border-top-color: #0f172a;
 }
 
-/* antd: vài chỗ token không chạm tới được. */
 .ant-modal-content {
-  @apply shadow-pop;
+  box-shadow: var(--shadow-pop);
 }
 
 .ant-modal-title {

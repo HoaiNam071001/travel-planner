@@ -1,7 +1,5 @@
 import { InputNumber } from "antd";
 
-// Gộp "giờ" + "phút" thành 1 khối duy nhất — thay cho 2 Field/InputNumber tách rời.
-// value/onChange làm việc thuần bằng tổng số phút, việc tách giờ/phút chỉ là hiển thị.
 export interface DurationInputProps {
   value: number;
   onChange: (minutes: number) => void;
@@ -20,8 +18,8 @@ export default function DurationInput({
 
   return (
     <div
-      className={`flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-2 py-1 transition ${
-        disabled ? "opacity-60" : "focus-within:border-brand-300"
+      className={`flex items-center gap-1 rounded-xl border border-border/10 bg-surface-elevated/72 px-2 py-1 transition ${
+        disabled ? "opacity-60" : "focus-within:border-primary/20 focus-within:bg-surface-elevated"
       } ${className}`}
     >
       <InputNumber
@@ -33,8 +31,8 @@ export default function DurationInput({
         value={hours}
         onChange={(val) => onChange((val ?? 0) * 60 + minutes)}
       />
-      <span className="shrink-0 text-xs text-slate-400">giờ</span>
-      <span className="h-4 w-px shrink-0 bg-slate-200" />
+      <span className="shrink-0 text-xs text-text-muted">giờ</span>
+      <span className="h-4 w-px shrink-0 bg-border/20" />
       <InputNumber
         className="w-full"
         variant="borderless"
@@ -45,7 +43,7 @@ export default function DurationInput({
         value={minutes}
         onChange={(val) => onChange(hours * 60 + (val ?? 0))}
       />
-      <span className="shrink-0 text-xs text-slate-400">phút</span>
+      <span className="shrink-0 text-xs text-text-muted">phút</span>
     </div>
   );
 }

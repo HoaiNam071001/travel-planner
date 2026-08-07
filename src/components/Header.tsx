@@ -1,37 +1,24 @@
-import { NavLink, useNavigate } from "react-router-dom";
 import { Dropdown, type MenuProps } from "antd";
-import {
-  Home,
-  MapPin,
-  Sparkles,
-  Route as RouteIcon,
-  Map,
-  LogOut,
-  User,
-  type LucideIcon,
-} from "lucide-react";
+import { Home, LogOut, PanelLeftClose, PanelLeftOpen, User } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useTranslation } from "../i18n/useAppTranslation";
 import { ROUTES } from "../shared/constants/routes";
-import IconButton from "../shared/components/IconButton";
+import ThemeSwitcher from "../shared/components/ThemeSwitcher";
+import LanguageSwitcher from "../shared/components/LanguageSwitcher";
 
-interface NavItem {
-  to: string;
-  label: string;
-  icon: LucideIcon;
-}
-
-const NAV_ITEMS: NavItem[] = [
-  { to: ROUTES.PLANS, label: "Kế hoạch", icon: Map },
-  { to: ROUTES.UNITS, label: "Chặng", icon: RouteIcon },
-  { to: ROUTES.ITEMS, label: "Hoạt động", icon: Sparkles },
-  { to: ROUTES.LOCATIONS, label: "Địa điểm", icon: MapPin },
-];
-
-export default function Header() {
+export default function Header({
+  sidebarCollapsed,
+  onToggleSidebar,
+}: {
+  sidebarCollapsed: boolean;
+  onToggleSidebar: () => void;
+}) {
   const navigate = useNavigate();
+  const { t } = useTranslation(["common", "navigation"]);
   const { user, signOut } = useAuth();
   const metadata = user?.user_metadata as { full_name?: string; avatar_url?: string } | undefined;
-  const name = metadata?.full_name ?? user?.email ?? "Bạn";
+  const name = metadata?.full_name ?? user?.email ?? t("common:userFallback");
   const avatar = metadata?.avatar_url;
 
   const menuItems: MenuProps["items"] = [
@@ -39,9 +26,9 @@ export default function Header() {
       key: "user",
       disabled: true,
       label: (
-        <div className="min-w-[170px] py-1">
-          <p className="truncate text-sm font-medium text-slate-800">{name}</p>
-          <p className="truncate text-xs text-slate-400">{user?.email}</p>
+        <div className="min-w-[190px] py-1">
+          <p className="truncate text-sm font-medium text-text-primary">{name}</p>
+          <p className="truncate text-xs text-text-muted">{user?.email}</p>
         </div>
       ),
     },
@@ -50,61 +37,61 @@ export default function Header() {
       key: "signout",
       danger: true,
       icon: <LogOut className="h-4 w-4" />,
-      label: "Đăng xuất",
+      label: t("common:actions.signOut"),
       onClick: () => void signOut(),
     },
   ];
 
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/80 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4 sm:px-6">
-        <NavLink to={ROUTES.PLANS} className="flex shrink-0 items-center gap-2.5">
-          <img src="/logo.svg" alt="" className="h-9 w-9 shrink-0" />
-          <span className="hidden font-display text-[15px] font-bold tracking-tight text-slate-900 lg:block">
-            Travel Planner
-          </span>
-        </NavLink>
-
-        <IconButton
-          icon={Home}
-          aria-label="Về trang chủ"
-          onClick={() => navigate(ROUTES.HOME)}
-          className="border border-slate-200/80"
-        />
-
-        {/* Nav dạng segmented pill — nền slate-100 để tách khỏi header trắng. */}
-        <nav className="mx-auto flex items-center gap-0.5 rounded-xl bg-slate-100/80 p-1">
-          {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              className={({ isActive }) =>
-                `flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium transition sm:px-3 ${
-                  isActive ? "bg-white text-brand-700 shadow-xs" : "text-slate-500 hover:text-slate-800"
-                }`
-              }
+    <header className="sticky top-0 z-40">
+      <div className="relative px-4 pt-4 sm:px-6 xl:px-8">
+        <div className="absolute inset-x-4 bottom-0 h-px bg-[linear-gradient(90deg,transparent,rgba(71,85,105,0.22),transparent)] sm:inset-x-6 xl:inset-x-8" />
+        <div className="flex h-[72px] items-center justify-between gap-4 rounded-[26px] bg-surface/42 px-4 backdrop-blur-2xl shadow-[0_24px_60px_-46px_rgba(2,6,23,0.9)] sm:px-5">
+          <div className="flex min-w-0 items-center gap-3">
+            <button
+              type="button"
+              onClick={onToggleSidebar}
+              className="hidden rounded-[18px] bg-surface-elevated/68 p-2.5 text-text-muted transition hover:bg-surface-elevated hover:text-text-primary xl:inline-flex"
+              aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
-              <Icon className="h-4 w-4 shrink-0" />
-              <span className="hidden sm:block">{label}</span>
-            </NavLink>
-          ))}
-        </nav>
+              {sidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate(ROUTES.HOME)}
+              className="inline-flex items-center gap-2 rounded-[18px] bg-surface-elevated/68 px-3.5 py-2.5 text-sm font-medium text-text-secondary backdrop-blur transition hover:bg-surface-elevated hover:text-text-primary"
+            >
+              <Home className="h-4 w-4 text-primary" />
+              <span className="hidden sm:block">{t("common:actions.goHome")}</span>
+            </button>
+          </div>
 
-        <Dropdown trigger={["click"]} placement="bottomRight" menu={{ items: menuItems }}>
-          <button
-            type="button"
-            className="shrink-0 rounded-full ring-2 ring-transparent transition hover:ring-brand-200"
-            aria-label="Tài khoản"
-          >
-            {avatar ? (
-              <img src={avatar} alt={name} className="h-9 w-9 rounded-full object-cover" />
-            ) : (
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-200 text-slate-500">
-                <User className="h-4 w-4" />
-              </span>
-            )}
-          </button>
-        </Dropdown>
+          <div className="flex items-center gap-2">
+            <ThemeSwitcher />
+            <LanguageSwitcher />
+
+            <Dropdown trigger={["click"]} placement="bottomRight" menu={{ items: menuItems }}>
+              <button
+                type="button"
+                className="group inline-flex items-center gap-3 rounded-[22px] bg-surface-elevated/72 px-2.5 py-2.5 backdrop-blur-2xl transition hover:bg-surface-elevated"
+                aria-label={t("navigation:account")}
+              >
+                {avatar ? (
+                  <img src={avatar} alt={name} className="h-10 w-10 rounded-[18px] object-cover" />
+                ) : (
+                  <span className="flex h-10 w-10 items-center justify-center rounded-[18px] bg-[linear-gradient(135deg,rgba(236,72,153,0.92),rgba(190,24,93,0.86))] text-white shadow-[0_18px_36px_-24px_rgba(236,72,153,0.65)]">
+                    <User className="h-4 w-4" />
+                  </span>
+                )}
+                <span className="hidden min-w-0 text-left md:block">
+                  <span className="block max-w-[160px] truncate text-sm font-medium text-text-primary">{name}</span>
+                  <span className="block max-w-[180px] truncate text-xs text-text-muted">{user?.email}</span>
+                </span>
+              </button>
+            </Dropdown>
+          </div>
+        </div>
       </div>
     </header>
   );

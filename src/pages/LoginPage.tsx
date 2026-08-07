@@ -1,35 +1,33 @@
 import { Navigate } from "react-router-dom";
 import { Map, Route as RouteIcon, Sparkles, type LucideIcon } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { useTranslation } from "../i18n/useAppTranslation";
 import { ROUTES } from "../shared/constants/routes";
 import Button from "../shared/components/Button";
 
-const HIGHLIGHTS: { icon: LucideIcon; text: string }[] = [
-  { icon: Map, text: "Lưu địa điểm kèm ảnh, toạ độ và link Google Maps" },
-  { icon: Sparkles, text: "Tạo hoạt động với khung giờ, chi phí và nhiều địa điểm" },
-  { icon: RouteIcon, text: "Kéo-thả gom hoạt động thành chặng, chặng thành kế hoạch" },
-];
+const HIGHLIGHT_KEYS = ["locations", "items", "units"] as const;
+const HIGHLIGHT_ICONS: Record<(typeof HIGHLIGHT_KEYS)[number], LucideIcon> = {
+  locations: Map,
+  items: Sparkles,
+  units: RouteIcon,
+};
 
 export default function LoginPage() {
   const { session, loading, signInWithGoogle } = useAuth();
+  const { t } = useTranslation("auth");
 
   if (!loading && session) {
     return <Navigate to={ROUTES.PLANS} replace />;
   }
 
   return (
-    <div className="grid min-h-screen lg:grid-cols-2">
-      {/* Cột trái: pitch trên nền tối, cùng ngôn ngữ với hero của trang Tổng quan. */}
-      <div className="relative hidden overflow-hidden bg-slate-950 p-12 lg:flex lg:flex-col lg:justify-between">
+    <div className="grid min-h-screen bg-bg lg:grid-cols-2">
+      <div className="relative hidden overflow-hidden p-12 lg:flex lg:flex-col lg:justify-between">
         <div
           aria-hidden
-          className="absolute inset-0 bg-gradient-to-br from-brand-800/70 via-slate-950 to-slate-950"
+          className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(79,70,229,0.24),transparent_26%),radial-gradient(circle_at_bottom_left,rgba(14,165,233,0.14),transparent_22%),linear-gradient(180deg,rgba(2,6,23,0.96),rgba(2,6,23,1))]"
         />
         <div aria-hidden className="hero-grid absolute inset-0 opacity-70" />
-        <div
-          aria-hidden
-          className="absolute -left-24 top-1/3 h-72 w-72 rounded-full bg-brand-500/25 blur-3xl"
-        />
 
         <div className="relative flex items-center gap-2.5 text-white">
           <img src="/logo.svg" alt="" className="h-9 w-9 shrink-0" />
@@ -38,36 +36,32 @@ export default function LoginPage() {
 
         <div className="relative">
           <h2 className="max-w-md font-display text-4xl font-extrabold leading-[1.15] text-white">
-            Mọi chuyến đi,
-            <br />
-            gọn trong một kế hoạch.
+            {t("login.headline")}
           </h2>
           <ul className="mt-8 space-y-3.5">
-            {HIGHLIGHTS.map(({ icon: Icon, text }) => (
-              <li key={text} className="flex items-start gap-3 text-sm text-white/70">
-                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-white/10 text-brand-300">
-                  <Icon className="h-3.5 w-3.5" />
-                </span>
-                {text}
-              </li>
-            ))}
+            {HIGHLIGHT_KEYS.map((key) => {
+              const Icon = HIGHLIGHT_ICONS[key];
+              return (
+                <li key={key} className="flex items-start gap-3 text-sm text-white/72">
+                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-white/10 text-primary">
+                    <Icon className="h-3.5 w-3.5" />
+                  </span>
+                  {t(`login.highlights.${key}`)}
+                </li>
+              );
+            })}
           </ul>
         </div>
 
-        <p className="relative text-xs text-white/35">
-          Dữ liệu của bạn được bảo vệ bằng Row Level Security trên Supabase.
-        </p>
+        <p className="relative text-xs text-white/40">{t("login.security")}</p>
       </div>
 
-      {/* Cột phải: form đăng nhập */}
-      <div className="flex items-center justify-center bg-slate-50 px-6 py-16">
-        <div className="w-full max-w-sm animate-fade-up">
+      <div className="flex items-center justify-center px-6 py-16">
+        <div className="surface-soft w-full max-w-sm animate-fade-up p-7">
           <img src="/logo.svg" alt="" className="mb-7 h-12 w-12 lg:hidden" />
 
-          <h1 className="text-2xl font-bold">Chào mừng trở lại</h1>
-          <p className="mt-1.5 text-sm text-slate-500">
-            Đăng nhập để tiếp tục lên kế hoạch cho chuyến đi của bạn.
-          </p>
+          <h1 className="text-2xl font-bold text-text-primary">{t("login.welcome")}</h1>
+          <p className="mt-1.5 text-sm text-text-secondary">{t("login.subtitle")}</p>
 
           <Button
             block
@@ -76,13 +70,10 @@ export default function LoginPage() {
             onClick={() => void signInWithGoogle()}
             icon={<GoogleMark />}
           >
-            Tiếp tục với Google
+            {t("login.cta")}
           </Button>
 
-          <p className="mt-6 text-center text-xs leading-relaxed text-slate-400">
-            Chỉ dùng cho mục đích cá nhân. Bằng việc đăng nhập, bạn đồng ý để ứng dụng lưu địa điểm
-            và kế hoạch của bạn trên Supabase.
-          </p>
+          <p className="mt-6 text-center text-xs leading-relaxed text-text-muted">{t("login.legal")}</p>
         </div>
       </div>
     </div>

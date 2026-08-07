@@ -53,7 +53,7 @@ export default function TimelineBar({
       style={{ left, width }}
       className={`group/bar absolute inset-y-1 flex select-none items-center overflow-hidden rounded-lg shadow-xs ring-1 transition-shadow ${colorClass} ${
         preview ? "pointer-events-none opacity-50" : "cursor-grab active:cursor-grabbing"
-      } ${dragging ? "shadow-pop ring-2 ring-brand-400" : "hover:shadow-card"}`}
+      } ${dragging ? "shadow-pop ring-2 ring-primary/35" : "hover:shadow-card"}`}
     >
       {clippedLeft && (
         <ChevronLeft className="pointer-events-none absolute left-0 h-full w-3.5 shrink-0 opacity-80" />
@@ -65,14 +65,14 @@ export default function TimelineBar({
       {showHandles && (
         <span
           onPointerDown={onPointerDownStart}
-          className="absolute inset-y-0 left-0 w-2 cursor-ew-resize rounded-l-lg bg-black/10 opacity-0 transition group-hover/bar:opacity-100"
+          className="absolute inset-y-0 left-0 w-2 cursor-ew-resize rounded-l-lg bg-black/12 opacity-0 transition group-hover/bar:opacity-100"
           aria-label="Kéo để đổi giờ bắt đầu"
         />
       )}
       {showHandles && (
         <span
           onPointerDown={onPointerDownEnd}
-          className="absolute inset-y-0 right-0 w-2 cursor-ew-resize rounded-r-lg bg-black/10 opacity-0 transition group-hover/bar:opacity-100"
+          className="absolute inset-y-0 right-0 w-2 cursor-ew-resize rounded-r-lg bg-black/12 opacity-0 transition group-hover/bar:opacity-100"
           aria-label="Kéo để đổi giờ kết thúc"
         />
       )}

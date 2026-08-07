@@ -12,6 +12,19 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
+    <script>
+      (() => {
+        const storageKey = "travel-planner-theme";
+        const stored = window.localStorage.getItem(storageKey);
+        const mode = stored === "light" || stored === "dark" || stored === "system" ? stored : "system";
+        const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        const resolved = mode === "system" ? (systemDark ? "dark" : "light") : mode;
+        document.documentElement.dataset.theme = resolved;
+        document.documentElement.classList.toggle("dark", resolved === "dark");
+        const meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute("content", resolved === "dark" ? "#020617" : "#F8FAFC");
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

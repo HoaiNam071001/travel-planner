@@ -1,0 +1,42 @@
+{
+  "title": "Location notebook",
+  "subtitle": "Save places you want to visit, search by name, or scan around a point on the map.",
+  "create": "Add location",
+  "searchPlaceholder": "Search locations by name...",
+  "counts": {
+    "area": "{{count}} locations within {{radius}}",
+    "list": "{{visible}}/{{total}} locations"
+  },
+  "areaFilter": {
+    "label": "Showing {{count}} locations around {{lat}}, {{lng}} (radius {{radius}}).",
+    "clear": "Clear area filter"
+  },
+  "empty": {
+    "areaTitle": "No locations nearby",
+    "searchTitle": "No matching locations found",
+    "defaultTitle": "No locations yet",
+    "areaHint": "Move the map to another area and try “Search this area” again.",
+    "searchHint": "Try a shorter keyword or clear the search input.",
+    "defaultHint": "Paste a Google Maps link into the add location modal to autofill the name and coordinates."
+  },
+  "loadMore": {
+    "loading": "Loading more...",
+    "more": "Scroll to load more ({{size}} at a time)",
+    "done": "End of list."
+  },
+  "errors": {
+    "load": "Could not load locations: {{message}}",
+    "loadMore": "Could not load more locations: {{message}}",
+    "searchArea": "Could not search nearby locations: {{message}}",
+    "delete": "Could not delete the location: {{message}}",
+    "save": "Could not save changes: {{message}}",
+    "create": "Could not create the location: {{message}}"
+  },
+  "card": {
+    "focus": "Focus on map",
+    "edit": "Edit",
+    "delete": "Delete",
+    "deleteTitle": "Delete this location?",
+    "noDescription": "No description yet"
+  }
+}

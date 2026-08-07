@@ -1,0 +1,73 @@
+{
+  "plan": {
+    "createTitle": "Kế hoạch mới",
+    "editTitle": "Sửa kế hoạch",
+    "fields": {
+      "name": "Tên kế hoạch",
+      "dateRange": "Khoảng thời gian",
+      "description": "Mô tả"
+    },
+    "hints": {
+      "dateRange": "theo ngày",
+      "description": "không bắt buộc"
+    }
+  },
+  "location": {
+    "createTitle": "Thêm địa điểm mới",
+    "editTitle": "Sửa địa điểm",
+    "fields": {
+      "name": "Tên địa điểm",
+      "description": "Mô tả",
+      "mapsLink": "Link Google Maps",
+      "lat": "Vĩ độ (lat)",
+      "lng": "Kinh độ (lng)",
+      "images": "Ảnh"
+    },
+    "hints": {
+      "mapsLink": "tự điền tên + toạ độ",
+      "description": "không bắt buộc",
+      "images": "thêm từ URL"
+    }
+  },
+  "item": {
+    "createTitle": "Thêm hoạt động mới",
+    "editTitle": "Sửa hoạt động",
+    "fields": {
+      "name": "Tên hoạt động",
+      "timeRange": "Bắt đầu - kết thúc",
+      "duration": "Khoảng thời gian",
+      "price": "Giá (đ)",
+      "locations": "Địa điểm",
+      "note": "Ghi chú"
+    },
+    "hints": {
+      "timeRange": "không bắt buộc - có thể chỉ nhập giờ bắt đầu",
+      "duration": {
+        "derived": "tính từ khung giờ",
+        "optional": "không bắt buộc"
+      },
+      "price": "không bắt buộc",
+      "note": "không bắt buộc"
+    }
+  },
+  "unit": {
+    "createTitle": "Thêm chặng mới",
+    "editTitle": "Sửa chặng",
+    "fields": {
+      "name": "Tên chặng",
+      "type": "Loại",
+      "start": "Bắt đầu chặng",
+      "end": "Kết thúc chặng",
+      "duration": "Khoảng thời gian",
+      "breakMinutes": "Nghỉ giữa hoạt động (phút)",
+      "description": "Mô tả",
+      "items": "Hoạt động"
+    },
+    "hints": {
+      "type": "tự tạo, vd Ngày / Tuần",
+      "duration": "mặc định 6 giờ",
+      "description": "không bắt buộc",
+      "items": "thứ tự bên phải là thứ tự trong chặng"
+    }
+  }
+}

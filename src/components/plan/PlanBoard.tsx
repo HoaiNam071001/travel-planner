@@ -217,14 +217,14 @@ export default function PlanBoard({
         </Button>
       </div>
 
-      <p className="mb-3 text-xs text-slate-400">
+      <p className="mb-3 text-xs text-text-muted">
         {mode === "unit"
           ? "Kéo tay cầm ở đầu mỗi chặng để đổi thứ tự. Hoạt động đang khoá — đổi chặng cho nó bằng nút “Chuyển tới…” trên từng thẻ."
           : "Kéo hoạt động giữa các chặng hoặc lên xuống trong 1 chặng để sắp thứ tự. Chặng đang khoá, quay lại “Sắp chặng” để đổi thứ tự chặng."}
       </p>
 
       {!hasLocations && (
-        <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-800">
+        <p className="mb-4 rounded-2xl bg-warning/12 px-3.5 py-2.5 text-xs text-warning shadow-xs ring-1 ring-inset ring-warning/16">
           Chưa có địa điểm nào — hoạt động tạo ở đây sẽ chưa gắn địa điểm. Thêm địa điểm ở trang Địa
           điểm rồi sửa lại hoạt động khi cần.
         </p>
@@ -270,7 +270,7 @@ export default function PlanBoard({
                       value={librarySearch}
                       onChange={(e) => setLibrarySearch(e.target.value)}
                       placeholder="Tìm hoạt động..."
-                      prefix={<Search className="h-3.5 w-3.5 text-slate-400" />}
+                      prefix={<Search className="h-3.5 w-3.5 text-text-muted" />}
                       allowClear
                     />
                   ) : null
@@ -297,9 +297,9 @@ export default function PlanBoard({
           <DragOverlay dropAnimation={{ duration: 180, easing: "cubic-bezier(0.16, 1, 0.3, 1)" }}>
             {activeItem && <BoardItemPreview item={activeItem} />}
             {activeUnit && (
-              <div className="w-[232px] rotate-1 cursor-grabbing rounded-2xl border border-brand-300 bg-white px-3 py-2.5 shadow-pop">
-                <p className="truncate text-[13px] font-bold text-slate-800">{activeUnit.name}</p>
-                <p className="mt-0.5 text-[11px] text-slate-400 tnum">
+              <div className="w-[232px] rotate-1 cursor-grabbing rounded-2xl border border-primary/16 bg-surface-elevated/96 px-3 py-2.5 shadow-pop backdrop-blur-sm">
+                <p className="truncate text-[13px] font-bold text-text-primary">{activeUnit.name}</p>
+                <p className="mt-0.5 text-[11px] text-text-muted tnum">
                   {(itemsByUnit.get(activeUnit.id) ?? []).length} hoạt động
                 </p>
               </div>
@@ -332,9 +332,9 @@ function AddUnitLane({ freeUnits, onAddUnit, onQuickCreateUnit }: AddUnitLanePro
   }
 
   return (
-    <section className="flex max-h-[calc(100vh-15rem)] w-[248px] shrink-0 flex-col rounded-2xl border border-dashed border-slate-300 bg-white/40 p-3">
-      <h3 className="text-[13px] font-bold text-slate-600">Thêm chặng</h3>
-      <p className="mt-0.5 text-[11px] leading-relaxed text-slate-400">
+    <section className="flex max-h-[calc(100vh-15rem)] w-[248px] shrink-0 flex-col rounded-2xl border border-dashed border-border/16 bg-surface-secondary/56 p-3 shadow-card">
+      <h3 className="text-[13px] font-bold text-text-primary">Thêm chặng</h3>
+      <p className="mt-0.5 text-[11px] leading-relaxed text-text-muted">
         Nhập tên để tạo nhanh, hoặc chọn một chặng đã có sẵn.
       </p>
 
@@ -358,7 +358,7 @@ function AddUnitLane({ freeUnits, onAddUnit, onQuickCreateUnit }: AddUnitLanePro
 
       {freeUnits.length > 0 && (
         <>
-          <p className="mt-4 shrink-0 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+          <p className="mt-4 shrink-0 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
             Chặng chưa gắn kế hoạch ({freeUnits.length})
           </p>
           <div className="scroll-thin mt-2 flex-1 space-y-1.5 overflow-y-auto pr-0.5">
@@ -367,15 +367,15 @@ function AddUnitLane({ freeUnits, onAddUnit, onQuickCreateUnit }: AddUnitLanePro
                 key={unit.id}
                 type="button"
                 onClick={() => onAddUnit(unit.id)}
-                className="flex w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-left transition hover:border-brand-300 hover:bg-brand-50/40"
+                className="flex w-full items-center gap-2 rounded-xl border border-border/12 bg-surface-elevated/82 px-2.5 py-2 text-left transition hover:bg-surface-elevated hover:shadow-xs"
               >
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-400">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-surface-secondary/88 text-text-secondary">
                   <Inbox className="h-3.5 w-3.5" />
                 </span>
-                <span className="min-w-0 flex-1 truncate text-xs font-medium text-slate-700">
+                <span className="min-w-0 flex-1 truncate text-xs font-medium text-text-primary">
                   {unit.name}
                 </span>
-                <Plus className="h-3.5 w-3.5 shrink-0 text-brand-600" />
+                <Plus className="h-3.5 w-3.5 shrink-0 text-primary" />
               </button>
             ))}
           </div>

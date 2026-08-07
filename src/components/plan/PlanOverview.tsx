@@ -210,23 +210,23 @@ export default function PlanOverview({
   return (
     <div className="animate-fade-up space-y-6">
       {/* ------------------------------------------------------------- hero */}
-      <section className="relative overflow-hidden rounded-3xl bg-slate-950 px-6 py-5 sm:px-8 sm:py-6">
+      <section className="surface-highlight relative overflow-hidden rounded-3xl px-6 py-5 sm:px-8 sm:py-6">
         <div
           aria-hidden
-          className="absolute inset-0 bg-gradient-to-br from-brand-800/60 via-slate-950 to-slate-950"
+          className="absolute inset-0 bg-[linear-gradient(135deg,rgba(99,102,241,0.2),rgba(37,99,235,0.14),transparent)]"
         />
         <div aria-hidden className="hero-grid absolute inset-0 opacity-60" />
         <div
           aria-hidden
-          className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-brand-500/20 blur-3xl"
+          className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-primary/18 blur-3xl"
         />
 
         <div className="relative">
           <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/10 ring-1 ring-white/15">
-                  <Sparkles className="h-3.5 w-3.5 text-brand-300" />
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/10">
+                  <Sparkles className="h-3.5 w-3.5 text-white" />
                 </span>
                 <h1 className="max-w-2xl truncate font-display text-2xl font-extrabold leading-tight text-white sm:text-[30px]">
                   {plan?.name}
@@ -326,7 +326,7 @@ export default function PlanOverview({
 
                     {nextUnit && (
                       <div className="relative flex h-10 items-center justify-center gap-2">
-                        <span aria-hidden className="absolute inset-y-0 left-9 w-px bg-slate-200" />
+                        <span aria-hidden className="absolute inset-y-0 left-9 w-px bg-border/12" />
                         {canConnect && (
                           <>
                             {connectorRoute && connectorRoute.distanceKm > 0.01 && (
@@ -346,7 +346,7 @@ export default function PlanOverview({
                                   toItems: nextItems,
                                 })
                               }
-                              className="relative z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white text-slate-400 shadow-xs ring-1 ring-slate-200 transition hover:-translate-y-0.5 hover:text-brand-600 hover:ring-brand-300 hover:shadow-card"
+                              className="relative z-10 flex h-7 w-7 items-center justify-center rounded-full bg-surface-elevated/96 text-text-secondary shadow-xs transition hover:-translate-y-0.5 hover:bg-surface-elevated hover:text-primary hover:shadow-card"
                             >
                               <RouteIcon className="h-3.5 w-3.5" />
                             </button>
@@ -414,7 +414,7 @@ function SectionLabel({
 }) {
   return (
     <div className="flex items-center justify-between gap-2">
-      <h2 className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-wide text-slate-400">
+      <h2 className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-wide text-text-muted">
         {Icon && <Icon className="h-4 w-4" />}
         {children}
       </h2>
@@ -457,7 +457,7 @@ export function UnitTimelineCard({ unit, index, color, items, onEdit, route, onV
     <article className="surface relative overflow-hidden">
       <span aria-hidden className={`absolute inset-y-0 left-0 w-1 ${color.dot}`} />
 
-      <header className="flex items-start gap-3.5 border-b border-slate-100 px-5 py-4">
+      <header className="flex items-start gap-3.5 border-b border-border/10 px-5 py-4">
         <span
           className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl font-display text-[13px] font-bold text-white tnum ${color.solidChip}`}
         >
@@ -472,7 +472,7 @@ export function UnitTimelineCard({ unit, index, color, items, onEdit, route, onV
                 <button
                   type="button"
                   onClick={onViewMap}
-                  className="flex items-center gap-1 rounded-lg px-1.5 py-1 text-xs font-medium text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                  className="flex items-center gap-1 rounded-lg px-1.5 py-1 text-xs font-medium text-text-muted transition hover:bg-surface-elevated/60 hover:text-text-primary"
                 >
                   <MapIcon className="h-3.5 w-3.5" />
                   Bản đồ
@@ -482,7 +482,7 @@ export function UnitTimelineCard({ unit, index, color, items, onEdit, route, onV
                 <button
                   type="button"
                   onClick={() => onEdit(unit)}
-                  className="flex items-center gap-1 rounded-lg px-1.5 py-1 text-xs font-medium text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                  className="flex items-center gap-1 rounded-lg px-1.5 py-1 text-xs font-medium text-text-muted transition hover:bg-surface-elevated/60 hover:text-text-primary"
                 >
                   <Pencil className="h-3.5 w-3.5" />
                   Sửa
@@ -527,13 +527,13 @@ export function UnitTimelineCard({ unit, index, color, items, onEdit, route, onV
           </div>
 
           {unit.description && (
-            <p className="mt-2.5 text-sm leading-relaxed text-slate-500">{unit.description}</p>
+            <p className="mt-2.5 text-sm leading-relaxed text-text-secondary">{unit.description}</p>
           )}
         </div>
       </header>
 
       {items.length === 0 ? (
-        <p className="px-5 py-6 text-center text-xs text-slate-400">
+        <p className="px-5 py-6 text-center text-xs text-text-muted">
           Chặng này chưa có hoạt động nào.
         </p>
       ) : (
@@ -569,57 +569,57 @@ export function ItemTimelineRow({ item, color, start, end, inferred }: ItemTimel
   const thumb = item.locations?.find((l) => l.images?.length)?.images?.[0];
 
   return (
-    <li className="group flex gap-4 px-5 py-3.5 transition hover:bg-slate-50/70">
+    <li className="group flex gap-4 px-5 py-3.5 transition hover:bg-surface-elevated/42">
       {/* Cột giờ + đường nối dọc tạo cảm giác timeline. */}
       <div className="flex w-[68px] shrink-0 flex-col items-end pt-0.5">
         {start && end ? (
           <>
             <span
               className={`font-mono text-[13px] font-medium tnum ${
-                inferred ? "text-slate-400" : "text-slate-700"
+                inferred ? "text-text-muted" : "text-text-secondary"
               }`}
             >
               {start.format("HH:mm")}
             </span>
-            <span className="font-mono text-[11px] text-slate-400 tnum">{end.format("HH:mm")}</span>
+            <span className="font-mono text-[11px] text-text-muted tnum">{end.format("HH:mm")}</span>
           </>
         ) : (
-          <span className="text-[11px] text-slate-300">--:--</span>
+          <span className="text-[11px] text-text-muted/70">--:--</span>
         )}
       </div>
 
       <div className="relative flex flex-col items-center pt-1.5">
         <span
-          className={`h-2 w-2 shrink-0 rounded-full ring-4 ring-slate-50 ${
-            inferred ? "bg-slate-300" : color.dot
+          className={`h-2 w-2 shrink-0 rounded-full ring-4 ring-surface ${
+            inferred ? "bg-surface-elevated" : color.dot
           }`}
         />
-        <span className="mt-1 w-px flex-1 bg-slate-200" />
+        <span className="mt-1 w-px flex-1 bg-border/12" />
       </div>
 
-      <div className={`min-w-0 flex-1 border-l-2 pl-3 ${inferred ? "border-slate-100" : color.accentBorder}`}>
+      <div className={`min-w-0 flex-1 border-l-2 pl-3 ${inferred ? "border-border/10" : color.accentBorder}`}>
         <div className="flex items-start justify-between gap-3">
-          <p className="text-sm font-semibold text-slate-800 transition-colors group-hover:text-brand-700">
+          <p className="text-sm font-semibold text-text-primary transition-colors group-hover:text-primary">
             {item.name}
           </p>
           {item.price != null && Number(item.price) > 0 && (
-            <span className="shrink-0 text-sm font-semibold text-slate-700 tnum">
+            <span className="shrink-0 text-sm font-semibold text-text-secondary tnum">
               {formatPrice(item.price)}
             </span>
           )}
         </div>
 
         {item.locations?.length > 0 && (
-          <p className="mt-1 flex items-start gap-1.5 text-xs text-slate-500">
-            <MapPin className="mt-px h-3.5 w-3.5 shrink-0 text-slate-400" />
+          <p className="mt-1 flex items-start gap-1.5 text-xs text-text-secondary">
+            <MapPin className="mt-px h-3.5 w-3.5 shrink-0 text-text-muted" />
             <span>{item.locations.map((l) => l.name).join(" → ")}</span>
           </p>
         )}
 
-        {item.note && <p className="mt-1.5 text-xs leading-relaxed text-slate-400">{item.note}</p>}
+        {item.note && <p className="mt-1.5 text-xs leading-relaxed text-text-muted">{item.note}</p>}
 
         {duration && (
-          <span className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-slate-400 tnum">
+          <span className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-text-muted tnum">
             <Clock className="h-3 w-3" />
             {duration}
           </span>
@@ -630,7 +630,7 @@ export function ItemTimelineRow({ item, color, start, end, inferred }: ItemTimel
         <img
           src={thumb}
           alt=""
-          className="hidden h-14 w-20 shrink-0 rounded-xl border border-slate-200 object-cover transition duration-200 group-hover:shadow-card sm:block"
+          className="hidden h-14 w-20 shrink-0 rounded-xl border border-border/10 object-cover transition duration-200 group-hover:shadow-card sm:block"
         />
       )}
     </li>
@@ -652,25 +652,25 @@ function TransitionRow({ breakMinutes, start, leg }: TransitionRowProps) {
   const breakEnd = showBreak && start ? start.add(breakMinutes, "minute") : null;
 
   return (
-    <li className="flex gap-4 px-5 py-2 transition hover:bg-slate-50/70">
+    <li className="flex gap-4 px-5 py-2 transition hover:bg-surface-elevated/42">
       <div className="flex w-[68px] shrink-0 flex-col items-end pt-0.5">
         {start && breakEnd && (
           <>
-            <span className="font-mono text-[11px] italic text-slate-400 tnum">{start.format("HH:mm")}</span>
-            <span className="font-mono text-[11px] italic text-slate-400 tnum">{breakEnd.format("HH:mm")}</span>
+            <span className="font-mono text-[11px] italic text-text-muted tnum">{start.format("HH:mm")}</span>
+            <span className="font-mono text-[11px] italic text-text-muted tnum">{breakEnd.format("HH:mm")}</span>
           </>
         )}
       </div>
 
       <div className="relative flex flex-col items-center pt-1.5">
-        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-slate-300" />
-        <span className="mt-1 w-px flex-1 bg-slate-200" />
+        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-surface-elevated" />
+        <span className="mt-1 w-px flex-1 bg-border/12" />
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className="flex flex-wrap items-center gap-x-1.5 text-[13px] text-slate-400">
+        <p className="flex flex-wrap items-center gap-x-1.5 text-[13px] text-text-muted">
           {showBreak && <span className="italic">Nghỉ {breakMinutes} phút</span>}
-          {showBreak && showDistance && <span className="text-slate-300">·</span>}
+          {showBreak && showDistance && <span className="text-text-muted/70">·</span>}
           {showDistance && leg && (
             <span className="inline-flex items-center gap-1">
               <RouteIcon className="h-3 w-3" />
@@ -708,12 +708,12 @@ export function CostBreakdown({ planUnits, itemsByUnit, expensesCost = 0, total 
       <SectionLabel icon={Wallet}>Phân bổ chi phí</SectionLabel>
 
       {rows.length === 0 ? (
-        <p className="mt-4 text-xs text-slate-400">
+        <p className="mt-4 text-xs text-text-muted">
           Chưa có hoạt động nào ghi chi phí. Thêm giá cho hoạt động để thấy phân bổ ở đây.
         </p>
       ) : (
         <>
-          <p className="mt-3 font-display text-2xl font-bold text-slate-900 tnum">
+          <p className="mt-3 font-display text-2xl font-bold text-text-primary tnum">
             {formatPrice(total)}
           </p>
           <ul className="mt-4 space-y-3">
@@ -722,13 +722,13 @@ export function CostBreakdown({ planUnits, itemsByUnit, expensesCost = 0, total 
               return (
                 <li key={key}>
                   <div className="mb-1.5 flex items-baseline justify-between gap-2">
-                    <span className="truncate text-xs font-medium text-slate-600">{label}</span>
-                    <span className="shrink-0 text-xs text-slate-500 tnum">
+                    <span className="truncate text-xs font-medium text-text-secondary">{label}</span>
+                    <span className="shrink-0 text-xs text-text-secondary tnum">
                       {formatPrice(cost)}
-                      <span className="ml-1.5 text-slate-400">{percent}%</span>
+                      <span className="ml-1.5 text-text-muted">{percent}%</span>
                     </span>
                   </div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
+                  <div className="h-1.5 overflow-hidden rounded-full bg-surface-secondary/70">
                     <div
                       className="h-full rounded-full bg-gradient-to-r from-brand-400 to-brand-600"
                       style={{ width: `${Math.max(percent, 2)}%` }}
@@ -750,7 +750,7 @@ export function VisitedLocations({ locations }: { locations: VisitedLocation[] }
       <SectionLabel icon={MapPin}>Địa điểm ghé qua</SectionLabel>
 
       {locations.length === 0 ? (
-        <p className="mt-4 text-xs text-slate-400">
+        <p className="mt-4 text-xs text-text-muted">
           Các hoạt động trong kế hoạch chưa gắn địa điểm nào.
         </p>
       ) : (
@@ -761,14 +761,14 @@ export function VisitedLocations({ locations }: { locations: VisitedLocation[] }
                 <img
                   src={loc.images[0]}
                   alt=""
-                  className="h-9 w-9 shrink-0 rounded-xl border border-slate-200 object-cover"
+                  className="h-9 w-9 shrink-0 rounded-xl border border-border/10 object-cover"
                 />
               ) : (
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-400">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface-secondary/80 text-text-muted">
                   <MapPin className="h-4 w-4" />
                 </span>
               )}
-              <span className="min-w-0 flex-1 truncate text-sm text-slate-700">{loc.name}</span>
+              <span className="min-w-0 flex-1 truncate text-sm text-text-secondary">{loc.name}</span>
               {loc.visits > 1 && (
                 <Badge size="sm" numeric>
                   {loc.visits} lần
