@@ -11,6 +11,7 @@ import {
   Trash2,
   Wallet,
 } from "lucide-react";
+import { useTranslation } from "../../i18n/useAppTranslation";
 import Badge from "../../shared/components/Badge";
 import Button from "../../shared/components/Button";
 import EmptyState from "../../shared/components/EmptyState";
@@ -30,40 +31,62 @@ export interface PlanExpensesProps {
 }
 
 export default function PlanExpenses({ expenses, onCreate, onEdit, onDelete }: PlanExpensesProps) {
+  const { t } = useTranslation("planDetail");
   const colorIndexById = useMemo(() => expenseColorIndex(expenses), [expenses]);
   const total = useMemo(() => expenses.reduce((sum, expense) => sum + (Number(expense.price) || 0), 0), [expenses]);
   const scheduledCount = expenses.filter((expense) => expense.start_time).length;
 
   return (
     <div className="animate-fade-up space-y-5">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <StatTile icon={Receipt} label="Số khoản" value={expenses.length} />
-        <StatTile
-          icon={CalendarClock}
-          label="Đã lên lịch"
-          value={scheduledCount}
-          sub={`${expenses.length - scheduledCount} chưa xếp giờ`}
+      <section className="surface-highlight relative overflow-hidden rounded-3xl px-6 py-5 sm:px-8 sm:py-6">
+        <div aria-hidden className="hero-grid absolute inset-0 opacity-50" />
+        <div
+          aria-hidden
+          className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-primary/10 blur-3xl"
         />
-        <StatTile icon={Wallet} label="Tổng chi phí khác" value={formatPrice(total)} />
-      </div>
 
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-sm text-text-secondary">
-          Chi phí không gắn với một hoạt động cụ thể như vé xe, máy bay, khách sạn hoặc mua sắm.
-        </p>
-        <Button variant="primary" icon={<Plus className="h-4 w-4" />} onClick={onCreate}>
-          Thêm chi phí
-        </Button>
-      </div>
+        <div className="relative">
+          <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                  <Receipt className="h-3.5 w-3.5 text-primary" />
+                </span>
+                <h1 className="font-display text-xl font-extrabold leading-tight text-text-primary sm:text-2xl">
+                  {t("planDetail:expenses.title")}
+                </h1>
+              </div>
+              <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-text-secondary">
+                {t("planDetail:expenses.description")}
+              </p>
+            </div>
+
+            <Button variant="primary" icon={<Plus className="h-4 w-4" />} onClick={onCreate}>
+              {t("planDetail:expenses.add")}
+            </Button>
+          </div>
+
+          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <StatTile icon={Receipt} label={t("planDetail:expenses.countLabel")} value={expenses.length} />
+            <StatTile
+              icon={CalendarClock}
+              label={t("planDetail:expenses.scheduledLabel")}
+              value={scheduledCount}
+              sub={t("planDetail:expenses.scheduledSub", { count: expenses.length - scheduledCount })}
+            />
+            <StatTile icon={Wallet} label={t("planDetail:expenses.totalLabel")} value={formatPrice(total)} />
+          </div>
+        </div>
+      </section>
 
       {expenses.length === 0 ? (
         <EmptyState
           icon={Receipt}
-          title="Chưa có khoản chi phí khác nào"
-          hint="Thêm vé xe, khách sạn, mua sắm hoặc các khoản phát sinh để tính đúng tổng chi phí của kế hoạch."
+          title={t("planDetail:expenses.emptyTitle")}
+          hint={t("planDetail:expenses.emptyHint")}
           action={
             <Button variant="primary" icon={<Plus className="h-4 w-4" />} onClick={onCreate}>
-              Thêm chi phí
+              {t("planDetail:expenses.add")}
             </Button>
           }
         />
@@ -92,6 +115,7 @@ export interface ExpenseCardProps {
 }
 
 export function ExpenseCard({ expense, color, onEdit, onDelete }: ExpenseCardProps) {
+  const { t } = useTranslation(["planDetail", "common"]);
   const range = itemRange(expense);
   const rangeLabel = range ? formatDateTimeRange(range.start, range.end) : null;
 
@@ -101,16 +125,24 @@ export function ExpenseCard({ expense, color, onEdit, onDelete }: ExpenseCardPro
         <h3 className="min-w-0 flex-1 truncate text-[14px] font-bold text-text-primary">{expense.name}</h3>
         {(onEdit || onDelete) && (
           <div className="flex shrink-0 gap-0.5">
-            {onEdit && <IconButton size="sm" tone="brand" icon={Pencil} onClick={onEdit} aria-label="Sửa chi phí" />}
+            {onEdit && (
+              <IconButton
+                size="sm"
+                tone="brand"
+                icon={Pencil}
+                onClick={onEdit}
+                aria-label={t("planDetail:expenses.edit")}
+              />
+            )}
             {onDelete && (
               <Popconfirm
-                title="Xoá khoản chi phí này?"
-                okText="Xoá"
-                cancelText="Huỷ"
+                title={t("planDetail:expenses.deleteTitle")}
+                okText={t("common:actions.delete")}
+                cancelText={t("common:actions.cancel")}
                 okButtonProps={{ danger: true }}
                 onConfirm={onDelete}
               >
-                <IconButton size="sm" tone="danger" icon={Trash2} aria-label="Xoá chi phí" />
+                <IconButton size="sm" tone="danger" icon={Trash2} aria-label={t("planDetail:expenses.delete")} />
               </Popconfirm>
             )}
           </div>
@@ -124,7 +156,7 @@ export function ExpenseCard({ expense, color, onEdit, onDelete }: ExpenseCardPro
           </Badge>
         ) : (
           <Badge size="sm" icon={CalendarClock}>
-            Chưa xếp lịch
+            {t("planDetail:overview.notScheduled")}
           </Badge>
         )}
         {expense.price != null && Number(expense.price) > 0 && (

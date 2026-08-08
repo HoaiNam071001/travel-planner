@@ -1,4 +1,5 @@
 import { CalendarClock, Clock, Copy, Map, MapPin, Pencil, Sparkles, Wallet } from "lucide-react";
+import { useTranslation } from "../i18n/useAppTranslation";
 import Modal from "../shared/components/Modal";
 import Button from "../shared/components/Button";
 import Badge from "../shared/components/Badge";
@@ -27,6 +28,7 @@ export default function UnitDetailModal({
   onEdit,
   onClone,
 }: UnitDetailModalProps) {
+  const { t } = useTranslation(["units", "planDetail", "common"]);
   const stats = unitStats(items, unit?.break_minutes);
   const range = unitRange(unit);
   const rangeLabel = range ? formatDateTimeRange(range.start, range.end) : null;
@@ -40,14 +42,14 @@ export default function UnitDetailModal({
       footer={
         unit && (
           <div className="flex justify-end gap-2">
-            <Button onClick={onClose}>Đóng</Button>
+            <Button onClick={onClose}>{t("common:actions.close")}</Button>
             {onClone && (
               <Button icon={<Copy className="h-4 w-4" />} onClick={() => onClone(unit)}>
-                Nhân bản
+                {t("units:card.clone")}
               </Button>
             )}
             <Button variant="primary" icon={<Pencil className="h-4 w-4" />} onClick={() => onEdit(unit)}>
-              Sửa
+              {t("units:card.edit")}
             </Button>
           </div>
         )
@@ -63,7 +65,7 @@ export default function UnitDetailModal({
               </Badge>
             )}
             <Badge tone={planName ? "violet" : "neutral"} icon={Map}>
-              {planName ?? "Chưa gắn kế hoạch"}
+              {planName ?? t("units:card.unassignedPlan")}
             </Badge>
           </div>
 
@@ -73,22 +75,22 @@ export default function UnitDetailModal({
 
           {/* Tổng của chặng = tổng hợp từ các hoạt động bên trong (tính động). */}
           <div className="mt-5 grid grid-cols-3 gap-2.5">
-            <StatTile icon={Sparkles} label="Hoạt động" value={stats.itemCount} />
-            <StatTile icon={Clock} label="Thời lượng" value={formatDuration(stats.minutes) ?? "—"} />
+            <StatTile icon={Sparkles} label={t("units:card.items")} value={stats.itemCount} />
+            <StatTile icon={Clock} label={t("units:card.duration")} value={formatDuration(stats.minutes) ?? "—"} />
             <StatTile
               icon={Wallet}
-              label="Chi phí"
+              label={t("units:card.cost")}
               value={stats.cost > 0 ? formatPrice(stats.cost) : "—"}
             />
           </div>
 
           <p className="mb-2 mt-5 text-xs font-semibold uppercase tracking-wide text-text-muted">
-            Hoạt động ({items.length})
+            {t("units:detail.itemsHeading", { count: items.length })}
           </p>
 
           {items.length === 0 ? (
             <p className="rounded-xl border border-dashed border-border/16 bg-surface-secondary/40 py-6 text-center text-xs text-text-muted">
-              Chặng này chưa có hoạt động nào.
+              {t("planDetail:overview.unitEmpty")}
             </p>
           ) : (
             <ol className="space-y-2">
@@ -125,7 +127,7 @@ export default function UnitDetailModal({
                           >
                             <Clock className="h-3 w-3" />
                             {slot.start.format("HH:mm")} - {slot.end.format("HH:mm")}
-                            {slot.inferred && <span className="italic">(dự kiến)</span>}
+                            {slot.inferred && <span className="italic">{t("units:detail.inferredLabel")}</span>}
                           </span>
                         )}
                       </div>

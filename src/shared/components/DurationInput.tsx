@@ -1,4 +1,5 @@
 import { InputNumber } from "antd";
+import { useTranslation } from "../../i18n/useAppTranslation";
 
 export interface DurationInputProps {
   value: number;
@@ -13,6 +14,7 @@ export default function DurationInput({
   disabled = false,
   className = "",
 }: DurationInputProps) {
+  const { t } = useTranslation("forms");
   const hours = Math.floor(Math.max(value, 0) / 60);
   const minutes = Math.max(value, 0) % 60;
 
@@ -31,7 +33,7 @@ export default function DurationInput({
         value={hours}
         onChange={(val) => onChange((val ?? 0) * 60 + minutes)}
       />
-      <span className="shrink-0 text-xs text-text-muted">giờ</span>
+      <span className="shrink-0 text-xs text-text-muted">{t("forms:durationUnit.hours")}</span>
       <span className="h-4 w-px shrink-0 bg-border/20" />
       <InputNumber
         className="w-full"
@@ -43,7 +45,7 @@ export default function DurationInput({
         value={minutes}
         onChange={(val) => onChange(hours * 60 + (val ?? 0))}
       />
-      <span className="shrink-0 text-xs text-text-muted">phút</span>
+      <span className="shrink-0 text-xs text-text-muted">{t("forms:durationUnit.minutes")}</span>
     </div>
   );
 }

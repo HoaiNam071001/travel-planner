@@ -101,14 +101,14 @@ export default function PlanCard({
           )}
 
           <div className="mt-5 grid grid-cols-2 gap-3">
-            <div className="rounded-xl bg-surface-secondary/70 p-3">
+            <div className="rounded-xl border border-border/30 bg-surface-secondary p-3">
               <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-text-muted">
                 <RouteIcon className="h-3.5 w-3.5 text-primary" />
                 {t("card.units")}
               </p>
               <p className="mt-2 text-xl font-bold text-text-primary tnum">{unitCount}</p>
             </div>
-            <div className="rounded-xl bg-surface-secondary/70 p-3">
+            <div className="rounded-xl border border-border/30 bg-surface-secondary p-3">
               <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-text-muted">
                 <Sparkles className="h-3.5 w-3.5 text-primary" />
                 {t("card.items")}

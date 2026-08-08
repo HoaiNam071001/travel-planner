@@ -30,7 +30,8 @@
     "searchArea": "Không tìm được địa điểm quanh đây: {{message}}",
     "delete": "Không xoá được địa điểm: {{message}}",
     "save": "Không lưu được thay đổi: {{message}}",
-    "create": "Không thêm được địa điểm: {{message}}"
+    "create": "Không thêm được địa điểm: {{message}}",
+    "resolveShortLink": "Không giải mã được link rút gọn."
   },
   "card": {
     "focus": "Soi trên bản đồ",
@@ -38,5 +39,21 @@
     "delete": "Xoá",
     "deleteTitle": "Xoá địa điểm này?",
     "noDescription": "Chưa có mô tả"
+  },
+  "detail": {
+    "openInGoogleMaps": "Mở trên Google Maps",
+    "noImages": "Chưa có ảnh."
+  },
+  "map": {
+    "basemapVoyager": "Sáng",
+    "basemapSatellite": "Vệ tinh",
+    "searchArea": "Tìm địa điểm ở đây ({{radius}})",
+    "searching": "Đang tìm...",
+    "pinCoordinate": "Ghim toạ độ bất kỳ (lat/lng)",
+    "latPlaceholder": "Vĩ độ (lat)",
+    "lngPlaceholder": "Kinh độ (lng)",
+    "showOnMap": "Xem trên bản đồ",
+    "fullscreenEnter": "Toàn màn hình",
+    "fullscreenExit": "Thoát toàn màn hình"
   }
 }

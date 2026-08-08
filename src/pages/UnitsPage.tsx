@@ -172,7 +172,7 @@ export default function UnitsPage() {
   const filteredUnits = typeFilter ? units.filter((unit) => unit.unit_type_id === typeFilter) : units;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 pb-16 pt-8 sm:px-6">
+    <div className="mx-auto max-w-6xl pb-10">
       <PageHeader
         icon={RouteIcon}
         title={t("units:title")}

@@ -13,6 +13,7 @@ import {
   Wallet,
   type LucideIcon,
 } from "lucide-react";
+import { useTranslation } from "../../i18n/useAppTranslation";
 import Badge from "../../shared/components/Badge";
 import Button from "../../shared/components/Button";
 import EmptyState from "../../shared/components/EmptyState";
@@ -66,6 +67,7 @@ export default function PlanOverview({
   onEditUnit,
   onEditExpense,
 }: PlanOverviewProps) {
+  const { t } = useTranslation(["planDetail"]);
   const totals = useMemo(
     () => planTotals(planUnits, itemsByUnit, expenses),
     [planUnits, itemsByUnit, expenses]
@@ -204,8 +206,8 @@ export default function PlanOverview({
   const modalTitle = !mapModal
     ? ""
     : mapModal.kind === "unit"
-      ? `Địa điểm trong "${mapModal.unit.name}"`
-      : `Từ "${mapModal.fromUnit.name}" → "${mapModal.toUnit.name}"`;
+      ? t("planDetail:overview.locationsInUnit", { name: mapModal.unit.name })
+      : t("planDetail:overview.routeBetweenUnits", { from: mapModal.fromUnit.name, to: mapModal.toUnit.name });
 
   return (
     <div className="animate-fade-up space-y-6">
@@ -246,27 +248,27 @@ export default function PlanOverview({
           <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
             <StatTile
               icon={RouteIcon}
-              label="Chặng"
+              label={t("planDetail:overview.unitLabel")}
               value={totals.unitCount}
-              sub={days > 0 ? `trong ${days} ngày` : undefined}
+              sub={days > 0 ? t("planDetail:overview.inDays", { count: days }) : undefined}
             />
             <StatTile
               icon={Sparkles}
-              label="Hoạt động"
+              label={t("planDetail:overview.itemsLabel")}
               value={totals.itemCount}
-              sub={`${totals.locationCount} địa điểm`}
+              sub={t("planDetail:overview.locationsCount", { count: totals.locationCount })}
             />
             <StatTile
               icon={Wallet}
-              label="Tổng chi phí"
+              label={t("planDetail:overview.costLabel")}
               value={formatPriceShort(totals.cost)}
-              sub={totals.cost > 0 ? formatPrice(totals.cost) : "chưa có chi phí"}
+              sub={totals.cost > 0 ? formatPrice(totals.cost) : t("planDetail:overview.noCostYet")}
             />
             <StatTile
               icon={Clock}
-              label="Tổng thời lượng"
+              label={t("planDetail:overview.durationLabel")}
               value={formatDuration(totals.minutes) ?? "—"}
-              sub={totals.minutes > 0 ? "theo khung giờ hoạt động" : "chưa đặt khung giờ"}
+              sub={totals.minutes > 0 ? t("planDetail:overview.byScheduledTime") : t("planDetail:overview.noTimeYet")}
             />
           </div>
         </div>
@@ -275,11 +277,11 @@ export default function PlanOverview({
       {planUnits.length === 0 ? (
         <EmptyState
           icon={RouteIcon}
-          title="Kế hoạch này chưa có chặng nào"
-          hint="Sang tab Xây dựng để thêm chặng và kéo-thả hoạt động vào từng chặng."
+          title={t("planDetail:overview.emptyTitle")}
+          hint={t("planDetail:overview.emptyHint")}
           action={
             <Button variant="primary" onClick={onStartBuilding}>
-              Bắt đầu xây dựng
+              {t("planDetail:overview.startBuilding")}
             </Button>
           }
         />
@@ -287,7 +289,7 @@ export default function PlanOverview({
         <div className="grid gap-6 lg:grid-cols-3">
           {/* ------------------------------------------------- lịch trình */}
           <div className="space-y-4 lg:col-span-2">
-            <SectionLabel icon={Layers}>Lịch trình</SectionLabel>
+            <SectionLabel icon={Layers}>{t("planDetail:overview.schedule")}</SectionLabel>
 
             <div>
               {planUnits.map((unit, index) => {
@@ -318,7 +320,7 @@ export default function PlanOverview({
 
                     {nextUnit && (
                       <div className="relative flex h-10 items-center justify-center gap-2">
-                        <span aria-hidden className="absolute inset-y-0 left-9 w-px bg-border/12" />
+                        <span aria-hidden className="absolute inset-y-0 left-9 w-px bg-border/50" />
                         {canConnect && (
                           <>
                             {connectorRoute && connectorRoute.distanceKm > 0.01 && (
@@ -328,7 +330,7 @@ export default function PlanOverview({
                             )}
                             <button
                               type="button"
-                              title="Xem quãng đường tới chặng tiếp theo"
+                              title={t("planDetail:overview.viewRouteToNext")}
                               onClick={() =>
                                 setMapModal({
                                   kind: "connector",
@@ -368,7 +370,7 @@ export default function PlanOverview({
       {/* "Chi phí khác" độc lập với chặng — hiện bất kể kế hoạch đã có chặng hay chưa. */}
       {expenses.length > 0 && (
         <div className="space-y-4">
-          <SectionLabel icon={Receipt}>Chi phí khác</SectionLabel>
+          <SectionLabel icon={Receipt}>{t("planDetail:overview.otherExpenses")}</SectionLabel>
           <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
             {expenses.map((expense) => (
               <ExpenseCard
@@ -429,6 +431,7 @@ export interface UnitTimelineCardProps {
 }
 
 export function UnitTimelineCard({ unit, index, color, items, onEdit, route, onViewMap }: UnitTimelineCardProps) {
+  const { t } = useTranslation("planDetail");
   const stats = unitStats(items, unit.break_minutes);
   const range = unitRange(unit);
   const rangeLabel = range ? formatDateTimeRange(range.start, range.end) : null;
@@ -449,7 +452,7 @@ export function UnitTimelineCard({ unit, index, color, items, onEdit, route, onV
     <article className="surface relative overflow-hidden">
       <span aria-hidden className={`absolute inset-y-0 left-0 w-1 ${color.dot}`} />
 
-      <header className="flex items-start gap-3.5 border-b border-border/10 px-5 py-4">
+      <header className="flex items-start gap-3.5 border-b border-border/40 px-5 py-4">
         <span
           className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl font-display text-[13px] font-bold text-white tnum ${color.solidChip}`}
         >
@@ -467,7 +470,7 @@ export function UnitTimelineCard({ unit, index, color, items, onEdit, route, onV
                   className="flex items-center gap-1 rounded-lg px-1.5 py-1 text-xs font-medium text-text-muted transition hover:bg-surface-elevated/60 hover:text-text-primary"
                 >
                   <MapIcon className="h-3.5 w-3.5" />
-                  Bản đồ
+                  {t("planDetail:overview.viewMap")}
                 </button>
               )}
               {onEdit && (
@@ -477,7 +480,7 @@ export function UnitTimelineCard({ unit, index, color, items, onEdit, route, onV
                   className="flex items-center gap-1 rounded-lg px-1.5 py-1 text-xs font-medium text-text-muted transition hover:bg-surface-elevated/60 hover:text-text-primary"
                 >
                   <Pencil className="h-3.5 w-3.5" />
-                  Sửa
+                  {t("planDetail:overview.edit")}
                 </button>
               )}
             </div>
@@ -495,11 +498,11 @@ export function UnitTimelineCard({ unit, index, color, items, onEdit, route, onV
               </Badge>
             ) : (
               <Badge size="sm" icon={CalendarClock}>
-                Chưa xếp lịch
+                {t("planDetail:overview.notScheduled")}
               </Badge>
             )}
             <Badge size="sm" icon={Sparkles} tone="violet" numeric>
-              {stats.itemCount} hoạt động
+              {t("planDetail:timeline.itemsCount", { count: stats.itemCount })}
             </Badge>
             {stats.minutes > 0 && (
               <Badge size="sm" icon={Clock} numeric>
@@ -526,10 +529,10 @@ export function UnitTimelineCard({ unit, index, color, items, onEdit, route, onV
 
       {items.length === 0 ? (
         <p className="px-5 py-6 text-center text-xs text-text-muted">
-          Chặng này chưa có hoạt động nào.
+          {t("planDetail:overview.unitEmpty")}
         </p>
       ) : (
-        <ol className="divide-y divide-slate-100">
+        <ol className="divide-y divide-border/25">
           {rows.map(({ item, start, end, inferred }, rowIndex) => (
             <div key={item.id}>
               <ItemTimelineRow item={item} color={color} start={start} end={end} inferred={inferred} />
@@ -586,10 +589,10 @@ export function ItemTimelineRow({ item, color, start, end, inferred }: ItemTimel
             inferred ? "bg-surface-elevated" : color.dot
           }`}
         />
-        <span className="mt-1 w-px flex-1 bg-border/12" />
+        <span className="mt-1 w-px flex-1 bg-border/40" />
       </div>
 
-      <div className={`min-w-0 flex-1 border-l-2 pl-3 ${inferred ? "border-border/10" : color.accentBorder}`}>
+      <div className={`min-w-0 flex-1 border-l-2 pl-3 ${inferred ? "border-border/40" : color.accentBorder}`}>
         <div className="flex items-start justify-between gap-3">
           <p className="text-sm font-semibold text-text-primary transition-colors group-hover:text-primary">
             {item.name}
@@ -656,7 +659,7 @@ function TransitionRow({ breakMinutes, start, leg }: TransitionRowProps) {
 
       <div className="relative flex flex-col items-center pt-1.5">
         <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-surface-elevated" />
-        <span className="mt-1 w-px flex-1 bg-border/12" />
+        <span className="mt-1 w-px flex-1 bg-border/40" />
       </div>
 
       <div className="min-w-0 flex-1">
@@ -685,24 +688,27 @@ export interface CostBreakdownProps {
 }
 
 export function CostBreakdown({ planUnits, itemsByUnit, expensesCost = 0, total }: CostBreakdownProps) {
+  const { t } = useTranslation("planDetail");
   const rows = planUnits
     .map((unit) => ({
       key: unit.id,
       label: unit.name,
       cost: unitStats(itemsByUnit.get(unit.id) ?? []).cost,
     }))
-    .concat(expensesCost > 0 ? [{ key: "expenses", label: "Chi phí khác", cost: expensesCost }] : [])
+    .concat(
+      expensesCost > 0
+        ? [{ key: "expenses", label: t("planDetail:overview.otherExpenses"), cost: expensesCost }]
+        : []
+    )
     .filter((row) => row.cost > 0)
     .sort((a, b) => b.cost - a.cost);
 
   return (
     <section className="surface p-5">
-      <SectionLabel icon={Wallet}>Phân bổ chi phí</SectionLabel>
+      <SectionLabel icon={Wallet}>{t("planDetail:overview.costBreakdown")}</SectionLabel>
 
       {rows.length === 0 ? (
-        <p className="mt-4 text-xs text-text-muted">
-          Chưa có hoạt động nào ghi chi phí. Thêm giá cho hoạt động để thấy phân bổ ở đây.
-        </p>
+        <p className="mt-4 text-xs text-text-muted">{t("planDetail:overview.costBreakdownEmpty")}</p>
       ) : (
         <>
           <p className="mt-3 font-display text-2xl font-bold text-text-primary tnum">
@@ -720,9 +726,9 @@ export function CostBreakdown({ planUnits, itemsByUnit, expensesCost = 0, total 
                       <span className="ml-1.5 text-text-muted">{percent}%</span>
                     </span>
                   </div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-surface-secondary/70">
+                  <div className="h-1.5 overflow-hidden rounded-full bg-surface-secondary">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-brand-400 to-brand-600"
+                      className="h-full rounded-full !bg-[image:var(--gradient-brand)]"
                       style={{ width: `${Math.max(percent, 2)}%` }}
                     />
                   </div>
@@ -737,14 +743,13 @@ export function CostBreakdown({ planUnits, itemsByUnit, expensesCost = 0, total 
 }
 
 export function VisitedLocations({ locations }: { locations: VisitedLocation[] }) {
+  const { t } = useTranslation("planDetail");
   return (
     <section className="surface p-5">
-      <SectionLabel icon={MapPin}>Địa điểm ghé qua</SectionLabel>
+      <SectionLabel icon={MapPin}>{t("planDetail:overview.visitedLocations")}</SectionLabel>
 
       {locations.length === 0 ? (
-        <p className="mt-4 text-xs text-text-muted">
-          Các hoạt động trong kế hoạch chưa gắn địa điểm nào.
-        </p>
+        <p className="mt-4 text-xs text-text-muted">{t("planDetail:overview.visitedLocationsEmpty")}</p>
       ) : (
         <ul className="mt-3.5 space-y-2.5">
           {locations.map((loc) => (
@@ -763,7 +768,7 @@ export function VisitedLocations({ locations }: { locations: VisitedLocation[] }
               <span className="min-w-0 flex-1 truncate text-sm text-text-secondary">{loc.name}</span>
               {loc.visits > 1 && (
                 <Badge size="sm" numeric>
-                  {loc.visits} lần
+                  {t("planDetail:overview.visitCount", { count: loc.visits })}
                 </Badge>
               )}
             </li>

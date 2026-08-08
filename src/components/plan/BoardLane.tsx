@@ -15,6 +15,7 @@ import {
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useTranslation } from "../../i18n/useAppTranslation";
 import Badge from "../../shared/components/Badge";
 import IconButton from "../../shared/components/IconButton";
 import { formatDateTimeRange, formatDuration, formatPriceShort } from "../../shared/utils/format";
@@ -78,6 +79,7 @@ export default function BoardLane({
   onDeleteItem,
   header,
 }: BoardLaneProps) {
+  const { t } = useTranslation(["planDetail"]);
   const laneDraggable = mode === "unit" && !isLibrary;
   const itemsDraggable = mode === "item";
 
@@ -118,8 +120,8 @@ export default function BoardLane({
             <span
               {...listeners}
               className="shrink-0 cursor-grab touch-none rounded text-text-muted transition hover:text-text-primary active:cursor-grabbing"
-              aria-label="Kéo để đổi thứ tự chặng"
-              title="Kéo để đổi thứ tự chặng"
+              aria-label={t("planDetail:board.dragToReorder")}
+              title={t("planDetail:board.dragToReorder")}
             >
               <GripVertical className="h-4 w-4" />
             </span>
@@ -137,11 +139,12 @@ export default function BoardLane({
 
           <div className="min-w-0 flex-1">
             <h3 className="truncate text-[12px] font-bold leading-tight">
-              {isLibrary ? "Kho hoạt động" : unit?.name}
+              {isLibrary ? t("planDetail:board.library") : unit?.name}
             </h3>
             <p className="text-[10px] text-text-muted tnum">
-              {items.length} hoạt động
-              {isLibrary ? " chưa gắn chặng" : ""}
+              {isLibrary
+                ? t("planDetail:board.libraryItemsCount", { count: items.length })
+                : t("planDetail:timeline.itemsCount", { count: items.length })}
               {!isLibrary && stats.cost > 0 ? ` · ${formatPriceShort(stats.cost)}` : ""}
             </p>
           </div>
@@ -155,13 +158,13 @@ export default function BoardLane({
                   {
                     key: "edit",
                     icon: <Pencil className="h-4 w-4" />,
-                    label: "Sửa chặng",
+                    label: t("planDetail:board.editUnit"),
                     onClick: () => onEditUnit(unit),
                   },
                   {
                     key: "remove",
                     icon: <Unlink className="h-4 w-4" />,
-                    label: "Gỡ khỏi kế hoạch",
+                    label: t("planDetail:board.removeFromPlan"),
                     onClick: () => onRemoveUnit(unit.id),
                   },
                   { type: "divider" },
@@ -169,13 +172,13 @@ export default function BoardLane({
                     key: "delete",
                     danger: true,
                     icon: <Trash2 className="h-4 w-4" />,
-                    label: "Xoá chặng",
+                    label: t("planDetail:deleteUnit.confirm"),
                     onClick: () => onDeleteUnit(unit.id),
                   },
                 ],
               }}
             >
-              <IconButton size="sm" icon={MoreHorizontal} aria-label="Tuỳ chọn chặng" />
+              <IconButton size="sm" icon={MoreHorizontal} aria-label={t("planDetail:board.laneOptions")} />
             </Dropdown>
           )}
         </div>
@@ -259,9 +262,9 @@ export default function BoardLane({
           >
             {itemsDraggable
               ? isLibrary
-                ? "Kéo hoạt động vào đây để gỡ khỏi chặng"
-                : "Kéo hoạt động vào chặng này"
-              : "Chưa có hoạt động"}
+                ? t("planDetail:board.dropToUnassign")
+                : t("planDetail:board.dropIntoUnit")
+              : t("planDetail:board.emptyUnit")}
           </div>
         )}
       </div>
@@ -273,7 +276,7 @@ export default function BoardLane({
           className="flex w-full items-center justify-center gap-1.5 rounded-xl py-1.5 text-[11px] font-medium text-text-secondary transition hover:bg-surface-elevated/60 hover:text-text-primary"
         >
           <Plus className="h-3.5 w-3.5" />
-          Thêm hoạt động
+          {t("planDetail:board.addItem")}
         </button>
       </footer>
     </section>

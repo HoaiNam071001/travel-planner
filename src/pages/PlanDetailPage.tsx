@@ -56,7 +56,9 @@ import {
 import { ROUTES } from "../shared/constants/routes";
 import { LIBRARY_LANE } from "../shared/constants/board";
 import { groupItemsByUnit, unitsForPlan } from "../shared/utils/planStats";
+import { useTranslation } from "../i18n/useAppTranslation";
 import Button from "../shared/components/Button";
+import Card from "../shared/components/Card";
 import EmptyState from "../shared/components/EmptyState";
 import Modal from "../shared/components/Modal";
 import PlanOverview from "../components/plan/PlanOverview";
@@ -76,11 +78,11 @@ import type { WriteResult } from "../services/types";
 
 type TabKey = "overview" | "build" | "schedule" | "expenses";
 
-const TABS: { value: TabKey; label: string; icon: LucideIcon }[] = [
-  { value: "overview", label: "Tổng quan", icon: LayoutList },
-  { value: "build", label: "Xây dựng", icon: SlidersHorizontal },
-  { value: "schedule", label: "Lịch trình", icon: CalendarRange },
-  { value: "expenses", label: "Chi phí khác", icon: Receipt },
+const TAB_ICONS: { value: TabKey; icon: LucideIcon }[] = [
+  { value: "overview", icon: LayoutList },
+  { value: "build", icon: SlidersHorizontal },
+  { value: "schedule", icon: CalendarRange },
+  { value: "expenses", icon: Receipt },
 ];
 
 interface UnitFormState {
@@ -100,6 +102,7 @@ interface ExpenseFormState {
 }
 
 export default function PlanDetailPage() {
+  const { t } = useTranslation(["planDetail", "common"]);
   const { planId } = useParams<{ planId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -185,7 +188,7 @@ export default function PlanDetailPage() {
   async function commit(persist: () => Promise<WriteResult>, message: string): Promise<boolean> {
     const { error: writeError } = await persist();
     if (writeError) {
-      setError(`${message}: ${writeError.message}`);
+      setError(t("planDetail:errors.write", { message, detail: writeError.message }));
       await loadData();
       return false;
     }
@@ -240,14 +243,14 @@ export default function PlanDetailPage() {
         );
       }
       return { error: null };
-    }, "Không lưu được thay đổi hoạt động");
+    }, t("planDetail:writeErrors.itemMove"));
   }
 
   async function handleItemFormSubmit(values: ItemInput) {
     if (itemForm.item) {
       const { data, error: updateError } = await updateItem(itemForm.item.id, values);
       if (updateError || !data) {
-        return { error: "Không lưu được thay đổi: " + (updateError?.message ?? "") };
+        return { error: t("planDetail:errors.write", { message: t("planDetail:writeErrors.genericUpdate"), detail: updateError?.message ?? "" }) };
       }
       setItems((prev) => prev.map((i) => (i.id === data.id ? { ...i, ...data } : i)));
       setItemForm({ open: false, item: null, unitId: null });
@@ -256,7 +259,7 @@ export default function PlanDetailPage() {
 
     const { data, error: createError } = await createItem(values);
     if (createError || !data) {
-      return { error: "Không thêm được hoạt động: " + (createError?.message ?? "") };
+      return { error: t("planDetail:errors.write", { message: t("planDetail:writeErrors.itemCreate"), detail: createError?.message ?? "" }) };
     }
 
     // Hoạt động tạo từ trong 1 chặng thì gắn luôn vào cuối chặng đó.
@@ -264,7 +267,10 @@ export default function PlanDetailPage() {
     if (unitId && unitId !== LIBRARY_LANE) {
       const ordered = [...laneItems(unitId).map((i) => i.id), data.id];
       const { error: assignError } = await assignItemsToUnit(unitId, ordered);
-      if (assignError) return { error: "Không gắn được vào chặng: " + assignError.message };
+      if (assignError)
+        return {
+          error: t("planDetail:errors.write", { message: t("planDetail:writeErrors.itemAssign"), detail: assignError.message }),
+        };
     }
     setItemForm({ open: false, item: null, unitId: null });
     await loadData();
@@ -273,13 +279,13 @@ export default function PlanDetailPage() {
 
   async function handleDeleteItem(itemId: Id) {
     setItems((prev) => prev.filter((i) => i.id !== itemId));
-    await commit(() => deleteItem(itemId), "Không xoá được hoạt động");
+    await commit(() => deleteItem(itemId), t("planDetail:writeErrors.itemDelete"));
   }
 
   /** Kéo-thả trên tab Lịch trình — chỉ đụng tới mốc thời gian của hoạt động. */
   async function scheduleItem(itemId: Id, patch: ItemTimePatch) {
     setItems((prev) => prev.map((i) => (i.id === itemId ? { ...i, ...patch } : i)));
-    await commit(() => patchItemTimes(itemId, patch), "Không lưu được giờ của hoạt động");
+    await commit(() => patchItemTimes(itemId, patch), t("planDetail:writeErrors.itemTimes"));
   }
 
   /** Kéo 1 hoạt động chưa gắn chặng từ panel vào 1 hàng chặng trên tab Lịch trình. */
@@ -295,7 +301,7 @@ export default function PlanDetailPage() {
       const { error: assignError } = await assignItemsToUnit(unitId, ordered);
       if (assignError) return { error: assignError };
       return patchItemTimes(itemId, patch);
-    }, "Không xếp được lịch cho hoạt động");
+    }, t("planDetail:writeErrors.itemSchedule"));
   }
 
   // ------------------------------------------------------------------ units
@@ -305,7 +311,7 @@ export default function PlanDetailPage() {
     setUnits((prev) =>
       prev.map((u) => (u.id === unitId ? { ...u, plan_id: planId, order_index: ordered.length - 1 } : u))
     );
-    await commit(() => assignUnitsToPlan(planId, ordered), "Không thêm được chặng vào kế hoạch");
+    await commit(() => assignUnitsToPlan(planId, ordered), t("planDetail:writeErrors.unitAttach"));
   }
 
   async function removeUnitFromPlan(unitId: Id) {
@@ -322,7 +328,7 @@ export default function PlanDetailPage() {
       const { error: unassignError } = await unassignUnitsFromPlan([unitId]);
       if (unassignError) return { error: unassignError };
       return assignUnitsToPlan(planId, remaining);
-    }, "Không gỡ được chặng khỏi kế hoạch");
+    }, t("planDetail:writeErrors.unitDetach"));
   }
 
   /** Ghi lại `order_index` cho toàn bộ chặng của kế hoạch theo đúng `ids`. */
@@ -334,7 +340,7 @@ export default function PlanDetailPage() {
         return idx === -1 ? u : { ...u, order_index: idx };
       })
     );
-    await commit(() => assignUnitsToPlan(planId, ids), "Không lưu được thứ tự chặng");
+    await commit(() => assignUnitsToPlan(planId, ids), t("planDetail:writeErrors.unitReorder"));
   }
 
   /** Sắp lại thứ tự hoạt động BÊN TRONG 1 chặng (không đổi chặng cha). */
@@ -345,7 +351,7 @@ export default function PlanDetailPage() {
         return idx === -1 ? i : { ...i, order_index: idx };
       })
     );
-    await commit(() => assignItemsToUnit(unitId, ids), "Không lưu được thứ tự hoạt động");
+    await commit(() => assignItemsToUnit(unitId, ids), t("planDetail:writeErrors.itemReorder"));
   }
 
   async function quickCreateUnit(name: string) {
@@ -358,11 +364,11 @@ export default function PlanDetailPage() {
       itemIds: [],
     });
     if (createError || !data) {
-      setError("Không thêm được chặng: " + (createError?.message ?? ""));
+      setError(t("planDetail:errors.write", { message: t("planDetail:writeErrors.unitCreate"), detail: createError?.message ?? "" }));
       return;
     }
     const ordered = [...planUnits.map((u) => u.id), data.id];
-    await commit(() => assignUnitsToPlan(planId, ordered), "Không thêm được chặng vào kế hoạch");
+    await commit(() => assignUnitsToPlan(planId, ordered), t("planDetail:writeErrors.unitAttach"));
     await loadData();
   }
 
@@ -373,9 +379,10 @@ export default function PlanDetailPage() {
 
     if (writeError) {
       return {
-        error:
-          (unitForm.unit ? "Không lưu được thay đổi: " : "Không thêm được chặng: ") +
-          writeError.message,
+        error: t("planDetail:errors.write", {
+          message: unitForm.unit ? t("planDetail:writeErrors.genericUpdate") : t("planDetail:writeErrors.unitCreate"),
+          detail: writeError.message,
+        }),
       };
     }
     setUnitForm({ open: false, unit: null });
@@ -386,7 +393,7 @@ export default function PlanDetailPage() {
   /** Kéo-thả trên tab Lịch trình — chỉ đụng tới mốc thời gian của chặng. */
   async function scheduleUnit(unitId: Id, patch: UnitTimePatch) {
     setUnits((prev) => prev.map((u) => (u.id === unitId ? { ...u, ...patch } : u)));
-    await commit(() => patchUnitTimes(unitId, patch), "Không lưu được lịch của chặng");
+    await commit(() => patchUnitTimes(unitId, patch), t("planDetail:writeErrors.unitTimes"));
   }
 
   /** Kéo 1 chặng chưa gắn kế hoạch nào từ panel vào tab Lịch trình: gắn vào kế hoạch
@@ -405,7 +412,7 @@ export default function PlanDetailPage() {
       const { error: assignError } = await assignUnitsToPlan(planId, ordered);
       if (assignError) return { error: assignError };
       return patchUnitTimes(unitId, patch);
-    }, "Không xếp được lịch cho chặng");
+    }, t("planDetail:writeErrors.unitSchedule"));
   }
 
   // Xoá chặng là thao tác phá huỷ nhưng trigger nằm trong Dropdown (Popconfirm lồng trong
@@ -419,13 +426,13 @@ export default function PlanDetailPage() {
     setItems((prev) =>
       prev.map((i) => (i.unit_id === unitId ? { ...i, unit_id: null, order_index: 0 } : i))
     );
-    await commit(() => deleteUnit(unitId), "Không xoá được chặng");
+    await commit(() => deleteUnit(unitId), t("planDetail:writeErrors.unitDelete"));
   }
 
   async function handleCreateType(name: string): Promise<UnitType | null> {
     const { data, error: createError } = await createUnitType(name);
     if (createError || !data) {
-      setError("Không thêm được loại: " + (createError?.message ?? ""));
+      setError(t("planDetail:errors.write", { message: t("planDetail:writeErrors.typeCreate"), detail: createError?.message ?? "" }));
       return null;
     }
     setUnitTypes((prev) => [...prev, data]);
@@ -435,7 +442,7 @@ export default function PlanDetailPage() {
   async function handleDeleteType(typeId: Id) {
     const { error: deleteError } = await deleteUnitType(typeId);
     if (deleteError) {
-      setError("Không xoá được loại: " + deleteError.message);
+      setError(t("planDetail:errors.write", { message: t("planDetail:writeErrors.typeDelete"), detail: deleteError.message }));
       return;
     }
     setUnitTypes((prev) => prev.filter((t) => t.id !== typeId));
@@ -449,7 +456,7 @@ export default function PlanDetailPage() {
     if (expenseForm.expense) {
       const { data, error: updateError } = await updatePlanExpense(expenseForm.expense.id, values);
       if (updateError || !data) {
-        return { error: "Không lưu được thay đổi: " + (updateError?.message ?? "") };
+        return { error: t("planDetail:errors.write", { message: t("planDetail:writeErrors.genericUpdate"), detail: updateError?.message ?? "" }) };
       }
       setExpenses((prev) => prev.map((e) => (e.id === data.id ? data : e)));
       setExpenseForm({ open: false, expense: null });
@@ -458,7 +465,7 @@ export default function PlanDetailPage() {
 
     const { data, error: createError } = await createPlanExpense(values);
     if (createError || !data) {
-      return { error: "Không thêm được chi phí: " + (createError?.message ?? "") };
+      return { error: t("planDetail:errors.write", { message: t("planDetail:writeErrors.expenseCreate"), detail: createError?.message ?? "" }) };
     }
     setExpenses((prev) => [...prev, data]);
     setExpenseForm({ open: false, expense: null });
@@ -467,13 +474,13 @@ export default function PlanDetailPage() {
 
   async function handleDeleteExpense(expenseId: Id) {
     setExpenses((prev) => prev.filter((e) => e.id !== expenseId));
-    await commit(() => deletePlanExpense(expenseId), "Không xoá được chi phí");
+    await commit(() => deletePlanExpense(expenseId), t("planDetail:writeErrors.expenseDelete"));
   }
 
   /** Kéo-thả trên tab Lịch trình — chỉ đụng tới mốc thời gian của khoản chi phí. */
   async function scheduleExpense(expenseId: Id, patch: PlanExpenseTimePatch) {
     setExpenses((prev) => prev.map((e) => (e.id === expenseId ? { ...e, ...patch } : e)));
-    await commit(() => patchPlanExpenseTimes(expenseId, patch), "Không lưu được giờ của chi phí");
+    await commit(() => patchPlanExpenseTimes(expenseId, patch), t("planDetail:writeErrors.expenseTimes"));
   }
 
   /** Kéo 1 khoản chi phí ngược ra panel "Chưa xếp lịch" — gỡ giờ, giữ duration_minutes. */
@@ -485,7 +492,10 @@ export default function PlanDetailPage() {
   async function handlePlanFormSubmit(values: PlanInput) {
     if (!planId) return {};
     const { error: updateError } = await updatePlan(planId, values);
-    if (updateError) return { error: "Không lưu được thay đổi: " + updateError.message };
+    if (updateError)
+      return {
+        error: t("planDetail:errors.write", { message: t("planDetail:writeErrors.genericUpdate"), detail: updateError.message }),
+      };
     setPlan((prev) => (prev ? { ...prev, ...values } : prev));
     setPlanFormOpen(false);
     return {};
@@ -494,14 +504,14 @@ export default function PlanDetailPage() {
   async function handleSetShareToken(token: string | null) {
     if (!planId) return;
     setPlan((prev) => (prev ? { ...prev, share_token: token } : prev));
-    await commit(() => setPlanShareToken(planId, token), "Không cập nhật được liên kết chia sẻ");
+    await commit(() => setPlanShareToken(planId, token), t("planDetail:writeErrors.shareLink"));
   }
 
   async function handleDeletePlan() {
     if (!planId) return;
     const { error: deleteError } = await deletePlan(planId);
     if (deleteError) {
-      setError("Không xoá được kế hoạch: " + deleteError.message);
+      setError(t("planDetail:errors.deletePlan", { message: deleteError.message }));
       return;
     }
     navigate(ROUTES.PLANS, { replace: true });
@@ -509,7 +519,7 @@ export default function PlanDetailPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+      <div className="mx-auto max-w-6xl py-8">
         <div className="h-44 animate-pulse rounded-3xl bg-surface-elevated/70" />
         <div className="mt-6 grid gap-4 sm:grid-cols-3">
           {[0, 1, 2].map((i) => (
@@ -522,13 +532,13 @@ export default function PlanDetailPage() {
 
   if (notFound) {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6">
+      <div className="mx-auto max-w-2xl py-14">
         <EmptyState
-          title="Không tìm thấy kế hoạch này"
-          hint="Kế hoạch có thể đã bị xoá, hoặc đường dẫn không đúng."
+          title={t("planDetail:states.notFoundTitle")}
+          hint={t("planDetail:states.notFoundHint")}
           action={
             <Button variant="primary" onClick={() => navigate(ROUTES.PLANS)}>
-              Về danh sách kế hoạch
+              {t("planDetail:states.backToPlans")}
             </Button>
           }
         />
@@ -537,25 +547,25 @@ export default function PlanDetailPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 pb-16 pt-6 sm:px-6">
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+    <div className="mx-auto max-w-6xl pb-10">
+      <Card className="mb-5 flex flex-wrap items-center justify-between gap-3 p-3.5">
         <Link
           to={ROUTES.PLANS}
-          className="flex items-center gap-1.5 text-sm font-medium text-text-secondary transition hover:text-text-primary"
+          className="flex items-center gap-1.5 rounded-xl px-2 py-1.5 text-sm font-medium text-text-secondary transition hover:bg-surface-secondary hover:text-text-primary"
         >
           <ArrowLeft className="h-4 w-4" />
-          Kế hoạch
+          {t("planDetail:actions.back")}
         </Link>
 
         <Segmented<TabKey>
           value={tab}
           onChange={(value) => setSearchParams(value === "overview" ? {} : { tab: value })}
-          options={TABS.map(({ value, label, icon: Icon }) => ({
+          options={TAB_ICONS.map(({ value, icon: Icon }) => ({
             value,
             label: (
               <span className="flex items-center gap-1.5 px-1 font-medium">
                 <Icon className="h-4 w-4" />
-                {label}
+                {t(`planDetail:tabs.${value}`)}
               </span>
             ),
           }))}
@@ -564,26 +574,30 @@ export default function PlanDetailPage() {
         <div className="flex items-center gap-2">
           {isOwner && (
             <Button icon={<Share2 className="h-4 w-4" />} onClick={() => setShareOpen(true)}>
-              Chia sẻ
+              {t("planDetail:actions.share")}
             </Button>
           )}
           <Button icon={<Pencil className="h-4 w-4" />} onClick={() => setPlanFormOpen(true)}>
-            Sửa thông tin
+            {t("planDetail:actions.edit")}
           </Button>
           {isOwner && (
             <Popconfirm
-              title="Xoá kế hoạch này?"
-              description="Các chặng bên trong sẽ được gỡ ra, không bị xoá."
-              okText="Xoá"
-              cancelText="Huỷ"
+              title={t("planDetail:deletePlan.title")}
+              description={t("planDetail:deletePlan.description")}
+              okText={t("common:actions.delete")}
+              cancelText={t("common:actions.cancel")}
               okButtonProps={{ danger: true }}
               onConfirm={handleDeletePlan}
             >
-              <Button variant="text" icon={<Trash2 className="h-4 w-4" />} aria-label="Xoá kế hoạch" />
+              <Button
+                variant="text"
+                icon={<Trash2 className="h-4 w-4" />}
+                aria-label={t("planDetail:deletePlan.ariaLabel")}
+              />
             </Popconfirm>
           )}
         </div>
-      </div>
+      </Card>
 
       {error && (
         <p className="mb-4 rounded-xl border border-danger/20 bg-danger/8 px-3.5 py-2.5 text-xs text-danger">
@@ -729,21 +743,19 @@ export default function PlanDetailPage() {
       <Modal
         open={!!deletingUnit}
         onClose={() => setDeletingUnit(null)}
-        title="Xoá chặng này?"
+        title={t("planDetail:deleteUnit.title")}
         width={440}
         footer={
           <div className="flex justify-end gap-2">
-            <Button onClick={() => setDeletingUnit(null)}>Huỷ</Button>
+            <Button onClick={() => setDeletingUnit(null)}>{t("common:actions.cancel")}</Button>
             <Button variant="danger" onClick={handleDeleteUnit}>
-              Xoá chặng
+              {t("planDetail:deleteUnit.confirm")}
             </Button>
           </div>
         }
       >
         <p className="text-sm leading-relaxed text-text-secondary">
-          Chặng <span className="font-semibold text-text-primary">{deletingUnit?.name}</span> sẽ bị xoá
-          vĩnh viễn. Các hoạt động bên trong <span className="font-medium">không</span> bị xoá —
-          chúng sẽ được trả về kho hoạt động chưa gắn chặng.
+          {t("planDetail:deleteUnit.description", { name: deletingUnit?.name ?? "" })}
         </p>
       </Modal>
     </div>

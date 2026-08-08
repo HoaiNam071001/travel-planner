@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { InputNumber, Select } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
 import { MapPin } from "lucide-react";
+import { useTranslation } from "../i18n/useAppTranslation";
 import Modal from "../shared/components/Modal";
 import Button from "../shared/components/Button";
 import Field from "../shared/components/Field";
@@ -66,6 +67,7 @@ export default function PlanExpenseFormModal({
   onClose,
   onSubmit,
 }: PlanExpenseFormModalProps) {
+  const { t } = useTranslation(["planDetail", "common"]);
   const [form, setForm] = useState<PlanExpenseFormState>(() => toFormState(expense));
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -86,12 +88,12 @@ export default function PlanExpenseFormModal({
     event.preventDefault();
 
     if (!form.name.trim()) {
-      setError("Cần nhập tên khoản chi phí.");
+      setError(t("planDetail:expenses.form.nameRequired"));
       return;
     }
     if (!planId) return;
     if (start && end && !end.isAfter(start)) {
-      setError("Thời gian kết thúc phải sau thời gian bắt đầu.");
+      setError(t("planDetail:expenses.form.endBeforeStart"));
       return;
     }
 
@@ -118,21 +120,24 @@ export default function PlanExpenseFormModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={mode === "edit" ? "Sửa chi phí" : "Thêm chi phí khác"}
+      title={mode === "edit" ? t("planDetail:expenses.form.editTitle") : t("planDetail:expenses.form.createTitle")}
       footer={null}
       width={640}
     >
       <form onSubmit={handleSubmit} className="space-y-4 pt-1">
-        <Field label="Tên khoản chi phí">
+        <Field label={t("planDetail:expenses.form.nameLabel")}>
           <Input
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            placeholder="VD: Vé máy bay, thuê khách sạn, mua sắm..."
+            placeholder={t("planDetail:expenses.form.namePlaceholder")}
             autoFocus
           />
         </Field>
 
-        <Field label="Bắt đầu - kết thúc" hint="không bắt buộc — để trống nếu chỉ là 1 khoản chi phí">
+        <Field
+          label={t("planDetail:expenses.form.rangeLabel")}
+          hint={t("planDetail:expenses.form.rangeHint")}
+        >
           <RangePicker
             className="w-full"
             showTime={{ format: "HH:mm", minuteStep: 5 }}
@@ -150,8 +155,12 @@ export default function PlanExpenseFormModal({
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field
-            label="Khoảng thời gian"
-            hint={derivedMinutes != null ? "tính từ khung giờ" : "không bắt buộc"}
+            label={t("planDetail:expenses.form.durationLabel")}
+            hint={
+              derivedMinutes != null
+                ? t("planDetail:expenses.form.durationHintComputed")
+                : t("planDetail:expenses.form.durationHintOptional")
+            }
           >
             <DurationInput
               value={derivedMinutes ?? form.duration}
@@ -159,7 +168,7 @@ export default function PlanExpenseFormModal({
               disabled={derivedMinutes != null}
             />
           </Field>
-          <Field label="Giá (đ)" hint="không bắt buộc">
+          <Field label={t("planDetail:expenses.form.priceLabel")} hint={t("planDetail:expenses.form.priceHint")}>
             <InputNumber
               className="w-full"
               min={0}
@@ -174,13 +183,19 @@ export default function PlanExpenseFormModal({
 
         {derivedMinutes != null && (
           <p className="rounded-xl border border-primary/14 bg-primary/10 px-3.5 py-2 text-xs text-primary">
-            Thời lượng {formatDuration(derivedMinutes) ?? "0 phút"} được tính từ khung giờ đã chọn.
+            {t("planDetail:expenses.form.derivedDurationNote", {
+              duration: formatDuration(derivedMinutes) ?? t("planDetail:expenses.form.zeroMinutes"),
+            })}
           </p>
         )}
 
         <Field
-          label="Địa điểm"
-          hint={locations.length === 0 ? "chưa có địa điểm nào — thêm ở trang Địa điểm" : "không bắt buộc"}
+          label={t("planDetail:expenses.form.locationLabel")}
+          hint={
+            locations.length === 0
+              ? t("planDetail:expenses.form.locationHintEmpty")
+              : t("planDetail:expenses.form.locationHintOptional")
+          }
         >
           <div className="flex items-center gap-2">
             {selectedLocation && <LocationThumb location={selectedLocation} size="h-9 w-9" />}
@@ -188,7 +203,7 @@ export default function PlanExpenseFormModal({
               className="w-full"
               showSearch
               allowClear
-              placeholder="Không gắn địa điểm nào"
+              placeholder={t("planDetail:expenses.form.locationPlaceholder")}
               value={form.locationId ?? undefined}
               onChange={(value) => setForm((f) => ({ ...f, locationId: value ?? null }))}
               onClear={() => setForm((f) => ({ ...f, locationId: null }))}
@@ -198,14 +213,14 @@ export default function PlanExpenseFormModal({
               options={locations.map((loc) => ({ value: loc.id, label: loc.name }))}
               notFoundContent={
                 <span className="flex items-center gap-1.5 px-1 py-1 text-xs text-text-muted">
-                  <MapPin className="h-3.5 w-3.5" /> Không tìm thấy địa điểm.
+                  <MapPin className="h-3.5 w-3.5" /> {t("planDetail:expenses.form.locationNotFound")}
                 </span>
               }
             />
           </div>
         </Field>
 
-        <Field label="Link" hint="không bắt buộc — vd link đặt phòng/vé">
+        <Field label={t("planDetail:expenses.form.linkLabel")} hint={t("planDetail:expenses.form.linkHint")}>
           <Input
             value={form.link}
             onChange={(e) => setForm({ ...form, link: e.target.value })}
@@ -213,11 +228,11 @@ export default function PlanExpenseFormModal({
           />
         </Field>
 
-        <Field label="Ghi chú" hint="không bắt buộc">
+        <Field label={t("planDetail:expenses.form.noteLabel")} hint={t("planDetail:expenses.form.noteHint")}>
           <TextArea
             value={form.note}
             onChange={(e) => setForm({ ...form, note: e.target.value })}
-            placeholder="Ghi chú ngắn về khoản chi phí này"
+            placeholder={t("planDetail:expenses.form.notePlaceholder")}
             rows={2}
           />
         </Field>
@@ -229,9 +244,9 @@ export default function PlanExpenseFormModal({
         )}
 
         <div className="flex justify-end gap-2 pt-1">
-          <Button onClick={onClose}>Huỷ</Button>
+          <Button onClick={onClose}>{t("common:actions.cancel")}</Button>
           <Button variant="primary" htmlType="submit" loading={submitting}>
-            {mode === "edit" ? "Lưu thay đổi" : "Thêm chi phí"}
+            {mode === "edit" ? t("common:actions.saveChanges") : t("planDetail:expenses.add")}
           </Button>
         </div>
       </form>

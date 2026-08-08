@@ -255,17 +255,17 @@ function SummaryCard({
     cyan: {
       panel:
         "bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.14),transparent_30%),linear-gradient(180deg,rgba(34,211,238,0.04),transparent)]",
-      icon: "bg-cyan-500/12 text-cyan-400",
+      icon: "bg-cyan-500/10 text-cyan-400",
     },
     violet: {
       panel:
         "bg-[radial-gradient(circle_at_top_left,rgba(167,139,250,0.16),transparent_30%),linear-gradient(180deg,rgba(99,102,241,0.04),transparent)]",
-      icon: "bg-violet-500/12 text-violet-400",
+      icon: "bg-violet-500/10 text-violet-400",
     },
     emerald: {
       panel:
         "bg-[radial-gradient(circle_at_top_left,rgba(52,211,153,0.16),transparent_30%),linear-gradient(180deg,rgba(16,185,129,0.04),transparent)]",
-      icon: "bg-emerald-500/12 text-emerald-400",
+      icon: "bg-emerald-500/10 text-emerald-400",
     },
   };
 

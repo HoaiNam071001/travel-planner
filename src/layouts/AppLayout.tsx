@@ -7,7 +7,7 @@ export default function AppLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (
-    <div className="min-h-screen bg-bg text-text-primary">
+    <div className="min-h-screen bg-background text-text-primary">
       <div
         aria-hidden
         className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top_left,rgb(var(--color-primary)/0.05),transparent_26%),radial-gradient(circle_at_bottom_left,rgb(var(--color-info)/0.04),transparent_24%)]"
@@ -19,7 +19,7 @@ export default function AppLayout() {
             sidebarCollapsed={sidebarCollapsed}
             onToggleSidebar={() => setSidebarCollapsed((value) => !value)}
           />
-          <main className="flex-1 px-4 pb-8 pt-7 sm:px-6 xl:px-8">
+          <main className="flex-1 px-4 pb-6 pt-5 sm:px-6 xl:px-7">
             <Outlet />
           </main>
         </div>

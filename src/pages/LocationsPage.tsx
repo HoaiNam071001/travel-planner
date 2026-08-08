@@ -53,6 +53,16 @@ export default function LocationsPage() {
     location: null,
   });
   const [detailLocation, setDetailLocation] = useState<LocationRow | null>(null);
+  const [isMapFullscreen, setIsMapFullscreen] = useState(false);
+
+  useEffect(() => {
+    if (!isMapFullscreen) return;
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setIsMapFullscreen(false);
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isMapFullscreen]);
 
   useEffect(() => {
     const timer = setTimeout(() => setKeyword(search.trim()), 300);
@@ -195,7 +205,7 @@ export default function LocationsPage() {
   const isEmpty = !loading && visible.length === 0;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 pb-16 pt-8 sm:px-6">
+    <div className="mx-auto max-w-6xl pb-10">
       <PageHeader
         icon={Compass}
         title={t("locations:title")}
@@ -315,7 +325,13 @@ export default function LocationsPage() {
           )}
         </div>
 
-        <div className="surface-soft order-1 h-[46vh] overflow-hidden lg:order-2 lg:sticky lg:top-24 lg:h-[calc(100vh-9rem)]">
+        <div
+          className={
+            isMapFullscreen
+              ? "surface-soft fixed inset-0 z-[1000] order-1 h-screen w-screen overflow-hidden lg:order-2"
+              : "surface-soft order-1 h-[46vh] overflow-hidden lg:order-2 lg:sticky lg:top-24 lg:h-[calc(100vh-9rem)]"
+          }
+        >
           <LocationsMap
             locations={visible}
             focusId={focusId}
@@ -323,6 +339,8 @@ export default function LocationsPage() {
             searching={searchingArea}
             onSelectLocation={setDetailLocation}
             onSearchArea={handleSearchArea}
+            isFullscreen={isMapFullscreen}
+            onToggleFullscreen={() => setIsMapFullscreen((v) => !v)}
           />
         </div>
       </div>

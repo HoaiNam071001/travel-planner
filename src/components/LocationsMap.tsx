@@ -1,10 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MapContainer, TileLayer, Marker, Circle, Tooltip, ZoomControl, useMap } from "react-leaflet";
 import L from "leaflet";
-import { Crosshair, Loader2, Locate } from "lucide-react";
+import { Popover } from "antd";
+import { Crosshair, Loader2, Locate, Maximize2, MapPinned, Minimize2 } from "lucide-react";
 import "../shared/map/leafletIconFix";
+import { useTranslation } from "../i18n/useAppTranslation";
 import { BASEMAPS, type BasemapKey } from "../shared/map/basemaps";
 import MapBasemapSwitcher from "../shared/components/MapBasemapSwitcher";
+import Input from "../shared/components/Input";
+import Button from "../shared/components/Button";
 import type { Id, LocationRow } from "../shared/types/models";
 import type { LatLng } from "../shared/utils/geo";
 import { formatDistance } from "../shared/utils/format";
@@ -22,6 +26,32 @@ function pinIcon(active: boolean): L.DivIcon {
     iconAnchor: [12, 24],
     popupAnchor: [0, -22],
   });
+}
+
+/** Pin ghim toạ độ thủ công — màu tím để phân biệt hẳn với pin địa điểm đã lưu. */
+function adHocPinIcon(): L.DivIcon {
+  return L.divIcon({
+    className: "tp-pin",
+    html: `<span class="tp-pin__shape" style="background:#7C3AED"></span>`,
+    iconSize: [24, 24],
+    iconAnchor: [12, 24],
+    popupAnchor: [0, -22],
+  });
+}
+
+/**
+ * Đổi `isFullscreen` là container của `MapContainer` đổi kích thước (CSS class), nhưng
+ * Leaflet cache kích thước cũ nên không tự biết — không gọi lại `invalidateSize()` thì
+ * tile vẽ sai/xám một phần và zoom/pan lệch tới khi resize cửa sổ. `setTimeout` nhỏ để
+ * đợi layout (transition/class) ổn định trước khi đo lại.
+ */
+function FullscreenResizeHandler({ isFullscreen }: { isFullscreen?: boolean }) {
+  const map = useMap();
+  useEffect(() => {
+    const timer = setTimeout(() => map.invalidateSize(), 80);
+    return () => clearTimeout(timer);
+  }, [isFullscreen, map]);
+  return null;
 }
 
 interface FitBoundsProps {
@@ -59,18 +89,101 @@ function ViewController({ locations, focusId }: FitBoundsProps) {
   return null;
 }
 
+/**
+ * Popover nhập lat/lng để ghim 1 toạ độ bất kỳ lên bản đồ — không cần lưu thành địa
+ * điểm, chỉ để xem thử 1 vị trí. Render bên trong `MapContainer` nên tự lấy `map` qua
+ * `useMap()` để bay tới toạ độ vừa nhập.
+ */
+function CoordinatePinControl() {
+  const { t } = useTranslation("locations");
+  const map = useMap();
+  const [open, setOpen] = useState(false);
+  const [latText, setLatText] = useState("");
+  const [lngText, setLngText] = useState("");
+  const [pin, setPin] = useState<LatLng | null>(null);
+
+  function handleSubmit() {
+    const lat = Number(latText);
+    const lng = Number(lngText);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      return;
+    }
+    setPin({ lat, lng });
+    map.flyTo([lat, lng], Math.max(map.getZoom(), 15), { duration: 0.6 });
+    setOpen(false);
+  }
+
+  return (
+    <>
+      <Popover
+        trigger="click"
+        open={open}
+        onOpenChange={setOpen}
+        placement="bottomRight"
+        content={
+          <div className="w-56 space-y-2">
+            <Input
+              value={latText}
+              onChange={(e) => setLatText(e.target.value)}
+              placeholder={t("locations:map.latPlaceholder")}
+              size="small"
+            />
+            <Input
+              value={lngText}
+              onChange={(e) => setLngText(e.target.value)}
+              placeholder={t("locations:map.lngPlaceholder")}
+              size="small"
+            />
+            <Button variant="primary" className="!w-full !h-8 !text-xs" onClick={handleSubmit}>
+              {t("locations:map.showOnMap")}
+            </Button>
+          </div>
+        }
+      >
+        <button
+          type="button"
+          className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full border border-border bg-surface-elevated text-text-primary shadow-pop backdrop-blur transition hover:-translate-y-px hover:bg-surface-secondary"
+          title={t("locations:map.pinCoordinate")}
+        >
+          <MapPinned className="h-3.5 w-3.5 text-primary" />
+        </button>
+      </Popover>
+
+      {pin && (
+        <Marker position={[pin.lat, pin.lng]} icon={adHocPinIcon()}>
+          <Tooltip direction="top" offset={[0, -22]} opacity={1}>
+            <span className="font-medium tnum">
+              {pin.lat.toFixed(5)}, {pin.lng.toFixed(5)}
+            </span>
+          </Tooltip>
+        </Marker>
+      )}
+    </>
+  );
+}
+
 interface MapOverlayProps {
   basemap: BasemapKey;
   onBasemapChange: (key: BasemapKey) => void;
   onSearchArea?: (center: LatLng, radiusMeters: number) => void;
   searching?: boolean;
+  isFullscreen?: boolean;
+  onToggleFullscreen?: () => void;
 }
 
 /**
  * Thanh nút nổi trên bản đồ. Render bên trong `MapContainer` nên phải chặn sự kiện
  * chuột lan xuống Leaflet, nếu không bấm nút sẽ kéo cả bản đồ.
  */
-function MapOverlay({ basemap, onBasemapChange, onSearchArea, searching }: MapOverlayProps) {
+function MapOverlay({
+  basemap,
+  onBasemapChange,
+  onSearchArea,
+  searching,
+  isFullscreen,
+  onToggleFullscreen,
+}: MapOverlayProps) {
+  const { t } = useTranslation("locations");
   const map = useMap();
   const ref = useRef<HTMLDivElement | null>(null);
 
@@ -91,14 +204,27 @@ function MapOverlay({ basemap, onBasemapChange, onSearchArea, searching }: MapOv
             const center = map.getCenter();
             onSearchArea({ lat: center.lat, lng: center.lng }, AREA_SEARCH_RADIUS_M);
           }}
-          className="group flex items-center gap-1.5 rounded-full border border-border/60 bg-surface-elevated/92 px-3.5 py-2 text-xs font-semibold text-text-primary shadow-pop backdrop-blur transition hover:-translate-y-px hover:bg-surface-elevated disabled:translate-y-0 disabled:opacity-70"
+          className="group flex items-center gap-1.5 rounded-full border border-border bg-surface-elevated px-3.5 py-2 text-xs font-semibold text-text-primary shadow-pop backdrop-blur transition hover:-translate-y-px hover:bg-surface-secondary disabled:translate-y-0 disabled:opacity-70"
         >
           {searching ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
           ) : (
             <Crosshair className="h-3.5 w-3.5 text-primary transition group-hover:scale-110" />
           )}
-          {searching ? "Đang tìm..." : `Tìm địa điểm ở đây (${AREA_SEARCH_RADIUS_M}m)`}
+          {searching ? t("locations:map.searching") : t("locations:map.searchArea", { radius: `${AREA_SEARCH_RADIUS_M}m` })}
+        </button>
+      )}
+
+      <CoordinatePinControl />
+
+      {onToggleFullscreen && (
+        <button
+          type="button"
+          onClick={onToggleFullscreen}
+          className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full border border-border bg-surface-elevated text-text-primary shadow-pop backdrop-blur transition hover:-translate-y-px hover:bg-surface-secondary"
+          title={isFullscreen ? t("locations:map.fullscreenExit") : t("locations:map.fullscreenEnter")}
+        >
+          {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
         </button>
       )}
 
@@ -116,6 +242,9 @@ export interface LocationsMapProps {
   onSelectLocation?: (location: LocationRow) => void;
   onSearchArea?: (center: LatLng, radiusMeters: number) => void;
   searching?: boolean;
+  /** Đang ở chế độ toàn màn hình — không truyền = ẩn nút bật/tắt fullscreen. */
+  isFullscreen?: boolean;
+  onToggleFullscreen?: () => void;
 }
 
 export default function LocationsMap({
@@ -125,6 +254,8 @@ export default function LocationsMap({
   onSelectLocation,
   onSearchArea,
   searching,
+  isFullscreen,
+  onToggleFullscreen,
 }: LocationsMapProps) {
   const [basemap, setBasemap] = useState<BasemapKey>("voyager");
   const tiles = BASEMAPS[basemap];
@@ -147,12 +278,15 @@ export default function LocationsMap({
         maxZoom={tiles.maxZoom}
       />
 
+      <FullscreenResizeHandler isFullscreen={isFullscreen} />
       <ViewController locations={locations} focusId={focusId} />
       <MapOverlay
         basemap={basemap}
         onBasemapChange={setBasemap}
         onSearchArea={onSearchArea}
         searching={searching}
+        isFullscreen={isFullscreen}
+        onToggleFullscreen={onToggleFullscreen}
       />
 
       {area && (

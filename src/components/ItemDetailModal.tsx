@@ -1,4 +1,5 @@
 import { CalendarClock, Clock, Copy, MapPin, Pencil, Route as RouteIcon, Wallet } from "lucide-react";
+import { useTranslation } from "../i18n/useAppTranslation";
 import Modal from "../shared/components/Modal";
 import Button from "../shared/components/Button";
 import Badge from "../shared/components/Badge";
@@ -23,6 +24,7 @@ export default function ItemDetailModal({
   onEdit,
   onClone,
 }: ItemDetailModalProps) {
+  const { t } = useTranslation(["items", "common"]);
   const duration = item ? formatDuration(itemDurationMinutes(item)) : null;
   const range = itemRange(item);
   const rangeLabel = range ? formatDateTimeRange(range.start, range.end) : null;
@@ -35,14 +37,14 @@ export default function ItemDetailModal({
       footer={
         item && (
           <div className="flex justify-end gap-2">
-            <Button onClick={onClose}>Đóng</Button>
+            <Button onClick={onClose}>{t("common:actions.close")}</Button>
             {onClone && (
               <Button icon={<Copy className="h-4 w-4" />} onClick={() => onClone(item)}>
-                Nhân bản
+                {t("items:card.clone")}
               </Button>
             )}
             <Button variant="primary" icon={<Pencil className="h-4 w-4" />} onClick={() => onEdit(item)}>
-              Sửa
+              {t("items:card.edit")}
             </Button>
           </div>
         )
@@ -67,19 +69,19 @@ export default function ItemDetailModal({
               </Badge>
             )}
             <Badge tone={unitName ? "violet" : "neutral"} icon={RouteIcon}>
-              {unitName ?? "Chưa gắn chặng"}
+              {unitName ?? t("items:detail.unassignedUnit")}
             </Badge>
           </div>
 
           {item.note && <p className="mt-4 text-sm leading-relaxed text-text-secondary">{item.note}</p>}
 
           <p className="mb-2 mt-5 text-xs font-semibold uppercase tracking-wide text-text-muted">
-            Địa điểm ({item.locations?.length ?? 0})
+            {t("items:detail.locationsHeading", { count: item.locations?.length ?? 0 })}
           </p>
 
           {(item.locations?.length ?? 0) === 0 ? (
             <p className="rounded-xl border border-dashed border-border/16 bg-surface-secondary/40 py-6 text-center text-xs text-text-muted">
-              Hoạt động này chưa gắn địa điểm nào.
+              {t("items:detail.locationsEmpty")}
             </p>
           ) : (
             <ol className="space-y-2">

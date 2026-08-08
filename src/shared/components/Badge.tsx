@@ -6,7 +6,7 @@ const TONES = {
   brand: "bg-primary/12 text-primary ring-primary/20",
   amber: "bg-warning/12 text-warning ring-warning/20",
   emerald: "bg-success/12 text-success ring-success/20",
-  violet: "bg-violet-500/12 text-violet-300 dark:text-violet-200 ring-violet-500/20",
+  violet: "bg-violet-500/10 text-violet-300 dark:text-violet-200 ring-violet-500/20",
   rose: "bg-danger/12 text-danger ring-danger/20",
   inverse: "bg-white/10 text-white/85 ring-white/15",
 } as const;

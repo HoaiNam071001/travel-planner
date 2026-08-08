@@ -50,8 +50,8 @@ export default function SharedPlanPage() {
   const range = formatDateRange(payload?.plan.start_date, payload?.plan.end_date);
 
   return (
-    <div className="min-h-screen bg-bg">
-      <header className="border-b border-border/8 bg-bg/80 px-4 py-3 backdrop-blur sm:px-6">
+    <div className="min-h-screen bg-background">
+      <header className="border-b border-border/8 bg-background/80 px-4 py-3 backdrop-blur sm:px-6">
         <div className="mx-auto flex max-w-6xl items-center gap-2 text-sm font-medium text-text-secondary">
           <LinkIcon className="h-4 w-4" />
           Shared preview
@@ -76,22 +76,26 @@ export default function SharedPlanPage() {
           />
         ) : (
           <div className="animate-fade-up space-y-6">
-            <section className="surface-highlight relative overflow-hidden px-6 py-5 sm:px-8 sm:py-6">
-              <div aria-hidden className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.18),transparent_42%)]" />
+            <section className="surface-highlight relative overflow-hidden rounded-3xl px-6 py-5 sm:px-8 sm:py-6">
+              <div aria-hidden className="hero-grid absolute inset-0 opacity-50" />
+              <div
+                aria-hidden
+                className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-primary/10 blur-3xl"
+              />
 
               <div className="relative">
                 <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/10">
-                        <Sparkles className="h-3.5 w-3.5 text-white" />
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                        <Sparkles className="h-3.5 w-3.5 text-primary" />
                       </span>
-                      <h1 className="max-w-2xl truncate font-display text-2xl font-extrabold leading-tight text-white sm:text-[30px]">
+                      <h1 className="max-w-2xl truncate font-display text-2xl font-extrabold leading-tight text-text-primary sm:text-[30px]">
                         {payload.plan.name}
                       </h1>
                     </div>
                     {payload.plan.description && (
-                      <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-white/64">
+                      <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-text-secondary">
                         {payload.plan.description}
                       </p>
                     )}
@@ -99,19 +103,19 @@ export default function SharedPlanPage() {
 
                   <div className="flex shrink-0 flex-wrap items-center gap-2">
                     {range && (
-                      <Badge tone="inverse" icon={CalendarClock} numeric>
+                      <Badge tone="brand" icon={CalendarClock} numeric>
                         {range}
                       </Badge>
                     )}
-                    {days > 0 && <Badge tone="inverse">{days} days</Badge>}
+                    {days > 0 && <Badge tone="neutral">{days} days</Badge>}
                   </div>
                 </div>
 
                 <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-                  <StatTile inverse icon={RouteIcon} label="Units" value={totals.unitCount} sub={days > 0 ? `${days} days` : undefined} />
-                  <StatTile inverse icon={Sparkles} label="Activities" value={totals.itemCount} sub={`${totals.locationCount} places`} />
-                  <StatTile inverse icon={Wallet} label="Total cost" value={formatPriceShort(totals.cost)} sub={totals.cost > 0 ? formatPrice(totals.cost) : "-"} />
-                  <StatTile inverse icon={Clock} label="Duration" value={formatDuration(totals.minutes) ?? "-"} sub={totals.minutes > 0 ? "From scheduled activity time" : "-"} />
+                  <StatTile icon={RouteIcon} label="Units" value={totals.unitCount} sub={days > 0 ? `${days} days` : undefined} />
+                  <StatTile icon={Sparkles} label="Activities" value={totals.itemCount} sub={`${totals.locationCount} places`} />
+                  <StatTile icon={Wallet} label="Total cost" value={formatPriceShort(totals.cost)} sub={totals.cost > 0 ? formatPrice(totals.cost) : "-"} />
+                  <StatTile icon={Clock} label="Duration" value={formatDuration(totals.minutes) ?? "-"} sub={totals.minutes > 0 ? "From scheduled activity time" : "-"} />
                 </div>
               </div>
             </section>

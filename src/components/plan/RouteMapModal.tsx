@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Loader2, MapPin, Route as RouteIcon } from "lucide-react";
+import { useTranslation } from "../../i18n/useAppTranslation";
 import Modal from "../../shared/components/Modal";
 import Badge from "../../shared/components/Badge";
 import Button from "../../shared/components/Button";
@@ -27,6 +28,7 @@ export default function RouteMapModal({
   loading,
   onFindRoute,
 }: RouteMapModalProps) {
+  const { t } = useTranslation("planDetail");
   const [selectedIds, setSelectedIds] = useState<Set<Id>>(() => new Set(points.map((p) => p.id)));
   const [fetchedIds, setFetchedIds] = useState<Set<Id> | null>(null);
 
@@ -70,10 +72,12 @@ export default function RouteMapModal({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-text-secondary">
-                Chọn địa điểm muốn tính tuyến ({selectedIds.size}/{points.length})
+                {t("planDetail:routeMap.selectCount", { selected: selectedIds.size, total: points.length })}
               </span>
               <button type="button" onClick={toggleAll} className="text-xs font-medium text-primary hover:underline">
-                {selectedIds.size === points.length ? "Bỏ chọn tất cả" : "Chọn tất cả"}
+                {selectedIds.size === points.length
+                  ? t("planDetail:routeMap.deselectAll")
+                  : t("planDetail:routeMap.selectAll")}
               </button>
             </div>
             <ul className="scroll-thin max-h-48 divide-y divide-border/8 overflow-y-auto rounded-2xl bg-surface-elevated/54">
@@ -103,7 +107,7 @@ export default function RouteMapModal({
               disabled={selectedIds.size < 2}
               onClick={handleFindRoute}
             >
-              Tìm đường
+              {t("planDetail:routeMap.findRoute")}
             </Button>
           </div>
         )}
@@ -115,9 +119,7 @@ export default function RouteMapModal({
             </Badge>
             {shownRoute.durationMin != null && <Badge numeric>{formatDuration(shownRoute.durationMin)}</Badge>}
             {shownRoute.mode === "fallback" && (
-              <span className="text-xs text-text-muted">
-                Ước tính theo đường chim bay - thêm ORS API key để có tuyến đường thật.
-              </span>
+              <span className="text-xs text-text-muted">{t("planDetail:routeMap.fallbackNote")}</span>
             )}
           </div>
         )}

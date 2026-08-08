@@ -4,14 +4,14 @@
 
 :root {
   color-scheme: light;
-  --color-bg: 247 250 253;
-  --color-surface: 250 252 255;
-  --color-surface-secondary: 233 240 248;
+  --color-bg: 240 244 249;
+  --color-surface: 255 255 255;
+  --color-surface-secondary: 226 233 243;
   --color-surface-elevated: 255 255 255;
   --color-text-primary: 30 41 59;
   --color-text-secondary: 71 85 105;
   --color-text-muted: 100 116 139;
-  --color-border: 203 213 225;
+  --color-border: 180 192 209;
   --color-border-hover: 148 163 184;
   --color-primary: 6 182 212;
   --color-primary-hover: 8 145 178;
@@ -24,21 +24,21 @@
   --shadow-card: 0 1px 2px 0 rgb(15 23 42 / 0.03), 0 6px 16px -10px rgb(15 23 42 / 0.1);
   --shadow-card-hover: 0 2px 4px -1px rgb(15 23 42 / 0.04), 0 14px 32px -12px rgb(15 23 42 / 0.14);
   --shadow-pop: 0 8px 16px -4px rgb(15 23 42 / 0.06), 0 28px 56px -20px rgb(15 23 42 / 0.18);
-  --gradient-brand: linear-gradient(135deg, rgb(34 211 238 / 0.95), rgb(6 182 212 / 0.95), rgb(37 99 235 / 0.9));
+  --gradient-brand: linear-gradient(135deg, rgb(45 187 204 / 0.92), rgb(14 165 184 / 0.88));
   --gradient-brand-soft: linear-gradient(135deg, rgb(var(--color-primary) / 0.12), rgb(var(--color-info) / 0.08));
 }
 
 [data-theme="dark"] {
   color-scheme: dark;
-  --color-bg: 2 3 11;
-  --color-surface: 12 19 36;
-  --color-surface-secondary: 16 24 43;
-  --color-surface-elevated: 22 32 56;
+  --color-bg: 6 9 18;
+  --color-surface: 17 25 43;
+  --color-surface-secondary: 24 34 56;
+  --color-surface-elevated: 28 39 64;
   --color-text-primary: 226 232 240;
   --color-text-secondary: 212 222 238;
   --color-text-muted: 145 160 184;
-  --color-border: 42 57 82;
-  --color-border-hover: 61 79 106;
+  --color-border: 62 79 108;
+  --color-border-hover: 84 104 136;
   --color-primary: 34 211 238;
   --color-primary-hover: 103 232 249;
   --color-success: 52 211 153;
@@ -96,22 +96,22 @@
 
   .surface {
     @apply rounded-2xl border;
-    border-color: rgb(var(--color-border) / 0.055);
-    background-color: rgb(var(--color-surface) / 0.9);
+    border-color: rgb(var(--color-border) / 0.45);
+    background-color: rgb(var(--color-surface) / 0.96);
     box-shadow: var(--shadow-card);
   }
 
   .surface-muted {
     @apply rounded-2xl border;
-    border-color: rgb(var(--color-border) / 0.05);
-    background-color: rgb(var(--color-surface-secondary) / 0.82);
+    border-color: rgb(var(--color-border) / 0.35);
+    background-color: rgb(var(--color-surface-secondary) / 0.85);
   }
 
   .surface-soft {
     @apply rounded-3xl border backdrop-blur-2xl;
-    border-color: rgb(var(--color-border) / 0.06);
+    border-color: rgb(var(--color-border) / 0.4);
     background:
-      linear-gradient(180deg, rgb(var(--color-surface-elevated) / 0.9), rgb(var(--color-surface) / 0.98));
+      linear-gradient(180deg, rgb(var(--color-surface-elevated) / 0.95), rgb(var(--color-surface) / 1));
     box-shadow: var(--shadow-card-hover);
   }
 
@@ -169,6 +169,22 @@
 .leaflet-container .leaflet-control-attribution {
   @apply rounded-tl-lg text-[10px];
   background-color: rgb(var(--color-surface) / 0.84);
+  color: rgb(var(--color-text-muted));
+}
+
+.leaflet-container .leaflet-control-attribution a {
+  color: rgb(var(--color-text-secondary));
+}
+
+.leaflet-bar a,
+.leaflet-bar a:hover {
+  background-color: rgb(var(--color-surface-elevated));
+  color: rgb(var(--color-text-primary));
+  border-bottom-color: rgb(var(--color-border) / 0.6) !important;
+}
+
+.leaflet-bar a.leaflet-disabled {
+  background-color: rgb(var(--color-surface-elevated));
   color: rgb(var(--color-text-muted));
 }
 

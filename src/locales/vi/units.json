@@ -28,5 +28,9 @@
     "items": "Hoạt động",
     "duration": "Thời lượng",
     "cost": "Chi phí"
+  },
+  "detail": {
+    "itemsHeading": "Hoạt động ({{count}})",
+    "inferredLabel": "(dự kiến)"
   }
 }

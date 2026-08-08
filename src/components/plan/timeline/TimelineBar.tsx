@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { PointerEvent as ReactPointerEvent } from "react";
+import { useTranslation } from "../../../i18n/useAppTranslation";
 
 // Thanh trên gantt giờ chỉ là 1 khối màu (tên/giờ đã hiện ở cột nhãn bên trái + popover
 // khi hover) — bỏ hẳn phần render chữ trong thanh, đơn giản hoá hẳn logic "hẹp quá thì
@@ -42,6 +43,7 @@ export default function TimelineBar({
   onClick,
   title,
 }: TimelineBarProps) {
+  const { t } = useTranslation("planDetail");
   const showHandles =
     Boolean(onPointerDownStart || onPointerDownEnd) && !preview && width >= HANDLE_MIN_WIDTH;
 
@@ -65,15 +67,15 @@ export default function TimelineBar({
       {showHandles && (
         <span
           onPointerDown={onPointerDownStart}
-          className="absolute inset-y-0 left-0 w-2 cursor-ew-resize rounded-l-lg bg-black/12 opacity-0 transition group-hover/bar:opacity-100"
-          aria-label="Kéo để đổi giờ bắt đầu"
+          className="absolute inset-y-0 left-0 w-2 cursor-ew-resize rounded-l-lg bg-white/25 opacity-0 transition group-hover/bar:opacity-100"
+          aria-label={t("planDetail:timeline.dragStartHandle")}
         />
       )}
       {showHandles && (
         <span
           onPointerDown={onPointerDownEnd}
-          className="absolute inset-y-0 right-0 w-2 cursor-ew-resize rounded-r-lg bg-black/12 opacity-0 transition group-hover/bar:opacity-100"
-          aria-label="Kéo để đổi giờ kết thúc"
+          className="absolute inset-y-0 right-0 w-2 cursor-ew-resize rounded-r-lg bg-white/25 opacity-0 transition group-hover/bar:opacity-100"
+          aria-label={t("planDetail:timeline.dragEndHandle")}
         />
       )}
     </div>

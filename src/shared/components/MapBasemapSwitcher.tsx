@@ -1,7 +1,13 @@
 import { useEffect, useRef } from "react";
 import L from "leaflet";
 import { Layers } from "lucide-react";
+import { useTranslation } from "../../i18n/useAppTranslation";
 import { BASEMAPS, type BasemapKey } from "../map/basemaps";
+
+const LABEL_KEY: Record<BasemapKey, string> = {
+  voyager: "locations:map.basemapVoyager",
+  satellite: "locations:map.basemapSatellite",
+};
 
 export interface MapBasemapSwitcherProps {
   value: BasemapKey;
@@ -10,6 +16,7 @@ export interface MapBasemapSwitcherProps {
 }
 
 export default function MapBasemapSwitcher({ value, onChange, className }: MapBasemapSwitcherProps) {
+  const { t } = useTranslation("locations");
   const ref = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -22,7 +29,7 @@ export default function MapBasemapSwitcher({ value, onChange, className }: MapBa
   return (
     <div
       ref={ref}
-      className={`pointer-events-auto flex items-center gap-0.5 rounded-full bg-surface-elevated/88 p-1 shadow-pop backdrop-blur ${className ?? ""}`}
+      className={`pointer-events-auto flex items-center gap-0.5 rounded-full border border-border bg-surface-elevated p-1 shadow-pop backdrop-blur ${className ?? ""}`}
     >
       <span className="pl-2 pr-1 text-text-muted">
         <Layers className="h-3.5 w-3.5" />
@@ -38,7 +45,7 @@ export default function MapBasemapSwitcher({ value, onChange, className }: MapBa
               : "text-text-secondary hover:bg-surface-secondary hover:text-text-primary"
           }`}
         >
-          {BASEMAPS[key].label}
+          {t(LABEL_KEY[key])}
         </button>
       ))}
     </div>

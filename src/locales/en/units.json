@@ -28,5 +28,9 @@
     "items": "Activities",
     "duration": "Duration",
     "cost": "Cost"
+  },
+  "detail": {
+    "itemsHeading": "Activities ({{count}})",
+    "inferredLabel": "(estimated)"
   }
 }

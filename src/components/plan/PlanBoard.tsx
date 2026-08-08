@@ -22,6 +22,7 @@ import {
   Sparkles,
   Wallet,
 } from "lucide-react";
+import { useTranslation } from "../../i18n/useAppTranslation";
 import Badge from "../../shared/components/Badge";
 import Button from "../../shared/components/Button";
 import Input from "../../shared/components/Input";
@@ -86,6 +87,7 @@ export default function PlanBoard({
   onEditItem,
   onDeleteItem,
 }: PlanBoardProps) {
+  const { t } = useTranslation(["planDetail", "items"]);
   const [mode, setMode] = useState<BoardMode>("unit");
   const [activeId, setActiveId] = useState<Id | null>(null);
   const [librarySearch, setLibrarySearch] = useState("");
@@ -112,10 +114,10 @@ export default function PlanBoard({
   // cần kéo (kéo ngang qua chục lane rất cực), luôn dùng được ở cả 2 chế độ.
   const moveTargets = useMemo<MoveTarget[]>(
     () => [
-      { id: LIBRARY_LANE, name: "Kho hoạt động", isLibrary: true },
+      { id: LIBRARY_LANE, name: t("planDetail:board.library"), isLibrary: true },
       ...planUnits.map((unit, index) => ({ id: unit.id, name: `${index + 1}. ${unit.name}` })),
     ],
-    [planUnits]
+    [planUnits, t]
   );
 
   const laneSortIds = useMemo(() => planUnits.map((u) => LANE_SORT_PREFIX + u.id), [planUnits]);
@@ -184,7 +186,7 @@ export default function PlanBoard({
                 label: (
                   <span className="flex items-center gap-1.5 px-1 font-medium">
                     <RouteIcon className="h-3.5 w-3.5" />
-                    Sắp chặng
+                    {t("planDetail:board.modeUnit")}
                   </span>
                 ),
               },
@@ -193,17 +195,17 @@ export default function PlanBoard({
                 label: (
                   <span className="flex items-center gap-1.5 px-1 font-medium">
                     <Sparkles className="h-3.5 w-3.5" />
-                    Sắp hoạt động
+                    {t("planDetail:board.modeItem")}
                   </span>
                 ),
               },
             ]}
           />
           <Badge tone="brand" icon={RouteIcon} numeric>
-            {totals.unitCount} chặng
+            {t("planDetail:board.unitCountBadge", { count: totals.unitCount })}
           </Badge>
           <Badge tone="violet" icon={Sparkles} numeric>
-            {totals.itemCount} hoạt động
+            {t("planDetail:timeline.itemsCount", { count: totals.itemCount })}
           </Badge>
           {totals.cost > 0 && (
             <Badge tone="emerald" icon={Wallet} numeric>
@@ -213,20 +215,17 @@ export default function PlanBoard({
         </div>
 
         <Button icon={<Plus className="h-4 w-4" />} onClick={onCreateUnit}>
-          Chặng mới (chi tiết)
+          {t("planDetail:board.addUnitDetailed")}
         </Button>
       </div>
 
       <p className="mb-3 text-xs text-text-muted">
-        {mode === "unit"
-          ? "Kéo tay cầm ở đầu mỗi chặng để đổi thứ tự. Hoạt động đang khoá — đổi chặng cho nó bằng nút “Chuyển tới…” trên từng thẻ."
-          : "Kéo hoạt động giữa các chặng hoặc lên xuống trong 1 chặng để sắp thứ tự. Chặng đang khoá, quay lại “Sắp chặng” để đổi thứ tự chặng."}
+        {mode === "unit" ? t("planDetail:board.dragHintUnitMode") : t("planDetail:board.dragHintItemMode")}
       </p>
 
       {!hasLocations && (
         <p className="mb-4 rounded-2xl bg-warning/12 px-3.5 py-2.5 text-xs text-warning shadow-xs ring-1 ring-inset ring-warning/16">
-          Chưa có địa điểm nào — hoạt động tạo ở đây sẽ chưa gắn địa điểm. Thêm địa điểm ở trang Địa
-          điểm rồi sửa lại hoạt động khi cần.
+          {t("planDetail:board.missingLocationsWarning")}
         </p>
       )}
 
@@ -269,7 +268,7 @@ export default function PlanBoard({
                       size="small"
                       value={librarySearch}
                       onChange={(e) => setLibrarySearch(e.target.value)}
-                      placeholder="Tìm hoạt động..."
+                      placeholder={t("items:searchPlaceholder")}
                       prefix={<Search className="h-3.5 w-3.5 text-text-muted" />}
                       allowClear
                     />
@@ -300,7 +299,7 @@ export default function PlanBoard({
               <div className="w-[232px] rotate-1 cursor-grabbing rounded-2xl border border-primary/16 bg-surface-elevated/96 px-3 py-2.5 shadow-pop backdrop-blur-sm">
                 <p className="truncate text-[13px] font-bold text-text-primary">{activeUnit.name}</p>
                 <p className="mt-0.5 text-[11px] text-text-muted tnum">
-                  {(itemsByUnit.get(activeUnit.id) ?? []).length} hoạt động
+                  {t("planDetail:timeline.itemsCount", { count: (itemsByUnit.get(activeUnit.id) ?? []).length })}
                 </p>
               </div>
             )}
@@ -319,6 +318,7 @@ interface AddUnitLaneProps {
 }
 
 function AddUnitLane({ freeUnits, onAddUnit, onQuickCreateUnit }: AddUnitLaneProps) {
+  const { t } = useTranslation("planDetail");
   const [name, setName] = useState("");
   const [creating, setCreating] = useState(false);
 
@@ -333,9 +333,9 @@ function AddUnitLane({ freeUnits, onAddUnit, onQuickCreateUnit }: AddUnitLanePro
 
   return (
     <section className="flex max-h-[calc(100vh-15rem)] w-[248px] shrink-0 flex-col rounded-2xl border border-dashed border-border/16 bg-surface-secondary/56 p-3 shadow-card">
-      <h3 className="text-[13px] font-bold text-text-primary">Thêm chặng</h3>
+      <h3 className="text-[13px] font-bold text-text-primary">{t("planDetail:board.addUnitTitle")}</h3>
       <p className="mt-0.5 text-[11px] leading-relaxed text-text-muted">
-        Nhập tên để tạo nhanh, hoặc chọn một chặng đã có sẵn.
+        {t("planDetail:board.addUnitHint")}
       </p>
 
       <div className="mt-3 flex gap-1.5">
@@ -344,7 +344,7 @@ function AddUnitLane({ freeUnits, onAddUnit, onQuickCreateUnit }: AddUnitLanePro
           value={name}
           onChange={(e) => setName(e.target.value)}
           onPressEnter={submit}
-          placeholder="VD: Ngày 3 - Đà Lạt"
+          placeholder={t("planDetail:board.addUnitPlaceholder")}
         />
         <Button
           size="small"
@@ -352,14 +352,14 @@ function AddUnitLane({ freeUnits, onAddUnit, onQuickCreateUnit }: AddUnitLanePro
           loading={creating}
           onClick={submit}
           icon={<Plus className="h-3.5 w-3.5" />}
-          aria-label="Tạo chặng"
+          aria-label={t("planDetail:board.addUnitAriaLabel")}
         />
       </div>
 
       {freeUnits.length > 0 && (
         <>
           <p className="mt-4 shrink-0 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
-            Chặng chưa gắn kế hoạch ({freeUnits.length})
+            {t("planDetail:board.freeUnitsHeading", { count: freeUnits.length })}
           </p>
           <div className="scroll-thin mt-2 flex-1 space-y-1.5 overflow-y-auto pr-0.5">
             {freeUnits.map((unit) => (

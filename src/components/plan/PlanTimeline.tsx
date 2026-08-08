@@ -19,6 +19,8 @@ import {
   Clock,
   GripVertical,
   Inbox,
+  Maximize2,
+  Minimize2,
   MoreHorizontal,
   Pencil,
   Plus,
@@ -32,6 +34,7 @@ import {
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
+import { useTranslation } from "../../i18n/useAppTranslation";
 import Badge from "../../shared/components/Badge";
 import EmptyState from "../../shared/components/EmptyState";
 import IconButton from "../../shared/components/IconButton";
@@ -184,7 +187,9 @@ export default function PlanTimeline({
   onViewUnit,
   onViewItem,
 }: PlanTimelineProps) {
+  const { t } = useTranslation(["planDetail"]);
   const [zoom, setZoom] = useState<number | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [expanded, setExpanded] = useState<Set<Id>>(() => new Set());
   const [expensesExpanded, setExpensesExpanded] = useState(true);
   const [panelOpen, setPanelOpen] = useState(
@@ -200,6 +205,15 @@ export default function PlanTimeline({
   const unitParkingRef = useRef<HTMLDivElement | null>(null);
   const itemParkingRef = useRef<HTMLDivElement | null>(null);
   const expenseParkingRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!isFullscreen) return;
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setIsFullscreen(false);
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isFullscreen]);
 
   const hasWindow = Boolean(plan?.start_date && plan?.end_date);
   const scale = useMemo(
@@ -459,8 +473,8 @@ export default function PlanTimeline({
       <div className="animate-fade-up">
         <EmptyState
           icon={CalendarClock}
-          title="Kế hoạch chưa có khoảng thời gian"
-          hint="Đặt ngày bắt đầu và kết thúc cho kế hoạch (nút Sửa thông tin ở trên) để xếp lịch cho từng chặng."
+          title={t("planDetail:timeline.noWindowTitle")}
+          hint={t("planDetail:timeline.noWindowHint")}
         />
       </div>
     );
@@ -490,7 +504,13 @@ export default function PlanTimeline({
   );
 
   return (
-    <div className="animate-fade-up space-y-4">
+    <div
+      className={
+        isFullscreen
+          ? "fixed inset-0 z-[100] space-y-4 overflow-auto bg-background p-4 sm:p-6"
+          : "animate-fade-up space-y-4"
+      }
+    >
       <UnscheduledPanel
         open={panelOpen}
         onToggle={() => setPanelOpen((v) => !v)}
@@ -558,13 +578,13 @@ export default function PlanTimeline({
             {formatDateTimeRange(scale.origin, scale.end.subtract(1, "minute"))}
           </Badge>
           <Badge icon={CalendarClock} numeric>
-            {dayCount(plan?.start_date, plan?.end_date)} ngày
+            {t("planDetail:timeline.dayCount", { count: dayCount(plan?.start_date, plan?.end_date) })}
           </Badge>
           <Badge tone={unscheduledUnits.length > 0 ? "amber" : "emerald"} icon={RouteIcon} numeric>
-            {scheduledRows.length}/{planUnits.length} chặng đã xếp
+            {t("planDetail:timeline.unitsScheduled", { scheduled: scheduledRows.length, total: planUnits.length })}
           </Badge>
           <Badge tone="violet" icon={Sparkles} numeric>
-            {totals.itemCount} hoạt động
+            {t("planDetail:timeline.itemsCount", { count: totals.itemCount })}
           </Badge>
           {totals.minutes > 0 && (
             <Badge icon={Clock} numeric>
@@ -581,7 +601,7 @@ export default function PlanTimeline({
             <IconButton
               icon={ZoomOut}
               onClick={() => changeZoom(-1)}
-              aria-label="Thu nhỏ"
+              aria-label={t("planDetail:timeline.zoomOut")}
               disabled={(zoom ?? ZOOM_DEFAULT) <= ZOOM_MIN}
             />
             <Slider
@@ -590,31 +610,40 @@ export default function PlanTimeline({
               step={ZOOM_STEP}
               value={zoom ?? ZOOM_DEFAULT}
               onChange={(value) => setZoom(clampZoom(value))}
-              tooltip={{ formatter: (value) => `${value ?? 0}px/giờ` }}
+              tooltip={{ formatter: (value) => t("planDetail:timeline.pxPerHour", { value: value ?? 0 }) }}
               className="!my-0 w-28 shrink-0"
             />
             <IconButton
               icon={ZoomIn}
               onClick={() => changeZoom(1)}
-              aria-label="Phóng to"
+              aria-label={t("planDetail:timeline.zoomIn")}
               disabled={(zoom ?? ZOOM_DEFAULT) >= ZOOM_MAX}
             />
             <span className="w-16 shrink-0 text-right text-[11px] text-text-muted tnum">
-              {scale.pxPerHour}px/giờ
+              {t("planDetail:timeline.pxPerHour", { value: scale.pxPerHour })}
             </span>
+            <IconButton
+              icon={isFullscreen ? Minimize2 : Maximize2}
+              onClick={() => setIsFullscreen((v) => !v)}
+              aria-label={isFullscreen ? t("planDetail:timeline.fullscreenExit") : t("planDetail:timeline.fullscreenEnter")}
+              title={isFullscreen ? t("planDetail:timeline.fullscreenExitHint") : t("planDetail:timeline.fullscreenEnter")}
+            />
           </div>
         </div>
 
         {rows.length === 0 && scheduledExpenses.length === 0 ? (
           <p className="px-5 py-10 text-center text-sm text-text-muted">
             {planUnits.length === 0
-              ? "Kế hoạch chưa có chặng nào — thêm ở tab Xây dựng."
-              : "Chưa có chặng nào lên lịch — kéo 1 chặng từ panel phía trên vào."}
+              ? t("planDetail:timeline.emptyNoUnits")
+              : t("planDetail:timeline.emptyNotScheduled")}
           </p>
         ) : (
           // Cuộn cả 2 chiều trong CÙNG 1 khung: nhờ vậy cột nhãn dính trái và hàng
           // ngày/giờ dính trên đều bám theo đúng như gantt thường thấy.
-          <div ref={scrollRef} className="scroll-thin max-h-[68vh] overflow-auto">
+          <div
+            ref={scrollRef}
+            className={`scroll-thin overflow-auto ${isFullscreen ? "max-h-[calc(100vh-220px)]" : "max-h-[68vh]"}`}
+          >
             <div className="flex" style={{ width: LABEL_WIDTH + scale.width }}>
               {/* --------------------------------------------------- cột nhãn */}
               <div
@@ -866,10 +895,11 @@ export default function PlanTimeline({
                                     clippedRight={itemClamped.clippedRight}
                                     title={
                                       isUndated
-                                        ? `${item.name} · Kéo để đặt giờ`
-                                        : `${item.name} · ${
-                                            formatDateTimeRange(itemLive.start, itemLive.end) ?? ""
-                                          }${inferred ? " (giờ dự kiến)" : ""}`
+                                        ? t("planDetail:timeline.undatedItemTitle", { name: item.name })
+                                        : t("planDetail:timeline.datedItemTitle", {
+                                            name: item.name,
+                                            range: formatDateTimeRange(itemLive.start, itemLive.end) ?? "",
+                                          }) + (inferred ? t("planDetail:timeline.inferredTimeSuffix") : "")
                                     }
                                     onClick={() => {
                                       if (!wasDraggedRef.current) onViewItem(item);
@@ -1238,6 +1268,7 @@ function UnitLabel({
   onDelete,
   onCreateItem,
 }: UnitLabelProps) {
+  const { t } = useTranslation(["planDetail", "units"]);
   return (
     <div
       className={`group flex items-center gap-0.5 border-b border-border/10 pl-1 pr-1 transition-colors ${
@@ -1245,12 +1276,12 @@ function UnitLabel({
       }`}
       style={{ height: UNIT_ROW_HEIGHT }}
     >
-      <ReorderGrip onPointerDown={onReorderStart} label="Kéo để đổi thứ tự chặng" />
+      <ReorderGrip onPointerDown={onReorderStart} label={t("planDetail:board.dragToReorder")} />
       <button
         type="button"
         onClick={onToggle}
         className="shrink-0 rounded p-0.5 text-text-muted transition hover:bg-surface-elevated/60 hover:text-text-primary"
-        aria-label={expanded ? "Thu gọn hoạt động" : "Xem hoạt động"}
+        aria-label={expanded ? t("planDetail:timeline.collapseItems") : t("planDetail:timeline.expandItems")}
       >
         {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
       </button>
@@ -1261,7 +1292,7 @@ function UnitLabel({
           <span className="text-text-muted tnum">{order}.</span> {unit.name}
         </p>
         <p className="truncate text-[10px] text-text-muted tnum">
-          {itemCount} hoạt động
+          {t("planDetail:timeline.itemsCount", { count: itemCount })}
           {unit.unit_type ? ` · ${unit.unit_type.name}` : ""}
         </p>
       </button>
@@ -1274,19 +1305,19 @@ function UnitLabel({
             {
               key: "edit",
               icon: <Pencil className="h-4 w-4" />,
-              label: "Sửa chặng",
+              label: t("planDetail:board.editUnit"),
               onClick: onEdit,
             },
             {
               key: "add-item",
               icon: <Plus className="h-4 w-4" />,
-              label: "Thêm hoạt động",
+              label: t("planDetail:board.addItem"),
               onClick: onCreateItem,
             },
             {
               key: "remove",
               icon: <Unlink className="h-4 w-4" />,
-              label: "Gỡ khỏi kế hoạch",
+              label: t("planDetail:board.removeFromPlan"),
               onClick: onRemove,
             },
             { type: "divider" },
@@ -1294,13 +1325,13 @@ function UnitLabel({
               key: "delete",
               danger: true,
               icon: <Trash2 className="h-4 w-4" />,
-              label: "Xoá chặng",
+              label: t("planDetail:deleteUnit.confirm"),
               onClick: onDelete,
             },
           ],
         }}
       >
-        <IconButton size="sm" icon={MoreHorizontal} aria-label="Tuỳ chọn chặng" />
+        <IconButton size="sm" icon={MoreHorizontal} aria-label={t("planDetail:board.laneOptions")} />
       </Dropdown>
     </div>
   );
@@ -1332,6 +1363,7 @@ function ItemLabel({
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const { t } = useTranslation(["planDetail", "items"]);
   return (
     <div
       data-reorder-group={group}
@@ -1341,7 +1373,7 @@ function ItemLabel({
       }`}
       style={{ height: ITEM_ROW_HEIGHT }}
     >
-      <ReorderGrip onPointerDown={onReorderStart} label="Kéo để đổi thứ tự hoạt động" />
+      <ReorderGrip onPointerDown={onReorderStart} label={t("planDetail:timeline.reorderItemAria")} />
       <span
         className={`h-1.5 w-1.5 shrink-0 rounded-full ${color.dot}`}
         style={{ opacity: ITEM_DOT_OPACITY[priceShadeIndex(item.price, maxPrice)] }}
@@ -1354,8 +1386,14 @@ function ItemLabel({
         <span className="text-text-muted tnum">{order}.</span> {item.name}
       </button>
       <span className="flex shrink-0 gap-0.5 opacity-0 transition group-hover:opacity-100 focus-within:opacity-100">
-        <IconButton size="sm" tone="brand" icon={Pencil} onClick={onEdit} aria-label="Sửa hoạt động" />
-        <IconButton size="sm" tone="danger" icon={Trash2} onClick={onDelete} aria-label="Xoá hoạt động" />
+        <IconButton size="sm" tone="brand" icon={Pencil} onClick={onEdit} aria-label={t("items:card.edit")} />
+        <IconButton
+          size="sm"
+          tone="danger"
+          icon={Trash2}
+          onClick={onDelete}
+          aria-label={t("planDetail:timeline.deleteItemAria")}
+        />
       </span>
     </div>
   );
@@ -1377,6 +1415,7 @@ function ExpenseGroupLabel({
   expanded: boolean;
   onToggle: () => void;
 }) {
+  const { t } = useTranslation("planDetail");
   return (
     <div
       className="flex items-center gap-1 border-b border-t-2 border-border/10 border-t-border/16 bg-surface-secondary/42 px-2 pr-1"
@@ -1386,16 +1425,18 @@ function ExpenseGroupLabel({
         type="button"
         onClick={onToggle}
         className="shrink-0 rounded p-0.5 text-text-muted transition hover:bg-surface-elevated/60 hover:text-text-primary"
-        aria-label={expanded ? "Thu gọn chi phí khác" : "Xem chi phí khác"}
+        aria-label={expanded ? t("planDetail:timeline.collapseExpenses") : t("planDetail:timeline.expandExpenses")}
       >
         {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
       </button>
       <Receipt className="h-3.5 w-3.5 shrink-0 text-text-muted" />
 
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[13px] font-semibold text-text-primary">Chi phí khác</p>
+        <p className="truncate text-[13px] font-semibold text-text-primary">
+          {t("planDetail:overview.otherExpenses")}
+        </p>
         <p className="truncate text-[11px] text-text-muted tnum">
-          {scheduledCount}/{count} đã lên lịch
+          {t("planDetail:timeline.expenseGroupScheduled", { scheduled: scheduledCount, count })}
         </p>
       </div>
     </div>
@@ -1413,6 +1454,7 @@ function ExpenseLabel({
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const { t } = useTranslation("planDetail");
   return (
     <div
       className="group flex items-center gap-1.5 border-b border-border/10 bg-surface-secondary/38 pl-8 pr-1"
@@ -1427,8 +1469,14 @@ function ExpenseLabel({
         {expense.name}
       </button>
       <span className="flex shrink-0 gap-0.5 opacity-0 transition group-hover:opacity-100 focus-within:opacity-100">
-        <IconButton size="sm" tone="brand" icon={Pencil} onClick={onEdit} aria-label="Sửa chi phí" />
-        <IconButton size="sm" tone="danger" icon={Trash2} onClick={onDelete} aria-label="Xoá chi phí" />
+        <IconButton size="sm" tone="brand" icon={Pencil} onClick={onEdit} aria-label={t("planDetail:expenses.edit")} />
+        <IconButton
+          size="sm"
+          tone="danger"
+          icon={Trash2}
+          onClick={onDelete}
+          aria-label={t("planDetail:expenses.delete")}
+        />
       </span>
     </div>
   );
@@ -1503,6 +1551,7 @@ function UnscheduledPanel({
   onEditItem,
   onEditExpense,
 }: UnscheduledPanelProps) {
+  const { t } = useTranslation(["planDetail", "items"]);
   return (
     <section className="surface overflow-hidden">
       <button
@@ -1511,10 +1560,13 @@ function UnscheduledPanel({
         className="flex w-full items-center gap-2 px-4 py-3 text-left transition hover:bg-surface-elevated/48"
       >
         <Inbox className="h-4 w-4 text-text-muted" />
-        <span className="text-[13px] font-bold text-text-primary">Chưa xếp lịch</span>
+        <span className="text-[13px] font-bold text-text-primary">{t("planDetail:timeline.unscheduledTitle")}</span>
         <span className="text-xs text-text-muted tnum">
-          {totalUnscheduledUnits + totalFreeUnits} chặng · {totalLibraryItems} hoạt động ·{" "}
-          {totalExpenses} chi phí
+          {t("planDetail:timeline.unscheduledSummary", {
+            units: totalUnscheduledUnits + totalFreeUnits,
+            items: totalLibraryItems,
+            expenses: totalExpenses,
+          })}
         </span>
         {open ? (
           <ChevronUp className="ml-auto h-4 w-4 text-text-muted" />
@@ -1533,13 +1585,13 @@ function UnscheduledPanel({
           >
             <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-text-secondary">
               <RouteIcon className="h-3.5 w-3.5" />
-              Chặng chưa xếp
+              {t("planDetail:timeline.unscheduledUnitsHeading")}
             </div>
             <Input
               size="small"
               value={unitSearch}
               onChange={(e) => onUnitSearchChange(e.target.value)}
-              placeholder="Tìm chặng..."
+              placeholder={t("planDetail:timeline.searchUnitsPlaceholder")}
               prefix={<Search className="h-3.5 w-3.5 text-text-muted" />}
               allowClear
               className="mb-2.5"
@@ -1548,7 +1600,7 @@ function UnscheduledPanel({
               items={unscheduledUnits}
               keyOf={(u) => u.id}
               resetKey={unitSearch}
-              emptyHint="Mọi chặng đều đã có giờ."
+              emptyHint={t("planDetail:timeline.allUnitsScheduled")}
               renderItem={(unit) => {
                 const stats = unitStats(itemsByUnit.get(unit.id) ?? [], unit.break_minutes);
                 return (
@@ -1567,13 +1619,13 @@ function UnscheduledPanel({
             {freeUnits.length > 0 && (
               <>
                 <p className="mb-2 mt-4 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
-                  Chặng chưa gắn kế hoạch nào ({freeUnits.length})
+                  {t("planDetail:timeline.freeUnitsHeading", { count: freeUnits.length })}
                 </p>
                 <ScrollRevealList
                   items={freeUnits}
                   keyOf={(u) => u.id}
                   resetKey={unitSearch}
-                  emptyHint="Không có chặng nào."
+                  emptyHint={t("planDetail:timeline.noFreeUnits")}
                   renderItem={(unit) => {
                     const stats = unitStats(itemsByUnit.get(unit.id) ?? [], unit.break_minutes);
                     return (
@@ -1599,13 +1651,13 @@ function UnscheduledPanel({
           >
             <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-text-secondary">
               <Sparkles className="h-3.5 w-3.5" />
-              Hoạt động chưa gắn chặng
+              {t("planDetail:timeline.unassignedItemsHeading")}
             </div>
             <Input
               size="small"
               value={itemSearch}
               onChange={(e) => onItemSearchChange(e.target.value)}
-              placeholder="Tìm hoạt động..."
+              placeholder={t("items:searchPlaceholder")}
               prefix={<Search className="h-3.5 w-3.5 text-text-muted" />}
               allowClear
               className="mb-2.5"
@@ -1614,7 +1666,7 @@ function UnscheduledPanel({
               items={libraryItems}
               keyOf={(i) => i.id}
               resetKey={itemSearch}
-              emptyHint="Mọi hoạt động đều đã gắn chặng."
+              emptyHint={t("planDetail:timeline.allItemsAssigned")}
               renderItem={(item) => (
                 <LibraryItemCard
                   item={item}
@@ -1633,13 +1685,13 @@ function UnscheduledPanel({
           >
             <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-text-secondary">
               <Receipt className="h-3.5 w-3.5" />
-              Chi phí chưa xếp lịch
+              {t("planDetail:timeline.unscheduledExpensesHeading")}
             </div>
             <Input
               size="small"
               value={expenseSearch}
               onChange={(e) => onExpenseSearchChange(e.target.value)}
-              placeholder="Tìm chi phí..."
+              placeholder={t("planDetail:timeline.searchExpensesPlaceholder")}
               prefix={<Search className="h-3.5 w-3.5 text-text-muted" />}
               allowClear
               className="mb-2.5"
@@ -1648,7 +1700,7 @@ function UnscheduledPanel({
               items={expenses}
               keyOf={(e) => e.id}
               resetKey={expenseSearch}
-              emptyHint="Mọi chi phí đều đã có giờ (hoặc chưa có khoản nào)."
+              emptyHint={t("planDetail:timeline.allExpensesScheduled")}
               renderItem={(expense) => (
                 <UnscheduledExpenseCard
                   expense={expense}
@@ -1680,6 +1732,7 @@ interface ScrollRevealListProps<T> {
  * tới cuối — không gọi thêm request nào.
  */
 function ScrollRevealList<T>({ items, keyOf, resetKey, renderItem, emptyHint }: ScrollRevealListProps<T>) {
+  const { t } = useTranslation("planDetail");
   const [count, setCount] = useState(REVEAL_STEP);
   useEffect(() => setCount(REVEAL_STEP), [resetKey]);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -1713,7 +1766,7 @@ function ScrollRevealList<T>({ items, keyOf, resetKey, renderItem, emptyHint }: 
       ))}
       {count < items.length && (
         <div ref={sentinelRef} className="py-1 text-center text-[10px] text-text-muted">
-          Cuộn để xem thêm…
+          {t("planDetail:timeline.scrollForMore")}
         </div>
       )}
     </div>
@@ -1741,6 +1794,7 @@ interface UnscheduledUnitCardProps {
 }
 
 function UnscheduledUnitCard({ unit, color, itemCount, cost, onPointerDown, onEdit }: UnscheduledUnitCardProps) {
+  const { t } = useTranslation(["planDetail", "units"]);
   return (
     <div
       onPointerDown={onPointerDown}
@@ -1760,14 +1814,14 @@ function UnscheduledUnitCard({ unit, color, itemCount, cost, onPointerDown, onEd
           onClick={onEdit}
           // Chặn pointerdown để bấm nút sửa không bị hiểu nhầm thành bắt đầu kéo thẻ.
           onPointerDown={(event) => event.stopPropagation()}
-          aria-label="Sửa chặng"
+          aria-label={t("units:card.edit")}
           className="opacity-0 transition group-hover:opacity-100"
         />
       </div>
 
       <div className="mt-1.5 flex flex-wrap items-center gap-1 pl-5">
         <Badge size="sm" numeric>
-          {itemCount} hoạt động
+          {t("planDetail:timeline.itemsCount", { count: itemCount })}
         </Badge>
         <Badge size="sm" tone="brand" icon={Clock} numeric>
           {formatDuration(unitDurationMinutes(unit)) ?? "—"}
@@ -1784,6 +1838,7 @@ interface LibraryItemCardProps {
 }
 
 function LibraryItemCard({ item, onPointerDown, onEdit }: LibraryItemCardProps) {
+  const { t } = useTranslation(["planDetail", "items"]);
   const duration = formatDuration(itemDurationMinutes(item));
 
   return (
@@ -1803,7 +1858,7 @@ function LibraryItemCard({ item, onPointerDown, onEdit }: LibraryItemCardProps) 
           icon={Pencil}
           onClick={onEdit}
           onPointerDown={(event) => event.stopPropagation()}
-          aria-label="Sửa hoạt động"
+          aria-label={t("items:card.edit")}
           className="opacity-0 transition group-hover:opacity-100"
         />
       </div>
@@ -1816,7 +1871,7 @@ function LibraryItemCard({ item, onPointerDown, onEdit }: LibraryItemCardProps) 
         )}
         {item.locations?.length > 0 && (
           <Badge size="sm" numeric>
-            {item.locations.length} địa điểm
+            {t("planDetail:overview.locationsCount", { count: item.locations.length })}
           </Badge>
         )}
       </div>
@@ -1832,6 +1887,7 @@ interface UnscheduledExpenseCardProps {
 }
 
 function UnscheduledExpenseCard({ expense, color, onPointerDown, onEdit }: UnscheduledExpenseCardProps) {
+  const { t } = useTranslation("planDetail");
   return (
     <div
       onPointerDown={onPointerDown}
@@ -1850,7 +1906,7 @@ function UnscheduledExpenseCard({ expense, color, onPointerDown, onEdit }: Unsch
           icon={Pencil}
           onClick={onEdit}
           onPointerDown={(event) => event.stopPropagation()}
-          aria-label="Sửa chi phí"
+          aria-label={t("planDetail:expenses.edit")}
           className="opacity-0 transition group-hover:opacity-100"
         />
       </div>

@@ -1,6 +1,7 @@
 import type { ReactElement, ReactNode } from "react";
 import { Popover } from "antd";
 import { CalendarClock, Clock, MapPin, Sparkles, Wallet } from "lucide-react";
+import { useTranslation } from "../../../i18n/useAppTranslation";
 import Badge from "../../../shared/components/Badge";
 import { formatDateTimeRange, formatDuration, formatPrice } from "../../../shared/utils/format";
 import type { TimeRange } from "../../../shared/utils/schedule";
@@ -29,6 +30,7 @@ export function UnitPopoverContent({
   stats: UnitStats;
   range: TimeRange;
 }) {
+  const { t } = useTranslation("planDetail");
   return (
     <div className="space-y-2">
       <div>
@@ -47,7 +49,7 @@ export function UnitPopoverContent({
 
       <div className="flex flex-wrap items-center gap-1.5">
         <Badge size="sm" icon={Sparkles} numeric>
-          {stats.itemCount} hoạt động
+          {t("planDetail:timeline.itemsCount", { count: stats.itemCount })}
         </Badge>
         {stats.minutes > 0 && (
           <Badge size="sm" icon={Clock} numeric>
@@ -75,6 +77,7 @@ export function ItemPopoverContent({
   range: TimeRange;
   inferred: boolean;
 }) {
+  const { t } = useTranslation("units");
   const thumb = item.locations?.find((l) => l.images?.length)?.images?.[0];
 
   return (
@@ -92,7 +95,7 @@ export function ItemPopoverContent({
         <p className="flex items-center gap-1.5 text-xs text-text-secondary">
           <CalendarClock className="h-3.5 w-3.5 shrink-0 text-text-muted" />
           <span className="tnum">{formatDateTimeRange(range.start, range.end)}</span>
-          {inferred && <span className="text-text-muted">(dự kiến)</span>}
+          {inferred && <span className="text-text-muted">{t("units:detail.inferredLabel")}</span>}
         </p>
 
         {item.locations?.length > 0 && (

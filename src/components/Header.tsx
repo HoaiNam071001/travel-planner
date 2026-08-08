@@ -44,8 +44,8 @@ export default function Header({
 
   return (
     <header className="sticky top-0 z-40">
-      <div className="relative px-4 pt-4 sm:px-6 xl:px-8">
-        <div className="flex h-[72px] items-center justify-between gap-4 rounded-2xl border border-border/60 bg-surface-elevated/92 px-4 shadow-xs backdrop-blur-md sm:px-5">
+      <div className="relative px-4 pt-3 sm:px-6 xl:px-7">
+        <div className="flex h-16 items-center justify-between gap-4 rounded-2xl border border-border/60 bg-surface-elevated/92 px-4 shadow-xs backdrop-blur-md sm:px-5">
           <div className="flex min-w-0 items-center gap-3">
             <button
               type="button"

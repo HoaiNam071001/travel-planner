@@ -1,4 +1,8 @@
 {
+  "durationUnit": {
+    "hours": "hrs",
+    "minutes": "min"
+  },
   "plan": {
     "createTitle": "New plan",
     "editTitle": "Edit plan",

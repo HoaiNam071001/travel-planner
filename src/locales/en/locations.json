@@ -30,7 +30,8 @@
     "searchArea": "Could not search nearby locations: {{message}}",
     "delete": "Could not delete the location: {{message}}",
     "save": "Could not save changes: {{message}}",
-    "create": "Could not create the location: {{message}}"
+    "create": "Could not create the location: {{message}}",
+    "resolveShortLink": "Could not resolve the short link."
   },
   "card": {
     "focus": "Focus on map",
@@ -38,5 +39,21 @@
     "delete": "Delete",
     "deleteTitle": "Delete this location?",
     "noDescription": "No description yet"
+  },
+  "detail": {
+    "openInGoogleMaps": "Open in Google Maps",
+    "noImages": "No images yet."
+  },
+  "map": {
+    "basemapVoyager": "Light",
+    "basemapSatellite": "Satellite",
+    "searchArea": "Search this area ({{radius}})",
+    "searching": "Searching...",
+    "pinCoordinate": "Pin any coordinate (lat/lng)",
+    "latPlaceholder": "Latitude",
+    "lngPlaceholder": "Longitude",
+    "showOnMap": "Show on map",
+    "fullscreenEnter": "Fullscreen",
+    "fullscreenExit": "Exit fullscreen"
   }
 }

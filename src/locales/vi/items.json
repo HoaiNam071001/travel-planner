@@ -31,5 +31,10 @@
     "deleteTitle": "Xoá hoạt động này?",
     "moreLocations": "+{{count}} địa điểm",
     "noUnit": "Chưa gắn chặng nào"
+  },
+  "detail": {
+    "unassignedUnit": "Chưa gắn chặng",
+    "locationsHeading": "Địa điểm ({{count}})",
+    "locationsEmpty": "Hoạt động này chưa gắn địa điểm nào."
   }
 }

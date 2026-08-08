@@ -1,4 +1,5 @@
 import { ExternalLink, Locate, MapPin, Pencil } from "lucide-react";
+import { useTranslation } from "../i18n/useAppTranslation";
 import Modal from "../shared/components/Modal";
 import Button from "../shared/components/Button";
 import Badge from "../shared/components/Badge";
@@ -19,6 +20,7 @@ export default function LocationDetailModal({
   onEdit,
   onFocusMap,
 }: LocationDetailModalProps) {
+  const { t } = useTranslation(["locations", "common"]);
   return (
     <Modal
       open={open}
@@ -27,7 +29,7 @@ export default function LocationDetailModal({
       footer={
         location && (
           <div className="flex justify-end gap-2">
-            <Button onClick={onClose}>Đóng</Button>
+            <Button onClick={onClose}>{t("common:actions.close")}</Button>
             {onFocusMap && (
               <Button
                 icon={<Locate className="h-4 w-4" />}
@@ -36,7 +38,7 @@ export default function LocationDetailModal({
                   onClose();
                 }}
               >
-                Soi trên bản đồ
+                {t("locations:card.focus")}
               </Button>
             )}
             <Button
@@ -44,7 +46,7 @@ export default function LocationDetailModal({
               icon={<Pencil className="h-4 w-4" />}
               onClick={() => onEdit(location)}
             >
-              Sửa
+              {t("locations:card.edit")}
             </Button>
           </div>
         )
@@ -62,7 +64,7 @@ export default function LocationDetailModal({
               rel="noreferrer"
               className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
             >
-              Mở trên Google Maps
+              {t("locations:detail.openInGoogleMaps")}
               <ExternalLink className="h-3 w-3" />
             </a>
           </div>
@@ -83,7 +85,7 @@ export default function LocationDetailModal({
               ))}
             </div>
           ) : (
-            <p className="mt-4 text-xs text-slate-400">Chưa có ảnh.</p>
+            <p className="mt-4 text-xs text-text-muted">{t("locations:detail.noImages")}</p>
           )}
         </div>
       )}

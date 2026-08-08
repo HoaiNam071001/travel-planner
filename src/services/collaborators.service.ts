@@ -1,3 +1,4 @@
+import i18n from "../i18n";
 import { supabase } from "../lib/supabaseClient";
 import { TABLES } from "../shared/constants/tables";
 import type { Id, PlanCollaborator } from "../shared/types/models";
@@ -19,7 +20,7 @@ export async function inviteCollaborator(
   email: string
 ): Promise<QueryResult<PlanCollaborator>> {
   const trimmed = email.trim();
-  if (!trimmed) return { data: null, error: new Error("Cần nhập email.") };
+  if (!trimmed) return { data: null, error: new Error(i18n.t("planDetail:share.emailRequired")) };
 
   const { data: matches, error: lookupError } = await supabase.rpc("find_user_id_by_email", {
     target_email: trimmed,
@@ -30,9 +31,7 @@ export async function inviteCollaborator(
   if (!match) {
     return {
       data: null,
-      error: new Error(
-        "Không tìm thấy tài khoản với email này — người đó cần đăng nhập ứng dụng ít nhất 1 lần trước."
-      ),
+      error: new Error(i18n.t("planDetail:share.accountNotFound")),
     };
   }
 
@@ -45,7 +44,7 @@ export async function inviteCollaborator(
   if (error) {
     // Vi phạm unique (plan_id, user_id) — đã mời người này rồi.
     if (error.code === "23505") {
-      return { data: null, error: new Error("Người này đã được mời rồi.") };
+      return { data: null, error: new Error(i18n.t("planDetail:share.alreadyInvited")) };
     }
     return { data: null, error };
   }

@@ -31,5 +31,10 @@
     "deleteTitle": "Delete this activity?",
     "moreLocations": "+{{count}} locations",
     "noUnit": "Not assigned to a segment"
+  },
+  "detail": {
+    "unassignedUnit": "Not assigned",
+    "locationsHeading": "Locations ({{count}})",
+    "locationsEmpty": "This activity has no locations yet."
   }
 }

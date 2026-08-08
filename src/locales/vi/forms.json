@@ -1,4 +1,8 @@
 {
+  "durationUnit": {
+    "hours": "giờ",
+    "minutes": "phút"
+  },
   "plan": {
     "createTitle": "Kế hoạch mới",
     "editTitle": "Sửa kế hoạch",

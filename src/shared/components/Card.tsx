@@ -10,8 +10,8 @@ export default function Card({ children, className = "", elevated = false, ...pr
     <div
       className={`rounded-3xl border ${
         elevated
-          ? "border-border/12 bg-surface-elevated/95 shadow-card-hover"
-          : "border-border/10 bg-surface/92 shadow-card"
+          ? "border-border/50 bg-surface-elevated shadow-card-hover"
+          : "border-border/40 bg-surface/97 shadow-card"
       } ${className}`}
       {...props}
     >

@@ -1,3 +1,4 @@
+import i18n from "../i18n";
 import { supabase } from "../lib/supabaseClient";
 
 interface ResolveMapsLinkResponse {
@@ -19,7 +20,7 @@ export async function resolveShortMapsLink(url: string): Promise<ResolveMapsLink
   );
 
   if (error) {
-    return { error: error.message ?? "Không giải mã được link rút gọn." };
+    return { error: error.message ?? i18n.t("locations:errors.resolveShortLink") };
   }
   if (data?.error) {
     return { error: data.error };
